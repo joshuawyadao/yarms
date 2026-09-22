@@ -4,6 +4,13 @@ require 'xcodeproj'
 
 root = File.expand_path('..', __dir__)
 path = File.join(root, 'Yarms.xcodeproj')
+
+def set_scheme_executable(scheme, app)
+  runnable = Xcodeproj::XCScheme::BuildableProductRunnable.new(app)
+  scheme.launch_action.buildable_product_runnable = runnable
+  scheme.profile_action.buildable_product_runnable = Xcodeproj::XCScheme::BuildableProductRunnable.new(app)
+end
+
 if File.exist?(File.join(path, 'project.pbxproj'))
   project = Xcodeproj::Project.open(path)
   {
@@ -23,6 +30,10 @@ if File.exist?(File.join(path, 'project.pbxproj'))
     end
   end
   project.save
+  scheme_path = File.join(path, 'xcshareddata', 'xcschemes', 'Yarms.xcscheme')
+  scheme = Xcodeproj::XCScheme.new(scheme_path)
+  set_scheme_executable(scheme, project.targets.find { |target| target.name == 'Yarms' })
+  scheme.save_as(path, 'Yarms', true)
   puts "Updated #{path} without replacing existing target identifiers"
   exit
 end
@@ -113,5 +124,6 @@ project.save
 scheme = Xcodeproj::XCScheme.new
 scheme.add_build_target(app)
 scheme.add_test_target(tests)
+set_scheme_executable(scheme, app)
 scheme.save_as(path, 'Yarms', true)
 puts "Generated #{path}"
