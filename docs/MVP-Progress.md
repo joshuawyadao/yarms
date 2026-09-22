@@ -3,8 +3,8 @@
 | Milestone | State | Branch | PR | Gates / next step |
 | --- | --- | --- | --- | --- |
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
-| 2. Saving and library | Second feedback fix validated locally | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Push fix; await fresh Codex review and both required checks, then merge |
-| 3. Player and notes | Pending | — | — | Start after milestone 2 merges |
+| 2. Saving and library | Merged into `main` at `ea01404` | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Final Codex review complete with no findings; CI Verify and Repository Verify passed |
+| 3. Player and notes | PR review and CI running | `feat/workout-player-notes` | [#3](https://github.com/joshuawyadao/yarms/pull/3) | Codex review, CI Verify, and mergeability must clear before merge |
 | 4. Backup and polish | Pending | — | — | Start after milestone 3 merges; verify final `main` |
 
 The active goal remains open until every PR is reviewed, green, merged, and the final app build and relevant tests pass.
@@ -21,3 +21,7 @@ The active goal remains open until every PR is reviewed, green, merged, and the 
 - PR #2 feedback fix: resolved workouts with the same video ID now coalesce into the earliest saved record, retaining available metadata. Two new regression cases pass; the local simulator suite is 18/18.
 - PR #2 Codex re-review of `86c9f07`: found that an in-flight metadata result for a removed duplicate ID can be dropped. Both required CI checks passed on this head. The late-result fix and fresh review are pending. An earlier re-review attempt failed with a Git ref lookup error and was retried; the successful review found this issue.
 - PR #2 second feedback fix: late enrichment now locates the surviving workout by resolved video ID when its original record ID was coalesced away. The regression test passes; local simulator tests are 19/19.
+- PR #2 final `a95980e` review found no further issues; both checks passed, GitHub reported a clean merge, and the PR was squash-merged at `ea01404`.
+- Milestone 3 integrated validation: 27 simulator tests pass, including player messages and notes migration. A signed simulator app loaded an invented workout from its App Group container. Live player controls could not be exercised through the locked Mac; they remain on the signed-iPhone checklist.
+- PR #3 Brooks review: 100/100 with no actionable findings. The review sampled the player bridge, notes persistence, and tests across 12 related changed files; generated Xcode project wiring was excluded. The official player protocol is isolated in one bridge, and new storage behavior has regression tests. Live TikTok playback still requires signed-iPhone validation.
+- PR #3 Codex review of `5078a6b` flagged player time events. TikTok's published table documents duration in `onCurrentTime`, but the review reports a ready-event duration shape. The bridge now accepts both and accepts current-time events without duration; focused and full simulator tests pass (28/28), as does repository verification. A fresh review is needed after the fix is pushed.
