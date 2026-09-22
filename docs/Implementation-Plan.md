@@ -1,20 +1,20 @@
 # Plan
 
-Set up Yarms as a clear, safe public home for an early-stage personal iPhone app that organizes saved TikTok workouts and supports following along. Match the public repository conventions used in the owner's other projects while avoiding claims about software that has not been built.
+Build the first reviewable Yarms iPhone milestone: an installable SwiftUI shell that receives a shared TikTok link without typing, stores it immediately in a local App Group inbox, and opens the official embedded player. Establish an iOS build and test gate before adding the full library in the next milestone.
 
 ## Scope
-- In: public-facing repository documentation, contribution and security policies, issue and pull-request templates, a minimal repository verification gate, and relevant GitHub repository settings.
-- Out: iPhone application features, TikTok integration, app distribution, and access to personal workout data.
+- In: Xcode app and share extension targets, approved app icon, TikTok URL parsing, atomic shared inbox, paste fallback, early embedded-player validation, unit tests, CI build/test, and developer/device-check documentation.
+- Out: oEmbed enrichment, searchable library, workout notes, backup/export, account integration, and post downloads; these belong to later milestones.
 
 ## Action items
-[x] Confirm the empty repository state, current GitHub settings, and reusable public-repository conventions.
-[x] Add a concise README that explains the idea, early status, public purpose, privacy expectations, and contribution path.
-[x] Add an MIT license, code of conduct, contribution and security policies, and a protective `.gitignore`.
-[x] Add focused issue forms and a pull-request template suitable for an early-stage iPhone app.
-[x] Add a small, dependency-free repository check and GitHub Actions workflow; use fixture-free checks because there is no executable app behavior yet.
-[x] Verify links, policy consistency, secret exclusions, and the local repository check; no application test files are needed until application code exists.
-[x] Set available GitHub metadata and protective settings to match the other public repositories, then verify the public page and workflow. The first `Repository Verify` run succeeded on GitHub.
-[x] Commit the finished setup and push `main` to the existing GitHub repository. This final documentation checkpoint records the verified GitHub settings.
+[ ] Add a reproducible Xcode project with app, share extension, shared core, unit tests, App Group entitlements, and the approved icon.
+[ ] Implement TikTok URL recognition and an atomic file inbox that can accept shared links before the main app launches.
+[ ] Implement the share extension's automatic URL capture and the app's paste-link fallback and pending-link display.
+[ ] Validate the official TikTok embedded player in a SwiftUI screen with an Open in TikTok fallback.
+[ ] Add unit tests for accepted/rejected links and inbox persistence, including duplicate and malformed inputs.
+[ ] Update the README and focused architecture/device-verification docs for the current milestone and remaining MVP roadmap.
+[ ] Extend CI to run repository verification plus an iOS simulator build and unit tests; run the same checks locally where available.
+[ ] Review edge cases around unavailable App Group containers, share input types, embed availability, and simulator-only behavior.
 
 ## Open questions
-- None. The project purpose was supplied by the owner; MIT follows the license used by the owner's other public repositories.
+- None. Use iOS 18 as the minimum OS, local-only storage, and an App Group shared by the app and extension; verify the actual iOS share sheet and TikTok playback on a device during release testing.
