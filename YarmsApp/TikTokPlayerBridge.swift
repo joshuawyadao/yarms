@@ -3,9 +3,9 @@ import Foundation
 import WebKit
 
 enum TikTokPlayerEvent: Equatable {
-    case ready
+    case ready(duration: Double?)
     case state(Int)
-    case time(current: Double, duration: Double)
+    case time(current: Double, duration: Double?)
     case error
 
     static func parse(_ body: Any, fromMainFrame: Bool) -> TikTokPlayerEvent? {
@@ -18,22 +18,26 @@ enum TikTokPlayerEvent: Equatable {
 
         switch type {
         case "onPlayerReady":
-            return .ready
+            let value = message["value"] as? [String: Any]
+            return .ready(duration: validSeconds(value?["duration"]))
         case "onStateChange":
             guard let state = message["value"] as? Int, (-1...3).contains(state) else { return nil }
             return .state(state)
         case "onCurrentTime":
             guard let value = message["value"] as? [String: Any],
-                  let current = (value["currentTime"] as? NSNumber)?.doubleValue,
-                  let duration = (value["duration"] as? NSNumber)?.doubleValue,
-                  current.isFinite, duration.isFinite,
-                  current >= 0, duration >= 0 else { return nil }
-            return .time(current: current, duration: duration)
+                  let current = validSeconds(value["currentTime"]) else { return nil }
+            return .time(current: current, duration: validSeconds(value["duration"]))
         case "onPlayerError", "onError":
             return .error
         default:
             return nil
         }
+    }
+
+    private static func validSeconds(_ value: Any?) -> Double? {
+        guard let seconds = (value as? NSNumber)?.doubleValue,
+              seconds.isFinite, seconds >= 0 else { return nil }
+        return seconds
     }
 }
 
@@ -123,14 +127,15 @@ final class TikTokPlayerController: NSObject, ObservableObject, WKScriptMessageH
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             switch event {
-            case .ready:
+            case .ready(let duration):
                 self.isReady = true
+                if let duration { self.duration = duration }
             case .state(let state):
                 self.isPlaying = state == 1
                 if state == 0 { self.currentTime = self.duration }
             case .time(let current, let duration):
-                self.duration = duration
-                self.currentTime = min(current, duration)
+                if let duration { self.duration = duration }
+                self.currentTime = self.duration > 0 ? min(current, self.duration) : current
             case .error:
                 self.hasError = true
                 self.isPlaying = false

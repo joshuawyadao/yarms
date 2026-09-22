@@ -8,10 +8,20 @@ final class PlayerBridgeTests: XCTestCase {
         let time = envelope(type: "onCurrentTime",
                             value: ["currentTime": 12.5, "duration": 40.0])
 
-        XCTAssertEqual(TikTokPlayerEvent.parse(ready, fromMainFrame: true), .ready)
+        XCTAssertEqual(TikTokPlayerEvent.parse(ready, fromMainFrame: true), .ready(duration: nil))
         XCTAssertEqual(TikTokPlayerEvent.parse(playing, fromMainFrame: true), .state(1))
         XCTAssertEqual(TikTokPlayerEvent.parse(time, fromMainFrame: true),
                        .time(current: 12.5, duration: 40))
+    }
+
+    func testDurationFromReadyAndCurrentTimeWithoutDuration() {
+        let ready = envelope(type: "onPlayerReady", value: ["duration": 40.0])
+        let time = envelope(type: "onCurrentTime", value: ["currentTime": 12.5])
+
+        XCTAssertEqual(TikTokPlayerEvent.parse(ready, fromMainFrame: true),
+                       .ready(duration: 40))
+        XCTAssertEqual(TikTokPlayerEvent.parse(time, fromMainFrame: true),
+                       .time(current: 12.5, duration: nil))
     }
 
     func testForeignAndChildFrameMessagesAreIgnored() {
@@ -26,7 +36,7 @@ final class PlayerBridgeTests: XCTestCase {
     func testMalformedPlayerTimeIsIgnored() {
         let negative = envelope(type: "onCurrentTime",
                                 value: ["currentTime": -1.0, "duration": 40.0])
-        let missing = envelope(type: "onCurrentTime", value: ["currentTime": 5.0])
+        let missing = envelope(type: "onCurrentTime", value: ["duration": 40.0])
 
         XCTAssertNil(TikTokPlayerEvent.parse(negative, fromMainFrame: true))
         XCTAssertNil(TikTokPlayerEvent.parse(missing, fromMainFrame: true))

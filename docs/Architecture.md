@@ -10,7 +10,7 @@ The SwiftUI app and UIKit share extension both compile `YarmsCore`. They use the
 
 ## Workout screen
 
-The workout screen places TikTok's official iframe player first and keeps an explicit Open in TikTok action nearby. A local HTML host relays TikTok's documented [player messages](https://developers.tiktok.com/docs/en/embed-player) through a WebKit message handler. It accepts player events only from TikTok's HTTPS origin and the host's main frame, then exposes play, pause, ten-second seek, and replay controls. TikTok's own player controls remain enabled. An unavailable post still offers the external fallback. Optional notes are stored in the same on-device workout record; the notes editor uses an explicit Save action and opens automatically when a note exists.
+The workout screen places TikTok's official iframe player first and keeps an explicit Open in TikTok action nearby. A local HTML host relays TikTok's documented [player messages](https://developers.tiktok.com/docs/en/embed-player) through a WebKit message handler. It accepts player events only from TikTok's HTTPS origin and the host's main frame, and tolerates duration arriving in either the ready or current-time event. It exposes play, pause, ten-second seek, and replay controls. TikTok's own player controls remain enabled. An unavailable post still offers the external fallback. Optional notes are stored in the same on-device workout record; the notes editor uses an explicit Save action and opens automatically when a note exists.
 
 ## Device checks before release
 

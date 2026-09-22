@@ -19,5 +19,5 @@ Turn a saved workout into a video-first follow-along screen. Use TikTok's docume
 - None. Use the official player rather than downloading video, and keep notes optional and on device.
 
 ## PR #3 review follow-up
-- [ ] Accept duration in either the ready or current-time event, and accept a current-time event that omits duration; preserve validation of malformed numbers.
-- [ ] Cover both event shapes with focused tests, run the full simulator suite and repository verification, then push the fix and request a new Codex review.
+- [x] Accept duration in either the ready or current-time event, and accept a current-time event that omits duration; preserve validation of malformed numbers.
+- [x] Cover both event shapes with focused tests and run the full simulator suite and repository verification. Push the fix and request a new Codex review next.
