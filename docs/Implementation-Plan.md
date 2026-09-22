@@ -1,24 +1,21 @@
 # Plan
 
-Build the first reviewable Yarms iPhone milestone: an installable SwiftUI shell that receives a shared TikTok link without typing, stores it immediately in a local App Group inbox, and opens the official embedded player. Establish an iOS build and test gate before adding the full library in the next milestone.
+Turn the foundation's shared-link inbox into a durable, searchable local workout library. Persist each link before any network request, resolve supported TikTok short links, and enrich saved workouts through oEmbed while retaining usable entries when network or metadata fails.
 
 ## Scope
-- In: Xcode app and share extension targets, approved app icon, TikTok URL parsing, atomic shared inbox, paste fallback, early embedded-player validation, unit tests, CI build/test, and developer/device-check documentation.
-- Out: oEmbed enrichment, searchable library, workout notes, backup/export, account integration, and post downloads; these belong to later milestones.
+- In: local workout records, inbox import and duplicate handling, metadata and short-link resolution, searchable library UI with thumbnails and paste fallback, tests and documentation.
+- Out: workout notes, custom playback controls, export/import, account sync, and video downloads.
 
 ## Action items
-[x] Add a reproducible Xcode project with app, share extension, shared core, unit tests, App Group entitlements, and the approved icon.
-[x] Implement TikTok URL recognition and an atomic file inbox that can accept shared links before the main app launches.
-[x] Implement the share extension's automatic URL capture and the app's paste-link fallback and pending-link display.
-[x] Validate the official TikTok embedded player in a SwiftUI screen with an Open in TikTok fallback. The simulator launch displayed the app; live playback remains a device check.
-[x] Add unit tests for accepted/rejected links and inbox persistence, including duplicate and malformed inputs. Five simulator tests pass.
-[x] Update the README and focused architecture/device-verification docs for the current milestone and remaining MVP roadmap.
-[x] Extend CI to run repository verification plus an iOS simulator build and unit tests; local build, tests, and repository verification pass.
-[x] Review edge cases around unavailable App Group containers, share input types, embed availability, and simulator-only behavior. Document device checks in `docs/Architecture.md`.
-[x] Address Brooks review's multi-URL share concern: scan every URL in shared text so a valid TikTok link is saved even when another link appears first; add a regression test and rerun the simulator suite. Six tests pass.
-[x] Address Codex review's scheme launch concern: set the Yarms app as the shared scheme's Run and Profile executable, verify the generated scheme, then rerun build and tests. The scheme regression check and six simulator tests pass.
-[x] Address Codex review's inline playback concern: configure the iPhone web view for inline media and rerun app build and tests; keep live playback in the device checklist. Six simulator tests pass after clearing a conflicting ad-hoc simulator installation.
-[x] Address Codex review's extension version concern: use build-setting substitutions in the extension plist, inspect the built bundle values, and rerun relevant checks. The app and extension both build with version 1.0 (1); repository verification passes.
+[x] Inspect the merged foundation source, docs, and tests; create a fresh branch from latest `main`.
+[x] Add a versioned on-device workout store that imports each inbox file idempotently and removes it only after an atomic library save.
+[x] Add short-link resolution and TikTok oEmbed metadata fetching with safe URL validation and graceful network failure.
+[x] Replace the pending-link shell with a searchable library that displays available thumbnail, creator, and title; keep paste saving immediate and preserve Open in TikTok.
+[x] Add focused tests for inbox import, duplicate links, corrupt/missing metadata, URL resolution, search, and offline fallback.
+[x] Update README, architecture, progress, and implementation docs; run simulator build, tests, and repository verification.
+[x] Review privacy, redirect hosts, race/crash recovery, empty and failed-network states before PR review.
+[x] Address PR #2 Codex feedback: collapse rows that resolve to the same video ID, preserving the earliest saved workout and any available metadata; add regression tests.
+[x] Address second Codex finding: preserve metadata returned for a duplicate workout ID after that record was coalesced into the surviving video ID.
 
 ## Open questions
-- None. Use iOS 18 as the minimum OS, local-only storage, and an App Group shared by the app and extension; verify the actual iOS share sheet and TikTok playback on a device during release testing.
+- None. Keep all personal workout data on device and preserve the original shared link even if enrichment fails.

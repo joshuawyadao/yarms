@@ -1,0 +1,13 @@
+[
+  {
+    "date": "2026-09-22",
+    "mode": "PR Review",
+    "score": 100,
+    "findings": {
+      "critical": 0,
+      "warning": 0,
+      "suggestion": 0
+    },
+    "scope": "PR #2 branch changes vs main; 12 related files, generated Xcode project wiring skipped"
+  }
+]
