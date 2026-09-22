@@ -3,9 +3,9 @@
 [![Repository Verify](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml/badge.svg)](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Yarms is an early-stage personal iPhone app idea for saving TikTok workouts and following along with them in one organized place.
+Yarms is a personal iPhone app for saving TikTok workouts and following along with them in one organized place.
 
-> **Status:** Planning and repository setup. There is no usable app, release, or supported TikTok integration yet.
+> **Status:** The foundation milestone is in progress. The app can receive TikTok links through a share extension or paste action and try the official embedded player. Library search, metadata, notes, and backup are upcoming milestones; no release is available yet.
 
 ## Why this repository is public
 
@@ -13,7 +13,7 @@ This repository makes the product direction and future development reviewable fr
 
 ## Intended experience
 
-The goal is to give a person one place to collect workouts they find on TikTok, organize them, and follow a workout without losing their place. The exact save flow, playback behavior, data model, and supported iPhone versions have not been decided.
+Share a TikTok workout to Yarms, or paste its link in the app. Yarms saves the link locally without an account. Canonical video links open in TikTok's embedded player; short links currently use the Open in TikTok fallback. See the [MVP roadmap](docs/MVP-Roadmap.md) for the staged feature work.
 
 ## Privacy and security
 
@@ -25,13 +25,17 @@ GitHub secret scanning, push protection, Dependabot security updates, and privat
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. The [issue forms](.github/ISSUE_TEMPLATE/) and [pull request template](.github/pull_request_template.md) ask for clear outcomes and privacy considerations.
 
-The current repository check is:
+Open `Yarms.xcodeproj` with Xcode. The app targets iOS 18 or later. A developer team with the `group.com.joshuawyadao.yarms` App Group is needed for a signed device build; the CI simulator build disables code signing. See [architecture and device checks](docs/Architecture.md).
+
+The local checks are:
 
 ```sh
 ./scripts/verify-repository.sh
+xcodebuild -project Yarms.xcodeproj -scheme Yarms -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project Yarms.xcodeproj -scheme Yarms -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO test
 ```
 
-It uses Git and Python's standard library. Application tests and build instructions will be added when application code exists.
+Choose an available iPhone simulator for the test command. CI runs repository verification, simulator build, and unit tests.
 
 ## License
 

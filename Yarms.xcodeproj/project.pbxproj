@@ -1,0 +1,649 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C7AA7240F6814F3B924BF8B /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 576DB3998EBF777B0C0751F8 /* SharedInbox.swift */; };
+		1693CB766AB197CCAC002460 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 757FBB9EDF95ED5E71ABC01D /* Foundation.framework */; };
+		1F79C0993C3A851488C5F2E8 /* TikTokLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1CD8D1E0866F31C62A9ACF /* TikTokLink.swift */; };
+		252F1709496E9E751F028D7F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 757FBB9EDF95ED5E71ABC01D /* Foundation.framework */; };
+		7E04A21B7E89176CC58CBC2A /* EmbeddedPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6BA23DA70566BF0D8D9AB1E /* EmbeddedPlayerView.swift */; };
+		85BDFE072771CC23EE219565 /* LibraryShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF97A28B418A46FD8C5CF7C /* LibraryShellView.swift */; };
+		89DFAFDB0188800B6B5D2CEE /* TikTokLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1CD8D1E0866F31C62A9ACF /* TikTokLink.swift */; };
+		A47118DBECC70A62B19F9234 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A324C32D46BEE1B46AC31B7 /* ShareViewController.swift */; };
+		AA74075084B8A1C4835C18D5 /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 576DB3998EBF777B0C0751F8 /* SharedInbox.swift */; };
+		C4413E485D99248430D15968 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 94F340F06679EFBC33AA0D15 /* Assets.xcassets */; };
+		D8CE4930B6E978C16126C782 /* YarmsShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 765C6D79099091D3D70AB646 /* YarmsShare.appex */; };
+		D930A3A63CC021476DC35239 /* FoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFFCDC4B9D60B677BB57254F /* FoundationTests.swift */; };
+		F1F143EA46D1A2072235A8B8 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 757FBB9EDF95ED5E71ABC01D /* Foundation.framework */; };
+		F97A10F74DE44A371CA80706 /* YarmsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBC773CF3C01F9B299F8DDB7 /* YarmsApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2B2B3A7004007F6DF19DA50B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 62C52A498221FF00A8E0AB40 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 779D7B2F47A30530600BCFC2;
+			remoteInfo = YarmsShare;
+		};
+		AF921FCA61A7BC8613AC4175 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 62C52A498221FF00A8E0AB40 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AEC32027E5244E2F6140A4F7;
+			remoteInfo = Yarms;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2177F8CC75521B632CAB9F7D /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D8CE4930B6E978C16126C782 /* YarmsShare.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		038B2BE5C7D5D334E2A1F3DE /* Yarms.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yarms.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A324C32D46BEE1B46AC31B7 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		576DB3998EBF777B0C0751F8 /* SharedInbox.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SharedInbox.swift; sourceTree = "<group>"; };
+		5CF97A28B418A46FD8C5CF7C /* LibraryShellView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LibraryShellView.swift; sourceTree = "<group>"; };
+		757FBB9EDF95ED5E71ABC01D /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS14.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		765C6D79099091D3D70AB646 /* YarmsShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = YarmsShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7F1CD8D1E0866F31C62A9ACF /* TikTokLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TikTokLink.swift; sourceTree = "<group>"; };
+		94F340F06679EFBC33AA0D15 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BDD8C19B71AE048FEFEF05F7 /* Yarms.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Yarms.entitlements; sourceTree = "<group>"; };
+		D6BA23DA70566BF0D8D9AB1E /* EmbeddedPlayerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmbeddedPlayerView.swift; sourceTree = "<group>"; };
+		DA72D22E5E44A430BDA38CE7 /* Yarms.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Yarms.entitlements; sourceTree = "<group>"; };
+		DCBEA501EFE8ADC10141A648 /* YarmsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YarmsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBC773CF3C01F9B299F8DDB7 /* YarmsApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = YarmsApp.swift; sourceTree = "<group>"; };
+		F354B187165EF6AA82BE5B17 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FFFCDC4B9D60B677BB57254F /* FoundationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FoundationTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		88324ED0F29DDA2A444E5B5E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				252F1709496E9E751F028D7F /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A042FC51BAC2C6B87B8FCB89 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1693CB766AB197CCAC002460 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB38E61CFEA534471CC6DE43 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F1F143EA46D1A2072235A8B8 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0A6959B55A9C1615C9D04D36 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				038B2BE5C7D5D334E2A1F3DE /* Yarms.app */,
+				765C6D79099091D3D70AB646 /* YarmsShare.appex */,
+				DCBEA501EFE8ADC10141A648 /* YarmsTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		16F707A9A3CA7F2CDC5F2185 = {
+			isa = PBXGroup;
+			children = (
+				0A6959B55A9C1615C9D04D36 /* Products */,
+				F91820AAED62B110736EB62E /* Frameworks */,
+				B9D1537F1F24B34A71B6D44C /* YarmsApp */,
+				C06B8B2DC54312541F5ED3E7 /* YarmsShare */,
+				42915CF203358AF0D74CEB5F /* YarmsTests */,
+				7870FD7918629A61C10F7C3E /* YarmsCore */,
+				94A17E7F809E437E00822044 /* Assets */,
+			);
+			sourceTree = "<group>";
+		};
+		42915CF203358AF0D74CEB5F /* YarmsTests */ = {
+			isa = PBXGroup;
+			children = (
+				FFFCDC4B9D60B677BB57254F /* FoundationTests.swift */,
+			);
+			name = YarmsTests;
+			path = YarmsTests;
+			sourceTree = "<group>";
+		};
+		734A163027D8798BB507F576 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				757FBB9EDF95ED5E71ABC01D /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		7870FD7918629A61C10F7C3E /* YarmsCore */ = {
+			isa = PBXGroup;
+			children = (
+				576DB3998EBF777B0C0751F8 /* SharedInbox.swift */,
+				7F1CD8D1E0866F31C62A9ACF /* TikTokLink.swift */,
+			);
+			name = YarmsCore;
+			path = YarmsCore;
+			sourceTree = "<group>";
+		};
+		94A17E7F809E437E00822044 /* Assets */ = {
+			isa = PBXGroup;
+			children = (
+				94F340F06679EFBC33AA0D15 /* Assets.xcassets */,
+			);
+			name = Assets;
+			path = Assets;
+			sourceTree = "<group>";
+		};
+		B9D1537F1F24B34A71B6D44C /* YarmsApp */ = {
+			isa = PBXGroup;
+			children = (
+				D6BA23DA70566BF0D8D9AB1E /* EmbeddedPlayerView.swift */,
+				5CF97A28B418A46FD8C5CF7C /* LibraryShellView.swift */,
+				EBC773CF3C01F9B299F8DDB7 /* YarmsApp.swift */,
+				DA72D22E5E44A430BDA38CE7 /* Yarms.entitlements */,
+			);
+			name = YarmsApp;
+			path = YarmsApp;
+			sourceTree = "<group>";
+		};
+		C06B8B2DC54312541F5ED3E7 /* YarmsShare */ = {
+			isa = PBXGroup;
+			children = (
+				0A324C32D46BEE1B46AC31B7 /* ShareViewController.swift */,
+				F354B187165EF6AA82BE5B17 /* Info.plist */,
+				BDD8C19B71AE048FEFEF05F7 /* Yarms.entitlements */,
+			);
+			name = YarmsShare;
+			path = YarmsShare;
+			sourceTree = "<group>";
+		};
+		F91820AAED62B110736EB62E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				734A163027D8798BB507F576 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		779D7B2F47A30530600BCFC2 /* YarmsShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 66DD972E41A587A05299567B /* Build configuration list for PBXNativeTarget "YarmsShare" */;
+			buildPhases = (
+				8745EABE7D0C1BC241BFB168 /* Sources */,
+				88324ED0F29DDA2A444E5B5E /* Frameworks */,
+				2472A574B26F0F23944E4DA2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = YarmsShare;
+			productName = YarmsShare;
+			productReference = 765C6D79099091D3D70AB646 /* YarmsShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		AEC32027E5244E2F6140A4F7 /* Yarms */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B5D7FD1D99D23AC08E28DA9A /* Build configuration list for PBXNativeTarget "Yarms" */;
+			buildPhases = (
+				F8670F0D594793393CF75DCF /* Sources */,
+				AB38E61CFEA534471CC6DE43 /* Frameworks */,
+				1B5CA628E42B1CFF6E403CE5 /* Resources */,
+				2177F8CC75521B632CAB9F7D /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				292A0F3F0ED9BB8C3C5CA641 /* PBXTargetDependency */,
+			);
+			name = Yarms;
+			productName = Yarms;
+			productReference = 038B2BE5C7D5D334E2A1F3DE /* Yarms.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EBE382A7D9B881E44F94C088 /* YarmsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B8EFD0B975FA5499522E7D9B /* Build configuration list for PBXNativeTarget "YarmsTests" */;
+			buildPhases = (
+				9FBE0DA5AC35FC3DE07A3BF3 /* Sources */,
+				A042FC51BAC2C6B87B8FCB89 /* Frameworks */,
+				0AE7645734C2DA923BF2CABF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				848C125D43DF7F45BB483C36 /* PBXTargetDependency */,
+			);
+			name = YarmsTests;
+			productName = YarmsTests;
+			productReference = DCBEA501EFE8ADC10141A648 /* YarmsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		62C52A498221FF00A8E0AB40 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1240;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = A88762B5DB531480D721A6D2 /* Build configuration list for PBXProject "Yarms" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 16F707A9A3CA7F2CDC5F2185;
+			productRefGroup = 0A6959B55A9C1615C9D04D36 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AEC32027E5244E2F6140A4F7 /* Yarms */,
+				779D7B2F47A30530600BCFC2 /* YarmsShare */,
+				EBE382A7D9B881E44F94C088 /* YarmsTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0AE7645734C2DA923BF2CABF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1B5CA628E42B1CFF6E403CE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C4413E485D99248430D15968 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2472A574B26F0F23944E4DA2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8745EABE7D0C1BC241BFB168 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A47118DBECC70A62B19F9234 /* ShareViewController.swift in Sources */,
+				AA74075084B8A1C4835C18D5 /* SharedInbox.swift in Sources */,
+				89DFAFDB0188800B6B5D2CEE /* TikTokLink.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9FBE0DA5AC35FC3DE07A3BF3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D930A3A63CC021476DC35239 /* FoundationTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F8670F0D594793393CF75DCF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E04A21B7E89176CC58CBC2A /* EmbeddedPlayerView.swift in Sources */,
+				85BDFE072771CC23EE219565 /* LibraryShellView.swift in Sources */,
+				F97A10F74DE44A371CA80706 /* YarmsApp.swift in Sources */,
+				0C7AA7240F6814F3B924BF8B /* SharedInbox.swift in Sources */,
+				1F79C0993C3A851488C5F2E8 /* TikTokLink.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		292A0F3F0ED9BB8C3C5CA641 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = YarmsShare;
+			target = 779D7B2F47A30530600BCFC2 /* YarmsShare */;
+			targetProxy = 2B2B3A7004007F6DF19DA50B /* PBXContainerItemProxy */;
+		};
+		848C125D43DF7F45BB483C36 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Yarms;
+			target = AEC32027E5244E2F6140A4F7 /* Yarms */;
+			targetProxy = AF921FCA61A7BC8613AC4175 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0AA8E570CACA4D480091E056 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = YarmsApp/Yarms.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Yarms;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		3821D46BF91E1D6F7B02DF49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms.tests;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Yarms.app/Yarms";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4A85CE02A257D139D665194B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		8A977A67586F781CFFDF8256 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = YarmsShare/Yarms.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = YarmsShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Save to Yarms";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms.share;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		942BF58B3264C615E22A5E83 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		D9034206943EEB064597E99F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms.tests;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Yarms.app/Yarms";
+			};
+			name = Debug;
+		};
+		DFE98092974DAAEBDECB1326 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = YarmsApp/Yarms.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Yarms;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E28DBBEAF06ACE5A197AF3BD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = YarmsShare/Yarms.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = YarmsShare/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Save to Yarms";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms.share;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		66DD972E41A587A05299567B /* Build configuration list for PBXNativeTarget "YarmsShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E28DBBEAF06ACE5A197AF3BD /* Release */,
+				8A977A67586F781CFFDF8256 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A88762B5DB531480D721A6D2 /* Build configuration list for PBXProject "Yarms" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4A85CE02A257D139D665194B /* Debug */,
+				942BF58B3264C615E22A5E83 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B5D7FD1D99D23AC08E28DA9A /* Build configuration list for PBXNativeTarget "Yarms" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0AA8E570CACA4D480091E056 /* Release */,
+				DFE98092974DAAEBDECB1326 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B8EFD0B975FA5499522E7D9B /* Build configuration list for PBXNativeTarget "YarmsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3821D46BF91E1D6F7B02DF49 /* Release */,
+				D9034206943EEB064597E99F /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 62C52A498221FF00A8E0AB40 /* Project object */;
+}
