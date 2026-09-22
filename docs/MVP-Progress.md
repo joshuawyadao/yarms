@@ -5,7 +5,7 @@
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
 | 2. Saving and library | Merged into `main` at `ea01404` | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Final Codex review complete with no findings; CI Verify and Repository Verify passed |
 | 3. Player and notes | Merged into `main` at `b47b658` | `feat/workout-player-notes` | [#3](https://github.com/joshuawyadao/yarms/pull/3) | Final Codex review complete; CI Verify and Repository Verify passed |
-| 4. Backup and polish | In progress | `feat/backup-polish` | Pending | Build export/restore, test, review, merge, then verify final `main` |
+| 4. Backup and polish | PR review and CI running | `feat/backup-polish` | [#4](https://github.com/joshuawyadao/yarms/pull/4) | Codex review, CI Verify, mergeability, then merge and final `main` checks |
 
 The active goal remains open until every PR is reviewed, green, merged, and the final app build and relevant tests pass.
 
@@ -27,3 +27,4 @@ The active goal remains open until every PR is reviewed, green, merged, and the 
 - PR #3 Codex review of `5078a6b` flagged player time events. TikTok's published table documents duration in `onCurrentTime`, but the review reports a ready-event duration shape. The bridge now accepts both and accepts current-time events without duration; focused and full simulator tests pass (28/28), as does repository verification. A fresh review is needed after the fix is pushed.
 - PR #3 final `7057586` Codex review completed with no new findings. CI Verify and Repository Verify passed, GitHub reported a clean merge, and the PR was squash-merged at `b47b658`.
 - Milestone 4 local validation: 38 simulator tests pass, including 10 backup cases for invalid archives, atomic restore, duplicate imports, and note preservation. A signed simulator app and share extension build pass. The signed empty library shows the Restore a backup action and Backup menu; actual Files export/import and live TikTok behavior still require a signed-iPhone check.
+- PR #4 Brooks review: 100/100 with no actionable findings. The sampled review covered backup validation, the atomic additive merge, Files UI, and behavior tests across 11 related changed files; generated Xcode project wiring was excluded. The PR exceeds 500 changed lines, increasing review cost, but the change remains scoped to one backup milestone.
