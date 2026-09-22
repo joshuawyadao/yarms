@@ -4,7 +4,7 @@
 | --- | --- | --- | --- | --- |
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
 | 2. Saving and library | Merged into `main` at `ea01404` | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Final Codex review complete with no findings; CI Verify and Repository Verify passed |
-| 3. Player and notes | Local validation passed | `feat/workout-player-notes` | Pending | Commit and push, then PR review, CI, and merge |
+| 3. Player and notes | PR review and CI running | `feat/workout-player-notes` | [#3](https://github.com/joshuawyadao/yarms/pull/3) | Codex review, CI Verify, and mergeability must clear before merge |
 | 4. Backup and polish | Pending | — | — | Start after milestone 3 merges; verify final `main` |
 
 The active goal remains open until every PR is reviewed, green, merged, and the final app build and relevant tests pass.
@@ -23,3 +23,4 @@ The active goal remains open until every PR is reviewed, green, merged, and the 
 - PR #2 second feedback fix: late enrichment now locates the surviving workout by resolved video ID when its original record ID was coalesced away. The regression test passes; local simulator tests are 19/19.
 - PR #2 final `a95980e` review found no further issues; both checks passed, GitHub reported a clean merge, and the PR was squash-merged at `ea01404`.
 - Milestone 3 integrated validation: 27 simulator tests pass, including player messages and notes migration. A signed simulator app loaded an invented workout from its App Group container. Live player controls could not be exercised through the locked Mac; they remain on the signed-iPhone checklist.
+- PR #3 Brooks review: 100/100 with no actionable findings. The review sampled the player bridge, notes persistence, and tests across 12 related changed files; generated Xcode project wiring was excluded. The official player protocol is isolated in one bridge, and new storage behavior has regression tests. Live TikTok playback still requires signed-iPhone validation.
