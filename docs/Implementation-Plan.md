@@ -8,12 +8,12 @@ Turn a saved workout into a video-first follow-along screen. Use TikTok's docume
 
 ## Action items
 [x] Confirm PR #2 merged, fast-forward `main`, and create a fresh feature branch from the merge commit.
-[ ] Add a narrow host-to-player and player-to-host bridge for TikTok's documented `postMessage` interface; validate origin and message shape.
-[ ] Make the workout screen video-first with easy play/pause, seek, and replay controls plus a persistent Open in TikTok fallback.
-[ ] Add optional local notes to workout records; preserve them if duplicate links coalesce and ensure older library records decode.
-[ ] Test player message parsing and commands, note persistence, backward compatibility, and duplicate-note behavior.
-[ ] Update README, architecture, progress, and device checks; run simulator build, tests, repository verification, and visual inspection.
-[ ] Review error states, playback availability, notes durability, accessibility labels, and privacy before PR review.
+[x] Add a narrow host-to-player and player-to-host bridge for TikTok's documented `postMessage` interface; validate origin and message shape.
+[x] Make the workout screen video-first with easy play/pause, seek, and replay controls plus a persistent Open in TikTok fallback.
+[x] Add optional local notes to workout records; preserve them if duplicate links coalesce and ensure older library records decode.
+[x] Test player message parsing and commands, note persistence, backward compatibility, and duplicate-note behavior.
+[x] Update README, architecture, progress, and device checks; run simulator build, tests, repository verification, and signed-library visual inspection. Record the locked-Mac player-inspection limit.
+[x] Review error states, playback availability, notes durability, accessibility labels, and privacy before PR review.
 
 ## Open questions
 - None. Use the official player rather than downloading video, and keep notes optional and on device.

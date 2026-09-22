@@ -86,22 +86,39 @@ struct WorkoutStore {
     }
 
     private func coalesceDuplicates(in workouts: inout [Workout], for videoID: String) -> Bool {
-        let matches = workouts.filter { $0.playbackLink.videoID == videoID }
-        guard matches.count > 1 else { return false }
-
-        // Keep the first save's identity, and fill its missing details from later saves.
-        var keeper = matches.min {
+        let matches = workouts.filter { $0.playbackLink.videoID == videoID }.sorted {
             $0.savedAt == $1.savedAt
                 ? $0.id.uuidString < $1.id.uuidString
                 : $0.savedAt < $1.savedAt
-        }!
-        for match in matches where match.id != keeper.id {
+        }
+        guard matches.count > 1 else { return false }
+
+        // Keep the first save's identity, and fill its missing details from later saves.
+        var keeper = matches[0]
+        var notes = [String]()
+        for match in matches {
+            if let note = match.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !note.isEmpty, !notes.contains(note) {
+                notes.append(note)
+            }
+            if match.id == keeper.id { continue }
             if keeper.title == nil { keeper.title = match.title }
             if keeper.creator == nil { keeper.creator = match.creator }
             if keeper.thumbnailURL == nil { keeper.thumbnailURL = match.thumbnailURL }
         }
+        keeper.notes = notes.isEmpty ? nil : notes.joined(separator: "\n\n")
         workouts.removeAll { $0.playbackLink.videoID == videoID }
         workouts.append(keeper)
+        return true
+    }
+
+    @discardableResult
+    func updateNotes(_ text: String, for id: UUID) throws -> Bool {
+        var workouts = try load()
+        guard let index = workouts.firstIndex(where: { $0.id == id }) else { return false }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        workouts[index].notes = trimmed.isEmpty ? nil : trimmed
+        try save(workouts)
         return true
     }
 

@@ -8,6 +8,7 @@ struct Workout: Codable, Identifiable, Equatable {
     var title: String? = nil
     var creator: String? = nil
     var thumbnailURL: URL? = nil
+    var notes: String? = nil
 
     var playbackLink: TikTokLink { resolvedLink ?? sourceLink }
 

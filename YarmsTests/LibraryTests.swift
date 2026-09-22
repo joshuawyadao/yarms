@@ -157,6 +157,65 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(workout.creator, "Coach")
         XCTAssertEqual(workout.thumbnailURL?.absoluteString, "https://example.com/cover.jpg")
     }
+
+    func testNotesSaveReloadAndClear() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let entry = try inbox.save(link)
+        try store.importPending()
+
+        XCTAssertTrue(try store.updateNotes("  Three rounds\nRest 30 seconds  \n", for: entry.id))
+        XCTAssertEqual(try store.load().onlyElement?.notes, "Three rounds\nRest 30 seconds")
+
+        XCTAssertTrue(try store.updateNotes(" \n\t ", for: entry.id))
+        XCTAssertNil(try store.load().onlyElement?.notes)
+        XCTAssertFalse(try store.updateNotes("Missing", for: UUID()))
+    }
+
+    func testLibraryRecordWithoutNotesDecodes() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let workout = Workout(id: UUID(), sourceLink: link, savedAt: Date(timeIntervalSince1970: 100))
+        let data = try JSONEncoder().encode(TestLibraryFile(workouts: [workout]))
+        XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("\"notes\""))
+        try data.write(to: container.appendingPathComponent("Library.json"))
+
+        let loaded = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(loaded.id, workout.id)
+        XCTAssertNil(loaded.notes)
+    }
+
+    func testCoalescingKeepsEarliestNoteAndAppendsDistinctLaterNotes() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        var first = Workout(id: UUID(), sourceLink: canonical,
+                            savedAt: Date(timeIntervalSince1970: 100))
+        first.notes = "Warm up"
+        var duplicate = Workout(id: UUID(), sourceLink: canonical,
+                                savedAt: Date(timeIntervalSince1970: 200))
+        duplicate.notes = "Warm up"
+        var later = Workout(id: UUID(), sourceLink: canonical,
+                            savedAt: Date(timeIntervalSince1970: 300))
+        later.notes = "  Add a stretch  "
+        let data = try JSONEncoder().encode(TestLibraryFile(workouts: [later, duplicate, first]))
+        try data.write(to: container.appendingPathComponent("Library.json"))
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil), to: later.id)
+
+        let merged = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(merged.id, first.id)
+        XCTAssertEqual(merged.notes, "Warm up\n\nAdd a stretch")
+    }
+}
+
+private struct TestLibraryFile: Encodable {
+    let schemaVersion = 1
+    let workouts: [Workout]
 }
 
 private extension Array {
