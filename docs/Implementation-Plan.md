@@ -14,7 +14,7 @@ Turn the foundation's shared-link inbox into a durable, searchable local workout
 [x] Add focused tests for inbox import, duplicate links, corrupt/missing metadata, URL resolution, search, and offline fallback.
 [x] Update README, architecture, progress, and implementation docs; run simulator build, tests, and repository verification.
 [x] Review privacy, redirect hosts, race/crash recovery, empty and failed-network states before PR review.
-[ ] Address PR #2 Codex feedback: collapse rows that resolve to the same video ID, preserving the earliest saved workout and any available metadata; add regression tests.
+[x] Address PR #2 Codex feedback: collapse rows that resolve to the same video ID, preserving the earliest saved workout and any available metadata; add regression tests.
 
 ## Open questions
 - None. Keep all personal workout data on device and preserve the original shared link even if enrichment fails.

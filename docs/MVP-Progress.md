@@ -3,7 +3,7 @@
 | Milestone | State | Branch | PR | Gates / next step |
 | --- | --- | --- | --- | --- |
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
-| 2. Saving and library | Addressing Codex feedback | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Deduplicate after short-link resolution, push, request fresh Codex review and CI, then merge |
+| 2. Saving and library | Feedback fix validated locally | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Push the duplicate fix; await fresh Codex review and both required checks, then merge |
 | 3. Player and notes | Pending | — | — | Start after milestone 2 merges |
 | 4. Backup and polish | Pending | — | — | Start after milestone 3 merges; verify final `main` |
 
@@ -18,3 +18,4 @@ The active goal remains open until every PR is reviewed, green, merged, and the 
 - Milestone 2 local validation: 16 simulator tests and repository verification pass. A signed simulator app opens the empty local library with App Group access. The unsigned test build cannot access the App Group directly; store tests use temporary directories.
 - PR #2 Brooks review: 100/100 with no actionable findings. The diff adds over 500 lines across 12 related files (app, tests, and docs), so review size remains a change-propagation signal to watch; generated Xcode project wiring was excluded from the assessment.
 - PR #2 Codex review of `c9f7c03`: found a duplicate-row case when two saved URL forms resolve to the same video. CI Verify and Repository Verify passed on that head. The store fix and a fresh review are pending.
+- PR #2 feedback fix: resolved workouts with the same video ID now coalesce into the earliest saved record, retaining available metadata. Two new regression cases pass; the local simulator suite is 18/18.

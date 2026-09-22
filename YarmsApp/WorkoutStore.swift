@@ -75,7 +75,30 @@ struct WorkoutStore {
                 changed = true
             }
         }
+        if let videoID = workouts[index].playbackLink.videoID {
+            changed = coalesceDuplicates(in: &workouts, for: videoID) || changed
+        }
         if changed { try save(workouts) }
+    }
+
+    private func coalesceDuplicates(in workouts: inout [Workout], for videoID: String) -> Bool {
+        let matches = workouts.filter { $0.playbackLink.videoID == videoID }
+        guard matches.count > 1 else { return false }
+
+        // Keep the first save's identity, and fill its missing details from later saves.
+        var keeper = matches.min {
+            $0.savedAt == $1.savedAt
+                ? $0.id.uuidString < $1.id.uuidString
+                : $0.savedAt < $1.savedAt
+        }!
+        for match in matches where match.id != keeper.id {
+            if keeper.title == nil { keeper.title = match.title }
+            if keeper.creator == nil { keeper.creator = match.creator }
+            if keeper.thumbnailURL == nil { keeper.thumbnailURL = match.thumbnailURL }
+        }
+        workouts.removeAll { $0.playbackLink.videoID == videoID }
+        workouts.append(keeper)
+        return true
     }
 
     func remove(_ id: UUID) throws {

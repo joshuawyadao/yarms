@@ -85,4 +85,51 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(workout.creator, "Coach")
         XCTAssertTrue(workout.matches("core"))
     }
+
+    func testResolvedShortLinkCoalescesWithCanonicalSave() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        try inbox.save(canonical)
+        let shortEntry = try inbox.save(short)
+        XCTAssertEqual(try store.importPending().count, 2)
+
+        try store.applyEnrichment(
+            TikTokEnrichment(
+                resolvedLink: canonical,
+                metadata: TikTokMetadata(title: "Strength", creator: "Coach", thumbnailURL: nil)
+            ),
+            to: shortEntry.id
+        )
+
+        let workout = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(workout.playbackLink.videoID, "123")
+        XCTAssertEqual(workout.title, "Strength")
+        XCTAssertEqual(workout.creator, "Coach")
+    }
+
+    func testTwoShortLinksCoalesceAfterBothResolve() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let first = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMfirst/"))
+        let second = try XCTUnwrap(TikTokLink(text: "https://vm.tiktok.com/ZMsecond/"))
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let firstEntry = try inbox.save(first)
+        let secondEntry = try inbox.save(second)
+        XCTAssertEqual(try store.importPending().count, 2)
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil),
+                                  to: firstEntry.id)
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil),
+                                  to: secondEntry.id)
+
+        let workout = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(workout.playbackLink.videoID, "123")
+        XCTAssertTrue([first, second].contains(workout.sourceLink))
+    }
+}
+
+private extension Array {
+    var onlyElement: Element? { count == 1 ? first : nil }
 }
