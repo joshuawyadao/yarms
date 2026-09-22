@@ -1,0 +1,56 @@
+# Operating system and editor files
+.DS_Store
+.AppleDouble
+.LSOverride
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.template
+*.private.*
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+*.mobileprovision
+*.provisionprofile
+Secrets.xcconfig
+Local.xcconfig
+credentials*.json
+secrets*.json
+
+# Dependencies, caches, and build output
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.build/
+build/
+dist/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcarchive
+*.dSYM
+
+# Personal and generated data
+/local-data/
+/outputs/
+/reports/
+*.sqlite
+*.sqlite3
+*.db
+*.log
+*.tmp
+*.temp
+*.mp4
+*.mov

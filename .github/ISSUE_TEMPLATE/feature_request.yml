@@ -1,0 +1,34 @@
+name: Feature request
+description: Propose a focused outcome for organizing or following workouts.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or user need
+      description: Describe the need before suggesting an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What would someone be able to do?
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Scope and exclusions
+      description: Explain what belongs in this request.
+  - type: textarea
+    id: data
+    attributes:
+      label: Privacy and data implications
+      description: Note account access, workout history, iPhone permissions, storage, network calls, and third-party content.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable behaviors that would demonstrate completion.
