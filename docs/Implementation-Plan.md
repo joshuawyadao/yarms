@@ -1,21 +1,19 @@
 # Plan
 
-Turn the foundation's shared-link inbox into a durable, searchable local workout library. Persist each link before any network request, resolve supported TikTok short links, and enrich saved workouts through oEmbed while retaining usable entries when network or metadata fails.
+Turn a saved workout into a video-first follow-along screen. Use TikTok's documented embedded-player messages for simple playback controls, keep Open in TikTok visible, and store optional notes locally with the workout.
 
 ## Scope
-- In: local workout records, inbox import and duplicate handling, metadata and short-link resolution, searchable library UI with thumbnails and paste fallback, tests and documentation.
-- Out: workout notes, custom playback controls, export/import, account sync, and video downloads.
+- In: official-player host page and bridge, play/pause and short seek controls with state/error feedback, optional saved notes, tests and documentation.
+- Out: video downloads, offline media, accounts, exercise programming, and backup/export (milestone 4).
 
 ## Action items
-[x] Inspect the merged foundation source, docs, and tests; create a fresh branch from latest `main`.
-[x] Add a versioned on-device workout store that imports each inbox file idempotently and removes it only after an atomic library save.
-[x] Add short-link resolution and TikTok oEmbed metadata fetching with safe URL validation and graceful network failure.
-[x] Replace the pending-link shell with a searchable library that displays available thumbnail, creator, and title; keep paste saving immediate and preserve Open in TikTok.
-[x] Add focused tests for inbox import, duplicate links, corrupt/missing metadata, URL resolution, search, and offline fallback.
-[x] Update README, architecture, progress, and implementation docs; run simulator build, tests, and repository verification.
-[x] Review privacy, redirect hosts, race/crash recovery, empty and failed-network states before PR review.
-[x] Address PR #2 Codex feedback: collapse rows that resolve to the same video ID, preserving the earliest saved workout and any available metadata; add regression tests.
-[x] Address second Codex finding: preserve metadata returned for a duplicate workout ID after that record was coalesced into the surviving video ID.
+[x] Confirm PR #2 merged, fast-forward `main`, and create a fresh feature branch from the merge commit.
+[ ] Add a narrow host-to-player and player-to-host bridge for TikTok's documented `postMessage` interface; validate origin and message shape.
+[ ] Make the workout screen video-first with easy play/pause, seek, and replay controls plus a persistent Open in TikTok fallback.
+[ ] Add optional local notes to workout records; preserve them if duplicate links coalesce and ensure older library records decode.
+[ ] Test player message parsing and commands, note persistence, backward compatibility, and duplicate-note behavior.
+[ ] Update README, architecture, progress, and device checks; run simulator build, tests, repository verification, and visual inspection.
+[ ] Review error states, playback availability, notes durability, accessibility labels, and privacy before PR review.
 
 ## Open questions
-- None. Keep all personal workout data on device and preserve the original shared link even if enrichment fails.
+- None. Use the official player rather than downloading video, and keep notes optional and on device.
