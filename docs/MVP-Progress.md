@@ -3,7 +3,7 @@
 | Milestone | State | Branch | PR | Gates / next step |
 | --- | --- | --- | --- | --- |
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
-| 2. Saving and library | Local validation passed | `feat/saving-library-oembed` | Pending | Commit and push, then PR review and CI |
+| 2. Saving and library | PR review and CI pending | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Brooks review complete; wait for Codex review and CI Verify, then address findings and merge |
 | 3. Player and notes | Pending | — | — | Start after milestone 2 merges |
 | 4. Backup and polish | Pending | — | — | Start after milestone 3 merges; verify final `main` |
 
@@ -16,3 +16,4 @@ The active goal remains open until every PR is reviewed, green, merged, and the 
 - PR #1 Codex review: the iPhone web view did not explicitly allow inline media playback. The player now enables it, six local tests pass, and the device checklist calls for live inline-playback validation. CI Verify passed on `4300018`; the addressed comment received a thumbs-up reaction.
 - PR #1 Codex review: the extension plist used fixed version strings. Both versions now inherit build settings; the built app and extension match, and repository verification checks the source plist. The final `f3f5a12` review found no further issues, both checks passed, and the PR was squash-merged.
 - Milestone 2 local validation: 16 simulator tests and repository verification pass. A signed simulator app opens the empty local library with App Group access. The unsigned test build cannot access the App Group directly; store tests use temporary directories.
+- PR #2 Brooks review: 100/100 with no actionable findings. The diff adds over 500 lines across 12 related files (app, tests, and docs), so review size remains a change-propagation signal to watch; generated Xcode project wiring was excluded from the assessment.
