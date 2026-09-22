@@ -55,7 +55,11 @@ struct WorkoutStore {
 
     func applyEnrichment(_ enrichment: TikTokEnrichment, to id: UUID) throws {
         var workouts = try load()
-        guard let index = workouts.firstIndex(where: { $0.id == id }) else { return }
+        let index = workouts.firstIndex(where: { $0.id == id }) ??
+            enrichment.resolvedLink?.videoID.flatMap { videoID in
+                workouts.firstIndex { $0.playbackLink.videoID == videoID }
+            }
+        guard let index else { return }
         var changed = false
         if let resolvedLink = enrichment.resolvedLink, resolvedLink.videoID != nil {
             workouts[index].resolvedLink = resolvedLink

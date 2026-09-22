@@ -3,7 +3,7 @@
 | Milestone | State | Branch | PR | Gates / next step |
 | --- | --- | --- | --- | --- |
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
-| 2. Saving and library | Addressing second Codex finding | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Preserve late metadata after coalescing; test, push, re-review and rerun CI |
+| 2. Saving and library | Second feedback fix validated locally | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Push fix; await fresh Codex review and both required checks, then merge |
 | 3. Player and notes | Pending | — | — | Start after milestone 2 merges |
 | 4. Backup and polish | Pending | — | — | Start after milestone 3 merges; verify final `main` |
 
@@ -20,3 +20,4 @@ The active goal remains open until every PR is reviewed, green, merged, and the 
 - PR #2 Codex review of `c9f7c03`: found a duplicate-row case when two saved URL forms resolve to the same video. CI Verify and Repository Verify passed on that head. The store fix and a fresh review are pending.
 - PR #2 feedback fix: resolved workouts with the same video ID now coalesce into the earliest saved record, retaining available metadata. Two new regression cases pass; the local simulator suite is 18/18.
 - PR #2 Codex re-review of `86c9f07`: found that an in-flight metadata result for a removed duplicate ID can be dropped. Both required CI checks passed on this head. The late-result fix and fresh review are pending. An earlier re-review attempt failed with a Git ref lookup error and was retried; the successful review found this issue.
+- PR #2 second feedback fix: late enrichment now locates the surviving workout by resolved video ID when its original record ID was coalesced away. The regression test passes; local simulator tests are 19/19.

@@ -128,6 +128,35 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(workout.playbackLink.videoID, "123")
         XCTAssertTrue([first, second].contains(workout.sourceLink))
     }
+
+    func testLateMetadataForRemovedDuplicateUpdatesSurvivingWorkout() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let first = try inbox.save(short)
+        let later = try inbox.save(canonical)
+        XCTAssertEqual(try store.importPending().count, 2)
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil),
+                                  to: first.id)
+        XCTAssertEqual(try store.load().onlyElement?.id, first.id)
+
+        try store.applyEnrichment(
+            TikTokEnrichment(
+                resolvedLink: canonical,
+                metadata: TikTokMetadata(title: "Complete workout", creator: "Coach",
+                                         thumbnailURL: URL(string: "https://example.com/cover.jpg"))
+            ),
+            to: later.id
+        )
+
+        let workout = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(workout.id, first.id)
+        XCTAssertEqual(workout.title, "Complete workout")
+        XCTAssertEqual(workout.creator, "Coach")
+        XCTAssertEqual(workout.thumbnailURL?.absoluteString, "https://example.com/cover.jpg")
+    }
 }
 
 private extension Array {
