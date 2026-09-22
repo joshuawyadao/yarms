@@ -8,9 +8,11 @@ cd "$PROJECT_ROOT"
 
 PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
 from pathlib import Path
+import plistlib
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from urllib.parse import unquote
 
 root = Path.cwd()
@@ -26,8 +28,30 @@ required = (
     ".github/ISSUE_TEMPLATE/config.yml",
     ".github/pull_request_template.md",
     ".github/workflows/ci.yml",
+    "Yarms.xcodeproj/xcshareddata/xcschemes/Yarms.xcscheme",
+    "YarmsShare/Info.plist",
 )
 errors = [f"Missing {name}" for name in required if not (root / name).is_file()]
+
+scheme_path = root / "Yarms.xcodeproj/xcshareddata/xcschemes/Yarms.xcscheme"
+if scheme_path.is_file():
+    scheme = ET.parse(scheme_path)
+    for action in ("LaunchAction", "ProfileAction"):
+        runnable = scheme.find(f"./{action}/BuildableProductRunnable/BuildableReference")
+        if runnable is None or runnable.get("BlueprintName") != "Yarms":
+            errors.append(f"{action} must run the Yarms app")
+
+extension_info_path = root / "YarmsShare/Info.plist"
+if extension_info_path.is_file():
+    with extension_info_path.open("rb") as stream:
+        extension_info = plistlib.load(stream)
+    expected_versions = {
+        "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+        "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+    }
+    for key, value in expected_versions.items():
+        if extension_info.get(key) != value:
+            errors.append(f"Extension {key} must inherit {value}")
 
 files = subprocess.check_output(
     ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"]
