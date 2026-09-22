@@ -7,14 +7,22 @@ struct TikTokLink: Codable, Hashable, Identifiable {
     var id: String { url.absoluteString }
 
     init?(text: String) {
-        let candidate: String
-        if let range = text.range(of: #"https?://[^\s<>]+"#, options: .regularExpression) {
-            candidate = String(text[range]).trimmingCharacters(in: CharacterSet(charactersIn: ".,);]"))
-        } else {
-            candidate = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let expression = try? NSRegularExpression(pattern: #"https?://[^\s<>]+"#,
+                                                        options: .caseInsensitive) else { return nil }
+        let wholeText = NSRange(text.startIndex..., in: text)
+        for match in expression.matches(in: text, range: wholeText) {
+            guard let range = Range(match.range, in: text) else { continue }
+            let candidate = String(text[range]).trimmingCharacters(in: CharacterSet(charactersIn: ".,);]\"'"))
+            if let link = Self(urlString: candidate) {
+                self = link
+                return
+            }
         }
+        return nil
+    }
 
-        guard var components = URLComponents(string: candidate),
+    private init?(urlString: String) {
+        guard var components = URLComponents(string: urlString),
               components.scheme?.lowercased() == "https",
               let host = components.host?.lowercased(),
               ["tiktok.com", "www.tiktok.com", "m.tiktok.com", "vm.tiktok.com", "vt.tiktok.com"].contains(host),

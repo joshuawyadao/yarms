@@ -15,7 +15,7 @@ Build the first reviewable Yarms iPhone milestone: an installable SwiftUI shell 
 [x] Update the README and focused architecture/device-verification docs for the current milestone and remaining MVP roadmap.
 [x] Extend CI to run repository verification plus an iOS simulator build and unit tests; local build, tests, and repository verification pass.
 [x] Review edge cases around unavailable App Group containers, share input types, embed availability, and simulator-only behavior. Document device checks in `docs/Architecture.md`.
-[ ] Address Brooks review's multi-URL share concern: scan every URL in shared text so a valid TikTok link is saved even when another link appears first; add a regression test and rerun the simulator suite.
+[x] Address Brooks review's multi-URL share concern: scan every URL in shared text so a valid TikTok link is saved even when another link appears first; add a regression test and rerun the simulator suite. Six tests pass.
 
 ## Open questions
 - None. Use iOS 18 as the minimum OS, local-only storage, and an App Group shared by the app and extension; verify the actual iOS share sheet and TikTok playback on a device during release testing.

@@ -23,6 +23,12 @@ final class FoundationTests: XCTestCase {
         XCTAssertNil(TikTokLink(text: "https://www.tiktok.com/@a"))
     }
 
+    func testFindsTikTokVideoAfterAnotherURLInSharedText() throws {
+        let text = "Coach profile https://example.com/coach Workout https://www.tiktok.com/@coach/video/123456"
+        let link = try XCTUnwrap(TikTokLink(text: text))
+        XCTAssertEqual(link.videoID, "123456")
+    }
+
     func testInboxPersistsIndependentShares() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
