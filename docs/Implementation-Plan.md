@@ -13,8 +13,8 @@ Set up Yarms as a clear, safe public home for an early-stage personal iPhone app
 [x] Add focused issue forms and a pull-request template suitable for an early-stage iPhone app.
 [x] Add a small, dependency-free repository check and GitHub Actions workflow; use fixture-free checks because there is no executable app behavior yet.
 [x] Verify links, policy consistency, secret exclusions, and the local repository check; no application test files are needed until application code exists.
-[ ] Set available GitHub metadata and protective settings to match the other public repositories, then verify the public page and workflow.
-[ ] Commit the finished setup and push `main` to the existing GitHub repository.
+[x] Set available GitHub metadata and protective settings to match the other public repositories, then verify the public page and workflow. The first `Repository Verify` run succeeded on GitHub.
+[x] Commit the finished setup and push `main` to the existing GitHub repository. This final documentation checkpoint records the verified GitHub settings.
 
 ## Open questions
 - None. The project purpose was supplied by the owner; MIT follows the license used by the owner's other public repositories.

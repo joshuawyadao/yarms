@@ -1,5 +1,8 @@
 # Yarms
 
+[![Repository Verify](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml/badge.svg)](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Yarms is an early-stage personal iPhone app idea for saving TikTok workouts and following along with them in one organized place.
 
 > **Status:** Planning and repository setup. There is no usable app, release, or supported TikTok integration yet.
@@ -15,6 +18,8 @@ The goal is to give a person one place to collect workouts they find on TikTok, 
 ## Privacy and security
 
 Do not commit TikTok account data, saved workout collections, personal health information, credentials, videos, or private screenshots. Use invented examples in issues, pull requests, and future tests. Report security concerns through the private process in [SECURITY.md](SECURITY.md).
+
+GitHub secret scanning, push protection, Dependabot security updates, and private vulnerability reporting are enabled for this repository.
 
 ## Contributing
 
