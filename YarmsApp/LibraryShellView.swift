@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct LibraryShellView: View {
     @Environment(\.scenePhase) private var scenePhase
@@ -7,6 +8,12 @@ struct LibraryShellView: View {
     @State private var searchText = ""
     @State private var enriching = Set<UUID>()
     @State private var message: String?
+    @State private var messageTitle = "Could not update workouts"
+    @State private var backupDocument: WorkoutBackupDocument?
+    @State private var showingExporter = false
+    @State private var showingImporter = false
+    @State private var pendingBackup: WorkoutBackup?
+    @State private var confirmingRestore = false
 
     private var visibleWorkouts: [Workout] {
         workouts.filter { $0.matches(searchText) }
@@ -16,11 +23,17 @@ struct LibraryShellView: View {
         NavigationStack {
             Group {
                 if workouts.isEmpty {
-                    ContentUnavailableView(
-                        "No workouts yet",
-                        systemImage: "figure.strengthtraining.traditional",
-                        description: Text("Share a TikTok workout to Yarms or paste its link here.")
-                    )
+                    VStack(spacing: 16) {
+                        ContentUnavailableView(
+                            "No workouts yet",
+                            systemImage: "figure.strengthtraining.traditional",
+                            description: Text("Share a TikTok workout to Yarms or paste its link here.")
+                        )
+                        Button("Restore a backup", systemImage: "square.and.arrow.down") {
+                            showingImporter = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 } else if visibleWorkouts.isEmpty {
                     ContentUnavailableView(
                         "No matching workouts",
@@ -44,14 +57,48 @@ struct LibraryShellView: View {
             .searchable(text: $searchText, prompt: "Search workouts")
             .toolbar {
                 Button("Paste link", systemImage: "doc.on.clipboard", action: pasteLink)
+                Menu {
+                    Button("Export backup", systemImage: "square.and.arrow.up", action: exportBackup)
+                        .disabled(workouts.isEmpty)
+                    Button("Restore backup", systemImage: "square.and.arrow.down") {
+                        showingImporter = true
+                    }
+                } label: {
+                    Label("Backup", systemImage: "externaldrive")
+                }
+                .accessibilityLabel("Backup and restore")
             }
-            .alert("Could not update workouts", isPresented: Binding(
+            .alert(messageTitle, isPresented: Binding(
                 get: { message != nil },
                 set: { if !$0 { message = nil } }
             )) {
                 Button("OK", role: .cancel) { message = nil }
             } message: {
                 Text(message ?? "")
+            }
+            .confirmationDialog("Restore this backup?", isPresented: $confirmingRestore,
+                                titleVisibility: .visible) {
+                Button("Restore \(pendingBackup?.workouts.count ?? 0) workouts") {
+                    restoreBackup()
+                }
+                Button("Cancel", role: .cancel) { pendingBackup = nil }
+            } message: {
+                Text("Current workouts and notes stay on this iPhone. Distinct notes from the backup are added.")
+            }
+            .fileExporter(isPresented: $showingExporter, document: backupDocument,
+                          contentType: .json, defaultFilename: "Yarms Backup") { result in
+                backupDocument = nil
+                switch result {
+                case .success:
+                    showMessage("Backup exported", "Your backup includes workout links and notes. Keep the file somewhere private.")
+                case .failure(let error):
+                    if !isCancellation(error) {
+                        showMessage("Could not export backup", "Yarms could not save the backup file. Try again.")
+                    }
+                }
+            }
+            .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
+                importBackup(result)
             }
             .onAppear(perform: refresh)
             .onChange(of: scenePhase) { _, phase in
@@ -63,24 +110,24 @@ struct LibraryShellView: View {
     private func pasteLink() {
         guard let text = UIPasteboard.general.string,
               let link = TikTokLink(text: text) else {
-            message = "Copy a TikTok video link, then try again."
+            showMessage("Could not update workouts", "Copy a TikTok video link, then try again.")
             return
         }
         guard let inbox = SharedInbox.live() else {
-            message = "Yarms could not access its saved links."
+            showMessage("Could not update workouts", "Yarms could not access its saved links.")
             return
         }
         do {
             try inbox.save(link)
             refresh()
         } catch {
-            message = "Yarms could not save that link."
+            showMessage("Could not update workouts", "Yarms could not save that link.")
         }
     }
 
     private func refresh() {
         guard let store = WorkoutStore.live() else {
-            message = "Yarms could not access its saved workouts."
+            showMessage("Could not update workouts", "Yarms could not access its saved workouts.")
             return
         }
         do {
@@ -90,7 +137,7 @@ struct LibraryShellView: View {
                 Task { await enrich(workout, using: store) }
             }
         } catch {
-            message = "Yarms could not read its saved workouts."
+            showMessage("Could not update workouts", "Yarms could not read its saved workouts.")
         }
     }
 
@@ -100,7 +147,7 @@ struct LibraryShellView: View {
             try store.applyEnrichment(result, to: workout.id)
             workouts = try store.load()
         } catch {
-            message = "Yarms saved the link but could not update its details."
+            showMessage("Could not update workouts", "Yarms saved the link but could not update its details.")
         }
         enriching.remove(workout.id)
     }
@@ -112,8 +159,70 @@ struct LibraryShellView: View {
             for id in selected { try store.remove(id) }
             workouts = try store.load()
         } catch {
-            message = "Yarms could not remove that workout."
+            showMessage("Could not update workouts", "Yarms could not remove that workout.")
         }
+    }
+
+    private func exportBackup() {
+        guard let store = WorkoutStore.live() else {
+            showMessage("Could not export backup", "Yarms could not access its saved workouts.")
+            return
+        }
+        do {
+            backupDocument = WorkoutBackupDocument(data: try store.exportBackup())
+            showingExporter = true
+        } catch {
+            showMessage("Could not export backup", "Yarms could not prepare the backup file.")
+        }
+    }
+
+    private func importBackup(_ result: Result<URL, Error>) {
+        switch result {
+        case .failure(let error):
+            if !isCancellation(error) {
+                showMessage("Could not read backup", "Choose a Yarms JSON backup file and try again.")
+            }
+        case .success(let url):
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+            do {
+                pendingBackup = try WorkoutBackup.decode(Data(contentsOf: url, options: .mappedIfSafe))
+                confirmingRestore = true
+            } catch {
+                showMessage("Could not read backup", "This file is not a supported Yarms backup.")
+            }
+        }
+    }
+
+    private func restoreBackup() {
+        guard let backup = pendingBackup, let store = WorkoutStore.live() else {
+            showMessage("Could not restore backup", "Yarms could not access its saved workouts.")
+            return
+        }
+        pendingBackup = nil
+        do {
+            let result = try store.restoreBackup(backup)
+            do {
+                workouts = try store.importPending()
+            } catch {
+                workouts = (try? store.load()) ?? workouts
+                showMessage("Backup restored", "The backup was restored, but Yarms could not refresh every pending link. Reopen the app to refresh the library.")
+                return
+            }
+            showMessage("Backup restored", "Added \(result.added) workouts and filled details for \(result.updated) existing workouts.")
+        } catch {
+            showMessage("Could not restore backup", "Yarms could not save the backup. Try again.")
+        }
+    }
+
+    private func showMessage(_ title: String, _ detail: String) {
+        messageTitle = title
+        message = detail
+    }
+
+    private func isCancellation(_ error: Error) -> Bool {
+        let cocoaError = error as NSError
+        return cocoaError.domain == NSCocoaErrorDomain && cocoaError.code == NSUserCancelledError
     }
 }
 

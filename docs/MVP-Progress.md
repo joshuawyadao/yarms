@@ -4,8 +4,8 @@
 | --- | --- | --- | --- | --- |
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
 | 2. Saving and library | Merged into `main` at `ea01404` | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Final Codex review complete with no findings; CI Verify and Repository Verify passed |
-| 3. Player and notes | PR review and CI running | `feat/workout-player-notes` | [#3](https://github.com/joshuawyadao/yarms/pull/3) | Codex review, CI Verify, and mergeability must clear before merge |
-| 4. Backup and polish | Pending | — | — | Start after milestone 3 merges; verify final `main` |
+| 3. Player and notes | Merged into `main` at `b47b658` | `feat/workout-player-notes` | [#3](https://github.com/joshuawyadao/yarms/pull/3) | Final Codex review complete; CI Verify and Repository Verify passed |
+| 4. Backup and polish | In progress | `feat/backup-polish` | Pending | Build export/restore, test, review, merge, then verify final `main` |
 
 The active goal remains open until every PR is reviewed, green, merged, and the final app build and relevant tests pass.
 
@@ -25,3 +25,5 @@ The active goal remains open until every PR is reviewed, green, merged, and the 
 - Milestone 3 integrated validation: 27 simulator tests pass, including player messages and notes migration. A signed simulator app loaded an invented workout from its App Group container. Live player controls could not be exercised through the locked Mac; they remain on the signed-iPhone checklist.
 - PR #3 Brooks review: 100/100 with no actionable findings. The review sampled the player bridge, notes persistence, and tests across 12 related changed files; generated Xcode project wiring was excluded. The official player protocol is isolated in one bridge, and new storage behavior has regression tests. Live TikTok playback still requires signed-iPhone validation.
 - PR #3 Codex review of `5078a6b` flagged player time events. TikTok's published table documents duration in `onCurrentTime`, but the review reports a ready-event duration shape. The bridge now accepts both and accepts current-time events without duration; focused and full simulator tests pass (28/28), as does repository verification. A fresh review is needed after the fix is pushed.
+- PR #3 final `7057586` Codex review completed with no new findings. CI Verify and Repository Verify passed, GitHub reported a clean merge, and the PR was squash-merged at `b47b658`.
+- Milestone 4 local validation: 38 simulator tests pass, including 10 backup cases for invalid archives, atomic restore, duplicate imports, and note preservation. A signed simulator app and share extension build pass. The signed empty library shows the Restore a backup action and Backup menu; actual Files export/import and live TikTok behavior still require a signed-iPhone check.

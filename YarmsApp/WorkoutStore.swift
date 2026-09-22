@@ -1,6 +1,10 @@
 import Foundation
 
 struct WorkoutStore {
+    // Enrichment, inbox import, note edits, and restore all read then replace the library.
+    // One app-process lock prevents a later writer from dropping another writer's changes.
+    private static let accessLock = NSRecursiveLock()
+
     enum StoreError: Error {
         case unsupportedVersion
     }
@@ -29,6 +33,8 @@ struct WorkoutStore {
     }
 
     func load() throws -> [Workout] {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
         let data = try Data(contentsOf: fileURL)
         let library = try JSONDecoder().decode(LibraryFile.self, from: data)
@@ -38,6 +44,8 @@ struct WorkoutStore {
 
     @discardableResult
     func importPending() throws -> [Workout] {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
         var workouts = try load()
         for pending in try inbox.load().reversed() {
             let duplicate = workouts.contains { workout in
@@ -54,6 +62,8 @@ struct WorkoutStore {
     }
 
     func applyEnrichment(_ enrichment: TikTokEnrichment, to id: UUID) throws {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
         var workouts = try load()
         let index = workouts.firstIndex(where: { $0.id == id }) ??
             enrichment.resolvedLink?.videoID.flatMap { videoID in
@@ -114,6 +124,8 @@ struct WorkoutStore {
 
     @discardableResult
     func updateNotes(_ text: String, for id: UUID) throws -> Bool {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
         var workouts = try load()
         guard let index = workouts.firstIndex(where: { $0.id == id }) else { return false }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -123,8 +135,90 @@ struct WorkoutStore {
     }
 
     func remove(_ id: UUID) throws {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
         let workouts = try load().filter { $0.id != id }
         try save(workouts)
+    }
+
+    func exportBackup() throws -> Data {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        return try WorkoutBackup(workouts: load()).encode()
+    }
+
+    func restoreBackup(_ backup: WorkoutBackup) throws -> BackupRestoreResult {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        // Revalidate even when the caller constructed an archive without decoding JSON.
+        let validated = try WorkoutBackup.decode(backup.encode())
+        var workouts = try load()
+        let originalIDs = Set(workouts.map(\.id))
+        var added = 0
+        var updatedIDs = Set<UUID>()
+
+        let ordered = validated.workouts.sorted {
+            $0.savedAt == $1.savedAt
+                ? $0.id.uuidString < $1.id.uuidString
+                : $0.savedAt < $1.savedAt
+        }
+        for incoming in ordered {
+            let matchingIndex = workouts.firstIndex { current in
+                current.id == incoming.id || current.sourceLink.url == incoming.sourceLink.url ||
+                (incoming.playbackLink.videoID != nil &&
+                 current.playbackLink.videoID == incoming.playbackLink.videoID)
+            }
+            guard let matchingIndex else {
+                workouts.append(incoming)
+                added += 1
+                continue
+            }
+
+            let current = workouts[matchingIndex]
+            // A reused UUID for a different post is ambiguous and cannot be merged safely.
+            let samePost = current.sourceLink.url == incoming.sourceLink.url ||
+                (current.playbackLink.videoID != nil &&
+                 current.playbackLink.videoID == incoming.playbackLink.videoID)
+            if current.id == incoming.id && !samePost {
+                throw WorkoutBackup.BackupError.invalidArchive
+            }
+
+            if workouts[matchingIndex].resolvedLink == nil {
+                workouts[matchingIndex].resolvedLink = incoming.resolvedLink
+            }
+            if workouts[matchingIndex].title == nil {
+                workouts[matchingIndex].title = incoming.title
+            }
+            if workouts[matchingIndex].creator == nil {
+                workouts[matchingIndex].creator = incoming.creator
+            }
+            if workouts[matchingIndex].thumbnailURL == nil {
+                workouts[matchingIndex].thumbnailURL = incoming.thumbnailURL
+            }
+            workouts[matchingIndex].notes = mergeNotes(current.notes, with: incoming.notes)
+            if workouts[matchingIndex] != current && originalIDs.contains(current.id) {
+                updatedIDs.insert(current.id)
+            }
+        }
+
+        if added > 0 || !updatedIDs.isEmpty { try save(workouts) }
+        return BackupRestoreResult(added: added, updated: updatedIDs.count)
+    }
+
+    private func mergeNotes(_ existing: String?, with incoming: String?) -> String? {
+        guard let incoming, !incoming.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return existing
+        }
+        guard let existing, !existing.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return incoming
+        }
+        let separator = "\n\n"
+        if existing == incoming || existing.hasPrefix(incoming + separator) ||
+            existing.hasSuffix(separator + incoming) ||
+            existing.contains(separator + incoming + separator) {
+            return existing
+        }
+        return existing + separator + incoming
     }
 
     private func save(_ workouts: [Workout]) throws {
