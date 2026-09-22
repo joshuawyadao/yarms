@@ -8,12 +8,12 @@ Turn the foundation's shared-link inbox into a durable, searchable local workout
 
 ## Action items
 [x] Inspect the merged foundation source, docs, and tests; create a fresh branch from latest `main`.
-[ ] Add a versioned on-device workout store that imports each inbox file idempotently and removes it only after an atomic library save.
-[ ] Add short-link resolution and TikTok oEmbed metadata fetching with safe URL validation and graceful network failure.
-[ ] Replace the pending-link shell with a searchable library that displays available thumbnail, creator, and title; keep paste saving immediate and preserve Open in TikTok.
-[ ] Add focused tests for inbox import, duplicate links, corrupt/missing metadata, URL resolution, search, and offline fallback.
-[ ] Update README, architecture, progress, and implementation docs; run simulator build, tests, and repository verification.
-[ ] Review privacy, redirect hosts, race/crash recovery, empty and failed-network states before PR review.
+[x] Add a versioned on-device workout store that imports each inbox file idempotently and removes it only after an atomic library save.
+[x] Add short-link resolution and TikTok oEmbed metadata fetching with safe URL validation and graceful network failure.
+[x] Replace the pending-link shell with a searchable library that displays available thumbnail, creator, and title; keep paste saving immediate and preserve Open in TikTok.
+[x] Add focused tests for inbox import, duplicate links, corrupt/missing metadata, URL resolution, search, and offline fallback.
+[x] Update README, architecture, progress, and implementation docs; run simulator build, tests, and repository verification.
+[x] Review privacy, redirect hosts, race/crash recovery, empty and failed-network states before PR review.
 
 ## Open questions
 - None. Keep all personal workout data on device and preserve the original shared link even if enrichment fails.

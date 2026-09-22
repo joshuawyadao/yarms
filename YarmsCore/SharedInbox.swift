@@ -41,4 +41,11 @@ struct SharedInbox {
         }
             .sorted { $0.savedAt > $1.savedAt }
     }
+
+    func remove(_ id: UUID) throws {
+        let file = directory.appendingPathComponent(id.uuidString).appendingPathExtension("json")
+        if FileManager.default.fileExists(atPath: file.path) {
+            try FileManager.default.removeItem(at: file)
+        }
+    }
 }

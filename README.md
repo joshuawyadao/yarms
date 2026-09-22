@@ -5,15 +5,15 @@
 
 Yarms is a personal iPhone app for saving TikTok workouts and following along with them in one organized place.
 
-> **Status:** The foundation milestone is in progress. The app can receive TikTok links through a share extension or paste action and try the official embedded player. Library search, metadata, notes, and backup are upcoming milestones; no release is available yet.
+> **Status:** The foundation milestone is merged. The saving and library milestone is in progress; no release is available yet.
 
 ## Why this repository is public
 
-This repository makes the product direction and future development reviewable from the start. It also establishes privacy, security, and contribution expectations before app code arrives. Plans and examples here do not imply that Yarms is affiliated with TikTok.
+This repository makes the product direction and development reviewable. Plans and examples here do not imply that Yarms is affiliated with TikTok.
 
 ## Intended experience
 
-Share a TikTok workout to Yarms, or paste its link in the app. Yarms saves the link locally without an account. Canonical video links open in TikTok's embedded player; short links currently use the Open in TikTok fallback. See the [MVP roadmap](docs/MVP-Roadmap.md) for the staged feature work.
+Share a TikTok workout to Yarms, or paste its link in the app. Yarms saves the link locally without an account or required typing. The local library supports search by title, creator, or link. Yarms requests available title, creator, and thumbnail from TikTok's oEmbed endpoint, and attempts to resolve short links for playback. Canonical video links open in TikTok's official embedded player. If a video cannot play there, Open in TikTok remains available. See the [MVP roadmap](docs/MVP-Roadmap.md) for the staged feature work.
 
 ## Privacy and security
 
