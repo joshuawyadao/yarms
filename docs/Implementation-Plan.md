@@ -33,3 +33,11 @@ Finish the Yarms MVP with a user-owned JSON backup that can be exported to Files
 - [x] Limit metadata requests after large restores and test queue behavior.
 - [x] Run all 50 simulator tests, signed simulator build, and repository verification.
 - [ ] Push the fixes, obtain a fresh Codex review, clear CI, and merge PR #4.
+
+## Third PR #4 review follow-up
+
+- [x] Keep same-video alias matching near-linear across large backups.
+- [x] Export every locally valid library and warn when its file exceeds this version's import limit.
+- [x] Preserve saved titles and creators during thumbnail refresh.
+- [x] Run all 53 simulator tests, signed simulator build, and repository verification.
+- [ ] Push the fixes, obtain a fresh Codex review, clear CI, and merge PR #4.

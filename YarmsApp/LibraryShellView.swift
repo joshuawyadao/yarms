@@ -10,6 +10,7 @@ struct LibraryShellView: View {
     @State private var message: String?
     @State private var messageTitle = "Could not update workouts"
     @State private var backupDocument: WorkoutBackupDocument?
+    @State private var exportedBackupExceedsImportLimit = false
     @State private var showingExporter = false
     @State private var showingImporter = false
     @State private var pendingBackup: WorkoutBackup?
@@ -90,7 +91,11 @@ struct LibraryShellView: View {
                 backupDocument = nil
                 switch result {
                 case .success:
-                    showMessage("Backup exported", "Your backup includes workout links and notes. Keep the file somewhere private.")
+                    if exportedBackupExceedsImportLimit {
+                        showMessage("Backup exported", "Keep this file private. It exceeds this version's 10 MB restore limit, so Yarms cannot import it yet.")
+                    } else {
+                        showMessage("Backup exported", "Your backup includes workout links and notes. Keep the file somewhere private.")
+                    }
                 case .failure(let error):
                     if !isCancellation(error) {
                         showMessage("Could not export backup", "Yarms could not save the backup file. Try again.")
@@ -177,7 +182,9 @@ struct LibraryShellView: View {
             return
         }
         do {
-            backupDocument = WorkoutBackupDocument(data: try store.exportBackup())
+            let data = try store.exportBackup()
+            exportedBackupExceedsImportLimit = data.count > WorkoutBackup.maximumBytes
+            backupDocument = WorkoutBackupDocument(data: data)
             showingExporter = true
         } catch {
             showMessage("Could not export backup", "Yarms could not prepare the backup file.")

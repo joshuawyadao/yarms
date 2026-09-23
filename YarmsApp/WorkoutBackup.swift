@@ -75,9 +75,9 @@ struct WorkoutBackup {
     func encode() throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        let data = try encoder.encode(Archive(schemaVersion: 1, workouts: workouts))
-        guard data.count <= Self.maximumBytes else { throw BackupError.tooLarge }
-        return data
+        // Local libraries can grow beyond the defensive import limit through
+        // notes and later saves. An export must still include every record.
+        return try encoder.encode(Archive(schemaVersion: 1, workouts: workouts))
     }
 
     private static func validate(_ workouts: [Workout]) throws {

@@ -15,7 +15,7 @@ This repository makes the product direction and development reviewable. Plans an
 
 Share a TikTok workout to Yarms, or paste its link in the app. Yarms saves the link locally without an account or required typing. The local library supports search by title, creator, or link. Yarms requests available title, creator, and thumbnail from TikTok's oEmbed endpoint, and attempts to resolve short links for playback. The workout screen uses TikTok's official embedded player with play, pause, short seek, and replay controls. Optional notes stay with the workout on the iPhone. If a video cannot play in the embedded player, Open in TikTok remains available. See the [MVP roadmap](docs/MVP-Roadmap.md) for the staged feature work.
 
-The Backup menu exports a JSON copy of workout links, details, and notes to a location you choose in Files. Restoring a backup adds missing workouts, fills gaps in existing records, and appends distinct backed-up notes without erasing current notes. Backup files include personal notes, so store them somewhere private. Yarms does not include or download video files in a backup.
+The Backup menu exports a JSON copy of workout links, details, and notes to a location you choose in Files. Restoring a backup adds missing workouts, fills gaps in existing records, and appends distinct backed-up notes without erasing current notes. Import is limited to 10 MB; a larger local library can still be exported, and the app warns that this version cannot import the resulting file. Backup files include personal notes, so store them somewhere private. Yarms does not include or download video files in a backup.
 
 ## Privacy and security
 
