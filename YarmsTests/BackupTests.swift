@@ -328,6 +328,55 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
     }
 
+    func testManyURLsForOneVideoMaterializeDistinctAliasesOnce() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        // Distinct valid TikTok source URLs can identify the same numeric post.
+        // This shape previously rebuilt and sorted the growing alias list per row.
+        let count = 1_200
+        let links = try (0..<count).map { number in
+            try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach\(number)/video/123"))
+        }
+        let entries = links.enumerated().map { number, link in
+            Workout(id: UUID(), sourceLink: link, savedAt: Date(timeIntervalSince1970: Double(number)))
+        }
+        let backup = try WorkoutBackup(workouts: entries)
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 1, updated: 0))
+        let merged = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(try store.load().count, 1)
+        XCTAssertEqual(merged.id, entries[0].id)
+        XCTAssertEqual(Set(merged.sourceAliases ?? []), Set(links.dropFirst()))
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+    }
+
+    func testEnrichmentFillsMissingThumbnailWithoutReplacingSavedMetadata() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var workout = try makeWorkout()
+        workout.title = "My workout name"
+        workout.creator = "My coach label"
+        try writeLibrary([workout], into: directory)
+        let cover = try XCTUnwrap(URL(string: "https://example.com/cover.jpg"))
+        let otherCover = try XCTUnwrap(URL(string: "https://example.com/other.jpg"))
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: nil, metadata: TikTokMetadata(
+            title: "oEmbed title", creator: "oEmbed creator", thumbnailURL: cover
+        )), to: workout.id)
+        var refreshed = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(refreshed.title, "My workout name")
+        XCTAssertEqual(refreshed.creator, "My coach label")
+        XCTAssertEqual(refreshed.thumbnailURL, cover)
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: nil, metadata: TikTokMetadata(
+            title: "Another title", creator: "Another creator", thumbnailURL: otherCover
+        )), to: workout.id)
+        refreshed = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(refreshed.title, "My workout name")
+        XCTAssertEqual(refreshed.creator, "My coach label")
+        XCTAssertEqual(refreshed.thumbnailURL, cover)
+    }
+
     func testLaterConflictingIdentifierLeavesEntireLibraryUnchanged() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }

@@ -77,15 +77,15 @@ struct WorkoutStore {
             changed = true
         }
         if let metadata = enrichment.metadata {
-            if let title = metadata.title, !title.isEmpty {
+            if workouts[index].title == nil, let title = metadata.title, !title.isEmpty {
                 workouts[index].title = title
                 changed = true
             }
-            if let creator = metadata.creator, !creator.isEmpty {
+            if workouts[index].creator == nil, let creator = metadata.creator, !creator.isEmpty {
                 workouts[index].creator = creator
                 changed = true
             }
-            if let thumbnailURL = metadata.thumbnailURL {
+            if workouts[index].thumbnailURL == nil, let thumbnailURL = metadata.thumbnailURL {
                 workouts[index].thumbnailURL = thumbnailURL
                 changed = true
             }
@@ -195,7 +195,17 @@ private struct BackupMergeIndex {
         for workout in workouts { append(workout, trustAliases: true) }
     }
 
-    var workouts: [Workout] { records.compactMap { $0 } }
+    var workouts: [Workout] {
+        records.indices.compactMap { position in
+            guard var workout = records[position] else { return nil }
+            var aliases = sourceAliases[position] ?? []
+            aliases.remove(workout.sourceLink)
+            workout.sourceAliases = aliases.isEmpty ? nil : aliases.sorted {
+                $0.url.absoluteString < $1.url.absoluteString
+            }
+            return workout
+        }
+    }
 
     var result: BackupRestoreResult {
         let final = workouts
@@ -236,6 +246,22 @@ private struct BackupMergeIndex {
             return
         }
 
+        if matches.count == 1, let position = matches.first, let current = records[position] {
+            try Self.validateCompatible(current, incoming)
+            let merged = Self.merge(current, incoming)
+            records[position] = merged
+            // Extend the index in place. Materialize and sort aliases once at
+            // the end of restore, regardless of how many links share this post.
+            if sourceAliases[position, default: []].insert(incoming.sourceLink).inserted {
+                bySource[incoming.sourceLink.url, default: []].insert(position)
+            }
+            if current.playbackLink.videoID != merged.playbackLink.videoID,
+               let videoID = merged.playbackLink.videoID {
+                byVideoID[videoID, default: []].insert(position)
+            }
+            return
+        }
+
         let ordered = matches.sorted { left, right in
             guard let a = records[left], let b = records[right] else { return left < right }
             return a.savedAt == b.savedAt
@@ -262,10 +288,8 @@ private struct BackupMergeIndex {
         keeper = Self.merge(keeper, incoming)
 
         for position in ordered { remove(position) }
-        aliases.remove(keeper.sourceLink)
-        keeper.sourceAliases = aliases.isEmpty ? nil : aliases.sorted { $0.url.absoluteString < $1.url.absoluteString }
         records[keeperIndex] = keeper
-        sourceAliases[keeperIndex] = aliases.union([keeper.sourceLink])
+        sourceAliases[keeperIndex] = aliases
         addIndex(for: keeperIndex)
     }
 
