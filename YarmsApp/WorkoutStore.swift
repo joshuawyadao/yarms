@@ -50,6 +50,7 @@ struct WorkoutStore {
         for pending in try inbox.load().reversed() {
             let duplicate = workouts.contains { workout in
                 workout.sourceLink.url == pending.link.url ||
+                workout.sourceAliases?.contains(where: { $0.url == pending.link.url }) == true ||
                 (pending.link.videoID != nil && workout.playbackLink.videoID == pending.link.videoID)
             }
             if !duplicate {
@@ -106,7 +107,10 @@ struct WorkoutStore {
         // Keep the first save's identity, and fill its missing details from later saves.
         var keeper = matches[0]
         var notes = [String]()
+        var aliases = Set(keeper.sourceAliases ?? [])
         for match in matches {
+            aliases.insert(match.sourceLink)
+            aliases.formUnion(match.sourceAliases ?? [])
             if let note = match.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
                !note.isEmpty, !notes.contains(note) {
                 notes.append(note)
@@ -117,6 +121,8 @@ struct WorkoutStore {
             if keeper.thumbnailURL == nil { keeper.thumbnailURL = match.thumbnailURL }
         }
         keeper.notes = notes.isEmpty ? nil : notes.joined(separator: "\n\n")
+        aliases.remove(keeper.sourceLink)
+        keeper.sourceAliases = aliases.isEmpty ? nil : aliases.sorted { $0.url.absoluteString < $1.url.absoluteString }
         workouts.removeAll { $0.playbackLink.videoID == videoID }
         workouts.append(keeper)
         return true
@@ -181,11 +187,12 @@ private struct BackupMergeIndex {
     private var byID: [UUID: Int] = [:]
     private var bySource: [URL: Set<Int>] = [:]
     private var byVideoID: [String: Set<Int>] = [:]
+    private var sourceAliases: [Int: Set<TikTokLink>] = [:]
     private let originals: [UUID: Workout]
 
     init(_ workouts: [Workout]) {
         originals = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        for workout in workouts { append(workout) }
+        for workout in workouts { append(workout, trustAliases: true) }
     }
 
     var workouts: [Workout] { records.compactMap { $0 } }
@@ -215,6 +222,15 @@ private struct BackupMergeIndex {
             matches.formUnion(byVideoID[videoID] ?? [])
         }
         if let position = byID[incoming.id] { matches.insert(position) }
+        // A source-only import may match a locally resolved short link. Include
+        // its already-known canonical peers before choosing the keeper.
+        var pendingMatches = Array(matches)
+        while let position = pendingMatches.popLast() {
+            guard let videoID = records[position]?.playbackLink.videoID else { continue }
+            for peer in byVideoID[videoID] ?? [] where matches.insert(peer).inserted {
+                pendingMatches.append(peer)
+            }
+        }
         guard !matches.isEmpty else {
             append(incoming)
             return
@@ -233,6 +249,10 @@ private struct BackupMergeIndex {
             return originals[workout.id] != nil
         } ?? ordered[0]
         var keeper = records[keeperIndex]!
+        var aliases = Set([incoming.sourceLink])
+        for position in ordered {
+            aliases.formUnion(sourceAliases[position] ?? [])
+        }
         for position in ordered where position != keeperIndex {
             guard let other = records[position] else { continue }
             try Self.validateCompatible(keeper, other)
@@ -242,12 +262,16 @@ private struct BackupMergeIndex {
         keeper = Self.merge(keeper, incoming)
 
         for position in ordered { remove(position) }
+        aliases.remove(keeper.sourceLink)
+        keeper.sourceAliases = aliases.isEmpty ? nil : aliases.sorted { $0.url.absoluteString < $1.url.absoluteString }
         records[keeperIndex] = keeper
+        sourceAliases[keeperIndex] = aliases.union([keeper.sourceLink])
         addIndex(for: keeperIndex)
     }
 
     private static func samePost(_ left: Workout, _ right: Workout) -> Bool {
         left.sourceLink.url == right.sourceLink.url ||
+            left.sourceAliases?.contains(where: { $0.url == right.sourceLink.url }) == true ||
             (left.playbackLink.videoID != nil &&
              left.playbackLink.videoID == right.playbackLink.videoID)
     }
@@ -282,16 +306,22 @@ private struct BackupMergeIndex {
         return existing + separator + incoming
     }
 
-    private mutating func append(_ workout: Workout) {
+    private mutating func append(_ workout: Workout, trustAliases: Bool = false) {
         let position = records.count
-        records.append(workout)
+        var stored = workout
+        if !trustAliases { stored.sourceAliases = nil }
+        records.append(stored)
+        // Imported alias claims never make a new record match unrelated local posts.
+        sourceAliases[position] = Set([workout.sourceLink] + (trustAliases ? workout.sourceAliases ?? [] : []))
         addIndex(for: position)
     }
 
     private mutating func addIndex(for position: Int) {
         guard let workout = records[position] else { return }
         byID[workout.id] = position
-        bySource[workout.sourceLink.url, default: []].insert(position)
+        for source in sourceAliases[position] ?? [workout.sourceLink] {
+            bySource[source.url, default: []].insert(position)
+        }
         if let videoID = workout.playbackLink.videoID {
             byVideoID[videoID, default: []].insert(position)
         }
@@ -300,14 +330,17 @@ private struct BackupMergeIndex {
     private mutating func remove(_ position: Int) {
         guard let workout = records[position] else { return }
         if byID[workout.id] == position { byID.removeValue(forKey: workout.id) }
-        bySource[workout.sourceLink.url]?.remove(position)
-        if bySource[workout.sourceLink.url]?.isEmpty == true {
-            bySource.removeValue(forKey: workout.sourceLink.url)
+        for source in sourceAliases[position] ?? [workout.sourceLink] {
+            bySource[source.url]?.remove(position)
+            if bySource[source.url]?.isEmpty == true {
+                bySource.removeValue(forKey: source.url)
+            }
         }
         if let videoID = workout.playbackLink.videoID {
             byVideoID[videoID]?.remove(position)
             if byVideoID[videoID]?.isEmpty == true { byVideoID.removeValue(forKey: videoID) }
         }
         records[position] = nil
+        sourceAliases.removeValue(forKey: position)
     }
 }

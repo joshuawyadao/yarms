@@ -16,11 +16,26 @@ struct WorkoutBackup {
     let workouts: [Workout]
 
     init(workouts: [Workout]) throws {
+        try self.init(workouts: workouts, importing: false)
+    }
+
+    private init(workouts: [Workout], importing: Bool) throws {
         let normalized = workouts.map { workout in
             var copy = workout
             copy.title = Self.nonblank(copy.title)
             copy.creator = Self.nonblank(copy.creator)
             copy.notes = Self.nonblank(copy.notes)
+            if importing {
+                // The archive is user-selected data. Re-fetch thumbnails from TikTok
+                // rather than contacting an arbitrary URL embedded in that file.
+                copy.thumbnailURL = nil
+                // Source aliases can only be trusted after this installation has
+                // independently matched or resolved their URLs.
+                copy.sourceAliases = nil
+                // A short URL has no video ID to prove that its saved resolution
+                // belongs to it. Resolve it through the normal bounded redirect path.
+                if copy.sourceLink.videoID == nil { copy.resolvedLink = nil }
+            }
             return copy
         }
         try Self.validate(normalized)
@@ -54,7 +69,7 @@ struct WorkoutBackup {
             throw BackupError.invalidArchive
         }
         guard archive.schemaVersion == 1 else { throw BackupError.unsupportedVersion }
-        return try WorkoutBackup(workouts: archive.workouts)
+        return try WorkoutBackup(workouts: archive.workouts, importing: true)
     }
 
     func encode() throws -> Data {
@@ -83,6 +98,14 @@ struct WorkoutBackup {
                       thumbnail.host != nil,
                       thumbnail.user == nil,
                       thumbnail.password == nil else { throw BackupError.invalidArchive }
+            }
+            if let aliases = workout.sourceAliases {
+                for alias in aliases {
+                    guard isAuthentic(alias),
+                          alias.videoID == nil || workout.playbackLink.videoID == alias.videoID else {
+                        throw BackupError.invalidArchive
+                    }
+                }
             }
         }
     }

@@ -36,8 +36,10 @@ final class BackupTests: XCTestCase {
         let data = try store.exportBackup()
         let decoded = try WorkoutBackup.decode(data)
 
-        XCTAssertEqual(decoded.workouts, [workout])
-        XCTAssertEqual(try WorkoutBackup.decode(decoded.encode()).workouts, [workout])
+        var imported = workout
+        imported.thumbnailURL = nil // Re-enriched after import, never loaded from archive URLs.
+        XCTAssertEqual(decoded.workouts, [imported])
+        XCTAssertEqual(try WorkoutBackup.decode(decoded.encode()).workouts, [imported])
     }
 
     func testInvalidAndUnsupportedArchivesLeaveLibraryUntouched() throws {
@@ -234,6 +236,7 @@ final class BackupTests: XCTestCase {
         let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
         var first = Workout(id: UUID(), sourceLink: short,
                             savedAt: Date(timeIntervalSince1970: 100))
+        first.resolvedLink = canonical
         first.notes = "Short note"
         var second = Workout(id: UUID(), sourceLink: canonical,
                              savedAt: Date(timeIntervalSince1970: 200))
@@ -241,7 +244,6 @@ final class BackupTests: XCTestCase {
         second.notes = "Canonical note"
         try writeLibrary([second, first], into: directory)
         var restored = first
-        restored.resolvedLink = canonical
         restored.notes = "Backup note"
         let backup = try WorkoutBackup(workouts: [restored])
 
@@ -254,6 +256,65 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(workout.title, "Canonical title")
         XCTAssertEqual(workout.notes, "Short note\n\nCanonical note\n\nBackup note")
         XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+    }
+
+    func testCoalescedSourceAliasMatchesLaterUnresolvedBackupRecord() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMalias/"))
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        var canonicalCurrent = Workout(id: UUID(), sourceLink: canonical,
+                                       savedAt: Date(timeIntervalSince1970: 100))
+        canonicalCurrent.notes = "Canonical note"
+        var shortCurrent = Workout(id: UUID(), sourceLink: short,
+                                   savedAt: Date(timeIntervalSince1970: 200))
+        shortCurrent.resolvedLink = canonical
+        shortCurrent.notes = "Short note"
+        try writeLibrary([canonicalCurrent, shortCurrent], into: directory)
+
+        var canonicalImport = Workout(id: UUID(), sourceLink: canonical,
+                                      savedAt: Date(timeIntervalSince1970: 300))
+        canonicalImport.notes = "First import"
+        var unresolvedShortImport = Workout(id: UUID(), sourceLink: short,
+                                             savedAt: Date(timeIntervalSince1970: 400))
+        unresolvedShortImport.notes = "Second import"
+
+        XCTAssertEqual(try store.restoreBackup(WorkoutBackup(workouts: [
+            canonicalImport, unresolvedShortImport
+        ])), BackupRestoreResult(added: 0, updated: 2))
+        let merged = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(try store.load().count, 1)
+        XCTAssertEqual(merged.id, canonicalCurrent.id)
+        XCTAssertEqual(merged.notes, "Canonical note\n\nShort note\n\nFirst import\n\nSecond import")
+        XCTAssertEqual(merged.sourceAliases, [short])
+        XCTAssertEqual(try store.restoreBackup(WorkoutBackup(workouts: [
+            canonicalImport, unresolvedShortImport
+        ])), BackupRestoreResult(added: 0, updated: 0))
+        XCTAssertEqual(try store.load().count, 1)
+    }
+
+    func testUnverifiedImportedShortResolutionDoesNotBridgeCurrentPosts() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMother/"))
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let shortCurrent = Workout(id: UUID(), sourceLink: short,
+                                   savedAt: Date(timeIntervalSince1970: 100))
+        let canonicalCurrent = Workout(id: UUID(), sourceLink: canonical,
+                                       savedAt: Date(timeIntervalSince1970: 200))
+        try writeLibrary([shortCurrent, canonicalCurrent], into: directory)
+        var incoming = Workout(id: UUID(), sourceLink: short,
+                               savedAt: Date(timeIntervalSince1970: 300))
+        incoming.resolvedLink = canonical
+        incoming.notes = "Imported note"
+
+        XCTAssertEqual(try store.restoreBackup(WorkoutBackup(workouts: [incoming])),
+                       BackupRestoreResult(added: 0, updated: 1))
+        let restored = try store.load()
+        XCTAssertEqual(restored.count, 2)
+        XCTAssertEqual(restored.first { $0.id == shortCurrent.id }?.notes, "Imported note")
+        XCTAssertNil(restored.first { $0.id == shortCurrent.id }?.resolvedLink)
+        XCTAssertNotNil(restored.first { $0.id == canonicalCurrent.id })
     }
 
     func testLargeBackupRestoresUniqueRecordsAndRemainsIdempotent() throws {
