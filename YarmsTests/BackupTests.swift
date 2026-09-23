@@ -93,6 +93,39 @@ final class BackupTests: XCTestCase {
         }
     }
 
+    func testBlankOptionalFieldsNormalizeOnConstructionAndDecode() throws {
+        var workout = try makeWorkout()
+        workout.title = " \n "
+        workout.creator = "\t"
+        workout.notes = "  \n\t "
+
+        let constructed = try WorkoutBackup(workouts: [workout])
+        XCTAssertNil(constructed.workouts[0].title)
+        XCTAssertNil(constructed.workouts[0].creator)
+        XCTAssertNil(constructed.workouts[0].notes)
+
+        let rawArchive = try JSONEncoder().encode(TestBackupLibrary(schemaVersion: 1, workouts: [workout]))
+        let decoded = try WorkoutBackup.decode(rawArchive)
+        XCTAssertNil(decoded.workouts[0].title)
+        XCTAssertNil(decoded.workouts[0].creator)
+        XCTAssertNil(decoded.workouts[0].notes)
+    }
+
+    func testOversizedFileIsRejectedBeforeDecode() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = directory.appendingPathComponent("oversized.json")
+        XCTAssertTrue(FileManager.default.createFile(atPath: file.path, contents: nil))
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.truncate(atOffset: UInt64(WorkoutBackup.maximumBytes + 1))
+        try handle.close()
+
+        XCTAssertThrowsError(try WorkoutBackup.load(from: file)) { error in
+            XCTAssertEqual(error as? WorkoutBackup.BackupError, .tooLarge)
+        }
+    }
+
     func testRepeatedRestoreIsIdempotentAndMatchesCanonicalVideoID() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -194,6 +227,46 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(try store.load().first?.notes, "Warm up\n\nStretch")
     }
 
+    func testResolvedShortLinkCoalescesCurrentVideosAndKeepsEarliestIdentity() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        var first = Workout(id: UUID(), sourceLink: short,
+                            savedAt: Date(timeIntervalSince1970: 100))
+        first.notes = "Short note"
+        var second = Workout(id: UUID(), sourceLink: canonical,
+                             savedAt: Date(timeIntervalSince1970: 200))
+        second.title = "Canonical title"
+        second.notes = "Canonical note"
+        try writeLibrary([second, first], into: directory)
+        var restored = first
+        restored.resolvedLink = canonical
+        restored.notes = "Backup note"
+        let backup = try WorkoutBackup(workouts: [restored])
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 2))
+        let workout = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(try store.load().count, 1)
+        XCTAssertEqual(workout.id, first.id)
+        XCTAssertEqual(workout.savedAt, first.savedAt)
+        XCTAssertEqual(workout.playbackLink.videoID, "123")
+        XCTAssertEqual(workout.title, "Canonical title")
+        XCTAssertEqual(workout.notes, "Short note\n\nCanonical note\n\nBackup note")
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+    }
+
+    func testLargeBackupRestoresUniqueRecordsAndRemainsIdempotent() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let workouts = try (1...2_500).map { try makeWorkout(String($0 + 10_000)) }
+        let backup = try WorkoutBackup(workouts: workouts)
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 2_500, updated: 0))
+        XCTAssertEqual(try store.load().count, 2_500)
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+    }
+
     func testLaterConflictingIdentifierLeavesEntireLibraryUnchanged() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -211,6 +284,55 @@ final class BackupTests: XCTestCase {
         }
         XCTAssertEqual(try Data(contentsOf: directory.appendingPathComponent("Library.json")), before)
         XCTAssertEqual(try store.load(), [existing])
+    }
+
+    func testUUIDCollisionCannotHideBehindAnotherRecordWithMatchingURL() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var collidedID = try makeWorkout("123")
+        collidedID = Workout(id: collidedID.id, sourceLink: collidedID.sourceLink,
+                             savedAt: Date(timeIntervalSince1970: 100))
+        var matchingURL = try makeWorkout("456")
+        matchingURL = Workout(id: matchingURL.id, sourceLink: matchingURL.sourceLink,
+                              savedAt: Date(timeIntervalSince1970: 200))
+        try writeLibrary([collidedID, matchingURL], into: directory)
+        let before = try Data(contentsOf: directory.appendingPathComponent("Library.json"))
+        let newLink = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/789"))
+        let validNewWorkout = Workout(id: UUID(), sourceLink: newLink,
+                                      savedAt: Date(timeIntervalSince1970: 50))
+        let conflicting = Workout(id: collidedID.id, sourceLink: matchingURL.sourceLink,
+                                  savedAt: Date(timeIntervalSince1970: 300))
+        let backup = try WorkoutBackup(workouts: [validNewWorkout, conflicting])
+
+        XCTAssertThrowsError(try store.restoreBackup(backup)) { error in
+            XCTAssertEqual(error as? WorkoutBackup.BackupError, .invalidArchive)
+        }
+        XCTAssertEqual(try Data(contentsOf: directory.appendingPathComponent("Library.json")), before)
+    }
+
+    func testUUIDCollisionStillRejectsAfterOriginalWasCoalesced() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/123"))
+        let first = Workout(id: UUID(), sourceLink: short,
+                            savedAt: Date(timeIntervalSince1970: 100))
+        let second = Workout(id: UUID(), sourceLink: canonical,
+                             savedAt: Date(timeIntervalSince1970: 200))
+        try writeLibrary([first, second], into: directory)
+        let before = try Data(contentsOf: directory.appendingPathComponent("Library.json"))
+        var resolved = Workout(id: first.id, sourceLink: short,
+                               savedAt: Date(timeIntervalSince1970: 50))
+        resolved.resolvedLink = canonical
+        let otherPost = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/789"))
+        let collision = Workout(id: second.id, sourceLink: otherPost,
+                                savedAt: Date(timeIntervalSince1970: 300))
+        let backup = try WorkoutBackup(workouts: [resolved, collision])
+
+        XCTAssertThrowsError(try store.restoreBackup(backup)) { error in
+            XCTAssertEqual(error as? WorkoutBackup.BackupError, .invalidArchive)
+        }
+        XCTAssertEqual(try Data(contentsOf: directory.appendingPathComponent("Library.json")), before)
     }
 }
 

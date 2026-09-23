@@ -152,66 +152,127 @@ struct WorkoutStore {
         defer { Self.accessLock.unlock() }
         // Revalidate even when the caller constructed an archive without decoding JSON.
         let validated = try WorkoutBackup.decode(backup.encode())
-        var workouts = try load()
-        let originalIDs = Set(workouts.map(\.id))
-        var added = 0
-        var updatedIDs = Set<UUID>()
-
+        let current = try load()
+        var index = BackupMergeIndex(current)
         let ordered = validated.workouts.sorted {
             $0.savedAt == $1.savedAt
                 ? $0.id.uuidString < $1.id.uuidString
                 : $0.savedAt < $1.savedAt
         }
         for incoming in ordered {
-            let matchingIndex = workouts.firstIndex { current in
-                current.id == incoming.id || current.sourceLink.url == incoming.sourceLink.url ||
-                (incoming.playbackLink.videoID != nil &&
-                 current.playbackLink.videoID == incoming.playbackLink.videoID)
-            }
-            guard let matchingIndex else {
-                workouts.append(incoming)
-                added += 1
-                continue
-            }
-
-            let current = workouts[matchingIndex]
-            // A reused UUID for a different post is ambiguous and cannot be merged safely.
-            let samePost = current.sourceLink.url == incoming.sourceLink.url ||
-                (current.playbackLink.videoID != nil &&
-                 current.playbackLink.videoID == incoming.playbackLink.videoID)
-            if current.id == incoming.id && !samePost {
-                throw WorkoutBackup.BackupError.invalidArchive
-            }
-
-            if workouts[matchingIndex].resolvedLink == nil {
-                workouts[matchingIndex].resolvedLink = incoming.resolvedLink
-            }
-            if workouts[matchingIndex].title == nil {
-                workouts[matchingIndex].title = incoming.title
-            }
-            if workouts[matchingIndex].creator == nil {
-                workouts[matchingIndex].creator = incoming.creator
-            }
-            if workouts[matchingIndex].thumbnailURL == nil {
-                workouts[matchingIndex].thumbnailURL = incoming.thumbnailURL
-            }
-            workouts[matchingIndex].notes = mergeNotes(current.notes, with: incoming.notes)
-            if workouts[matchingIndex] != current && originalIDs.contains(current.id) {
-                updatedIDs.insert(current.id)
-            }
+            try index.absorb(incoming)
         }
-
-        if added > 0 || !updatedIDs.isEmpty { try save(workouts) }
-        return BackupRestoreResult(added: added, updated: updatedIDs.count)
+        let merged = index.workouts
+        if merged != current { try save(merged) }
+        return index.result
     }
 
-    private func mergeNotes(_ existing: String?, with incoming: String?) -> String? {
-        guard let incoming, !incoming.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return existing
+    private func save(_ workouts: [Workout]) throws {
+        try FileManager.default.createDirectory(
+            at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true
+        )
+        let data = try JSONEncoder().encode(LibraryFile(schemaVersion: 1, workouts: workouts))
+        try data.write(to: fileURL, options: .atomic)
+    }
+}
+
+private struct BackupMergeIndex {
+    private var records: [Workout?] = []
+    private var byID: [UUID: Int] = [:]
+    private var bySource: [URL: Set<Int>] = [:]
+    private var byVideoID: [String: Set<Int>] = [:]
+    private let originals: [UUID: Workout]
+
+    init(_ workouts: [Workout]) {
+        originals = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for workout in workouts { append(workout) }
+    }
+
+    var workouts: [Workout] { records.compactMap { $0 } }
+
+    var result: BackupRestoreResult {
+        let final = workouts
+        let added = final.filter { originals[$0.id] == nil }.count
+        let finalByID = Dictionary(final.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let updated = originals.filter { id, original in finalByID[id] != original }.count
+        return BackupRestoreResult(added: added, updated: updated)
+    }
+
+    mutating func absorb(_ incoming: Workout) throws {
+        // Check identity before matching URL or video. A matching post elsewhere must not
+        // hide a reused UUID that belongs to a different current workout. Consult
+        // the original library too: coalescing may have removed that UUID's index.
+        if let original = originals[incoming.id], !Self.samePost(original, incoming) {
+            throw WorkoutBackup.BackupError.invalidArchive
         }
-        guard let existing, !existing.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return incoming
+        if let position = byID[incoming.id], let sameID = records[position],
+           !Self.samePost(sameID, incoming) {
+            throw WorkoutBackup.BackupError.invalidArchive
         }
+
+        var matches = bySource[incoming.sourceLink.url] ?? []
+        if let videoID = incoming.playbackLink.videoID {
+            matches.formUnion(byVideoID[videoID] ?? [])
+        }
+        if let position = byID[incoming.id] { matches.insert(position) }
+        guard !matches.isEmpty else {
+            append(incoming)
+            return
+        }
+
+        let ordered = matches.sorted { left, right in
+            guard let a = records[left], let b = records[right] else { return left < right }
+            return a.savedAt == b.savedAt
+                ? a.id.uuidString < b.id.uuidString
+                : a.savedAt < b.savedAt
+        }
+        // A current library identity takes precedence over an imported one; among
+        // current duplicates, keep the earliest save.
+        let keeperIndex = ordered.first { position in
+            guard let workout = records[position] else { return false }
+            return originals[workout.id] != nil
+        } ?? ordered[0]
+        var keeper = records[keeperIndex]!
+        for position in ordered where position != keeperIndex {
+            guard let other = records[position] else { continue }
+            try Self.validateCompatible(keeper, other)
+            keeper = Self.merge(keeper, other)
+        }
+        try Self.validateCompatible(keeper, incoming)
+        keeper = Self.merge(keeper, incoming)
+
+        for position in ordered { remove(position) }
+        records[keeperIndex] = keeper
+        addIndex(for: keeperIndex)
+    }
+
+    private static func samePost(_ left: Workout, _ right: Workout) -> Bool {
+        left.sourceLink.url == right.sourceLink.url ||
+            (left.playbackLink.videoID != nil &&
+             left.playbackLink.videoID == right.playbackLink.videoID)
+    }
+
+    private static func validateCompatible(_ left: Workout, _ right: Workout) throws {
+        if let leftVideoID = left.playbackLink.videoID,
+           let rightVideoID = right.playbackLink.videoID,
+           leftVideoID != rightVideoID {
+            throw WorkoutBackup.BackupError.invalidArchive
+        }
+    }
+
+    private static func merge(_ current: Workout, _ incoming: Workout) -> Workout {
+        var merged = current
+        if merged.resolvedLink == nil { merged.resolvedLink = incoming.resolvedLink }
+        if merged.title == nil { merged.title = incoming.title }
+        if merged.creator == nil { merged.creator = incoming.creator }
+        if merged.thumbnailURL == nil { merged.thumbnailURL = incoming.thumbnailURL }
+        merged.notes = mergeNotes(current.notes, incoming.notes)
+        return merged
+    }
+
+    private static func mergeNotes(_ existing: String?, _ incoming: String?) -> String? {
+        guard let incoming else { return existing }
+        guard let existing else { return incoming }
         let separator = "\n\n"
         if existing == incoming || existing.hasPrefix(incoming + separator) ||
             existing.hasSuffix(separator + incoming) ||
@@ -221,11 +282,32 @@ struct WorkoutStore {
         return existing + separator + incoming
     }
 
-    private func save(_ workouts: [Workout]) throws {
-        try FileManager.default.createDirectory(
-            at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true
-        )
-        let data = try JSONEncoder().encode(LibraryFile(schemaVersion: 1, workouts: workouts))
-        try data.write(to: fileURL, options: .atomic)
+    private mutating func append(_ workout: Workout) {
+        let position = records.count
+        records.append(workout)
+        addIndex(for: position)
+    }
+
+    private mutating func addIndex(for position: Int) {
+        guard let workout = records[position] else { return }
+        byID[workout.id] = position
+        bySource[workout.sourceLink.url, default: []].insert(position)
+        if let videoID = workout.playbackLink.videoID {
+            byVideoID[videoID, default: []].insert(position)
+        }
+    }
+
+    private mutating func remove(_ position: Int) {
+        guard let workout = records[position] else { return }
+        if byID[workout.id] == position { byID.removeValue(forKey: workout.id) }
+        bySource[workout.sourceLink.url]?.remove(position)
+        if bySource[workout.sourceLink.url]?.isEmpty == true {
+            bySource.removeValue(forKey: workout.sourceLink.url)
+        }
+        if let videoID = workout.playbackLink.videoID {
+            byVideoID[videoID]?.remove(position)
+            if byVideoID[videoID]?.isEmpty == true { byVideoID.removeValue(forKey: videoID) }
+        }
+        records[position] = nil
     }
 }

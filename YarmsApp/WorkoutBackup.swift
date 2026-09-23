@@ -16,8 +16,32 @@ struct WorkoutBackup {
     let workouts: [Workout]
 
     init(workouts: [Workout]) throws {
-        try Self.validate(workouts)
-        self.workouts = workouts
+        let normalized = workouts.map { workout in
+            var copy = workout
+            copy.title = Self.nonblank(copy.title)
+            copy.creator = Self.nonblank(copy.creator)
+            copy.notes = Self.nonblank(copy.notes)
+            return copy
+        }
+        try Self.validate(normalized)
+        self.workouts = normalized
+    }
+
+    static func load(from url: URL) throws -> WorkoutBackup {
+        if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+           size > maximumBytes {
+            throw BackupError.tooLarge
+        }
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var data = Data()
+        while data.count <= maximumBytes {
+            let remaining = maximumBytes + 1 - data.count
+            let chunk = try handle.read(upToCount: min(64 * 1_024, remaining)) ?? Data()
+            if chunk.isEmpty { break }
+            data.append(chunk)
+        }
+        return try decode(data)
     }
 
     static func decode(_ data: Data) throws -> WorkoutBackup {
@@ -65,6 +89,12 @@ struct WorkoutBackup {
 
     private static func isAuthentic(_ link: TikTokLink) -> Bool {
         TikTokLink(text: link.url.absoluteString) == link
+    }
+
+    private static func nonblank(_ value: String?) -> String? {
+        guard let value,
+              !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return value
     }
 }
 
