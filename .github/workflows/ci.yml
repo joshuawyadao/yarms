@@ -37,7 +37,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build iPhone app and share extension
+      - name: Build iPhone app
         run: xcodebuild -quiet -project Yarms.xcodeproj -scheme Yarms -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 
       - name: Run iPhone unit tests

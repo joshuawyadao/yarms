@@ -23,9 +23,7 @@ struct WorkoutStore {
     }
 
     static func live() -> WorkoutStore? {
-        guard let container = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: SharedInbox.appGroup
-        ) else { return nil }
+        guard let container = SharedInbox.liveContainer else { return nil }
         return WorkoutStore(
             fileURL: container.appendingPathComponent("Library.json"),
             inbox: SharedInbox(directory: container.appendingPathComponent("Inbox", isDirectory: true))

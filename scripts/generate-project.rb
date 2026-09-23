@@ -13,11 +13,38 @@ end
 
 if File.exist?(File.join(path, 'project.pbxproj'))
   project = Xcodeproj::Project.open(path)
+  app = project.targets.find { |target| target.name == 'Yarms' }
+  share = project.targets.find { |target| target.name == 'YarmsShare' }
+  if share
+    app.dependencies.select { |dependency| dependency.target == share }.each do |dependency|
+      dependency.target_proxy&.remove_from_project
+      dependency.remove_from_project
+    end
+    app.copy_files_build_phases.select { |phase| phase.name == 'Embed App Extensions' }.each do |phase|
+      phase.clear
+      phase.remove_from_project
+    end
+    share.build_phases.each do |phase|
+      phase.clear
+      phase.remove_from_project
+    end
+    share.build_configuration_list.build_configurations.each(&:remove_from_project)
+    share.build_configuration_list.remove_from_project
+    share.product_reference.remove_from_project
+    share.remove_from_project
+    share_group = project.main_group.find_subpath('YarmsShare', false)
+    share_group&.clear
+    share_group&.remove_from_project
+  end
+  app_group = project.main_group.find_subpath('YarmsApp', false)
+  app_group.files.select { |file| file.path == 'Yarms.entitlements' }.each(&:remove_from_project)
+  app.build_configurations.each do |config|
+    config.build_settings.delete('CODE_SIGN_ENTITLEMENTS')
+  end
   {
     'YarmsApp' => %w[Yarms],
-    'YarmsShare' => %w[YarmsShare],
     'YarmsTests' => %w[YarmsTests],
-    'YarmsCore' => %w[Yarms YarmsShare]
+    'YarmsCore' => %w[Yarms]
   }.each do |folder, target_names|
     group = project.main_group.find_subpath(folder, false)
     Dir.glob(File.join(root, folder, '*.swift')).sort.each do |file|
@@ -43,7 +70,6 @@ project.root_object.attributes['LastUpgradeCheck'] = '2700'
 project.root_object.attributes['TargetAttributes'] = {}
 
 app = project.new_target(:application, 'Yarms', :ios, '18.0')
-share = project.new_target(:app_extension, 'YarmsShare', :ios, '18.0')
 tests = project.new_target(:unit_test_bundle, 'YarmsTests', :ios, '18.0')
 
 def sources(project, target, root, folder)
@@ -54,29 +80,15 @@ def sources(project, target, root, folder)
 end
 
 sources(project, app, root, 'YarmsApp')
-sources(project, share, root, 'YarmsShare')
 sources(project, tests, root, 'YarmsTests')
 core_group = project.main_group.new_group('YarmsCore', 'YarmsCore')
 Dir.glob(File.join(root, 'YarmsCore', '*.swift')).sort.each do |file|
   reference = core_group.new_file(File.basename(file))
-  [app, share].each { |target| target.source_build_phase.add_file_reference(reference) }
+  app.source_build_phase.add_file_reference(reference)
 end
 
 assets = project.main_group.new_group('Assets', 'Assets')
 app.resources_build_phase.add_file_reference(assets.new_file('Assets.xcassets'))
-share_group = project.main_group.find_subpath('YarmsShare', false)
-share_group.new_file('Info.plist')
-[app, share].each do |target|
-  entitlements = project.main_group.find_subpath(target == app ? 'YarmsApp' : 'YarmsShare', false)
-  entitlements.new_file('Yarms.entitlements')
-end
-
-embed = project.new(Xcodeproj::Project::Object::PBXCopyFilesBuildPhase)
-embed.name = 'Embed App Extensions'
-embed.dst_subfolder_spec = '13'
-embed.add_file_reference(share.product_reference)
-app.build_phases << embed
-app.add_dependency(share)
 tests.add_dependency(app)
 
 project.build_configurations.each do |config|
@@ -87,9 +99,8 @@ project.build_configurations.each do |config|
   config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
 end
 
-[[app, 'com.joshuawyadao.yarms', 'YarmsApp/Yarms.entitlements'],
- [share, 'com.joshuawyadao.yarms.share', 'YarmsShare/Yarms.entitlements'],
- [tests, 'com.joshuawyadao.yarms.tests', nil]].each do |target, bundle_id, entitlements|
+[[app, 'com.joshuawyadao.yarms'],
+ [tests, 'com.joshuawyadao.yarms.tests']].each do |target, bundle_id|
   target.build_configurations.each do |config|
     settings = config.build_settings
     settings['SWIFT_VERSION'] = '5.0'
@@ -99,19 +110,12 @@ end
     settings['MARKETING_VERSION'] = '1.0'
     settings['CURRENT_PROJECT_VERSION'] = '1'
     settings['CODE_SIGN_STYLE'] = 'Automatic'
-    settings['CODE_SIGN_ENTITLEMENTS'] = entitlements if entitlements
     settings['SWIFT_EMIT_LOC_STRINGS'] = 'YES'
     if target == app
       settings['GENERATE_INFOPLIST_FILE'] = 'YES'
       settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'Yarms'
       settings['INFOPLIST_KEY_UILaunchScreen_Generation'] = 'YES'
       settings['ASSETCATALOG_COMPILER_APPICON_NAME'] = 'AppIcon'
-    elsif target == share
-      settings['GENERATE_INFOPLIST_FILE'] = 'NO'
-      settings['INFOPLIST_FILE'] = 'YarmsShare/Info.plist'
-      settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'Save to Yarms'
-      settings['APPLICATION_EXTENSION_API_ONLY'] = 'YES'
-      settings['SKIP_INSTALL'] = 'YES'
     else
       settings['GENERATE_INFOPLIST_FILE'] = 'YES'
       settings['TEST_HOST'] = '$(BUILT_PRODUCTS_DIR)/Yarms.app/Yarms'

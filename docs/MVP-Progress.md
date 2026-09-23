@@ -5,9 +5,10 @@
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
 | 2. Saving and library | Merged into `main` at `ea01404` | `feat/saving-library-oembed` | [#2](https://github.com/joshuawyadao/yarms/pull/2) | Final Codex review complete with no findings; CI Verify and Repository Verify passed |
 | 3. Player and notes | Merged into `main` at `b47b658` | `feat/workout-player-notes` | [#3](https://github.com/joshuawyadao/yarms/pull/3) | Final Codex review complete; CI Verify and Repository Verify passed |
-| 4. Backup and polish | Implementation complete; see PR for final gate and merge status | `feat/backup-polish` | [#4](https://github.com/joshuawyadao/yarms/pull/4) | Review and checks recorded on the PR; final `main` build and tests follow merge |
+| 4. Backup and polish | Merged into `main` at `265e3c8` | `feat/backup-polish` | [#4](https://github.com/joshuawyadao/yarms/pull/4) | Codex review, Brooks review, and required checks cleared before merge; final `main` build and 53 tests passed |
+| 5. Free Personal Team sharing | In progress | `codex/free-shortcut-sharing` | Pending | The App Group share extension is replaced by an App Intent and one-time Shortcut; 55 simulator tests pass and a Personal Team build signs; physical Shortcut validation waits for the iPhone to reconnect |
 
-The goal closes after every PR is reviewed, green, and merged, and the final app build and relevant tests pass.
+The four original MVP milestones are merged. The follow-up keeps Yarms installable with a free Personal Team. The review ledger below records historical App Group validation from the original implementation; [Shortcut-Sharing.md](Shortcut-Sharing.md) describes the current flow.
 
 ## Review ledger
 

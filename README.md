@@ -13,7 +13,7 @@ This repository makes the product direction and development reviewable. Plans an
 
 ## Intended experience
 
-Share a TikTok workout to Yarms, or paste its link in the app. Yarms saves the link locally without an account or required typing. The local library supports search by title, creator, or link. Yarms requests available title, creator, and thumbnail from TikTok's oEmbed endpoint, and attempts to resolve short links for playback. The workout screen uses TikTok's official embedded player with play, pause, short seek, and replay controls. Optional notes stay with the workout on the iPhone. If a video cannot play in the embedded player, Open in TikTok remains available. See the [MVP roadmap](docs/MVP-Roadmap.md) for the staged feature work.
+After a one-time [Shortcut setup](docs/Shortcut-Sharing.md), share a TikTok workout to **Save to Yarms** from the iPhone share sheet, or paste its link in the app. The Shortcut runs Yarms's Save TikTok Workout action and saves the link locally without an app account or typing each time. The local library supports search by title, creator, or link. Yarms requests available title, creator, and thumbnail from TikTok's oEmbed endpoint, and attempts to resolve short links for playback. The workout screen uses TikTok's official embedded player with play, pause, short seek, and replay controls. Optional notes stay with the workout on the iPhone. If a video cannot play in the embedded player, Open in TikTok remains available. See the [MVP roadmap](docs/MVP-Roadmap.md) for the staged feature work.
 
 The Backup menu exports a JSON copy of workout links, details, and notes to a location you choose in Files. Restoring a backup adds missing workouts, fills gaps in existing records, and appends distinct backed-up notes without erasing current notes. Import is limited to 10 MB; a larger local library can still be exported, and the app warns that this version cannot import the resulting file. Backup files include personal notes, so store them somewhere private. Yarms does not include or download video files in a backup.
 
@@ -27,7 +27,7 @@ GitHub secret scanning, push protection, Dependabot security updates, and privat
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. The [issue forms](.github/ISSUE_TEMPLATE/) and [pull request template](.github/pull_request_template.md) ask for clear outcomes and privacy considerations.
 
-Open `Yarms.xcodeproj` with Xcode. The app targets iOS 18 or later. A developer team with the `group.com.joshuawyadao.yarms` App Group is needed for a signed device build; the CI simulator build disables code signing. See [architecture and device checks](docs/Architecture.md).
+Open `Yarms.xcodeproj` with Xcode. The app targets iOS 18 or later and can be built for a personal iPhone with a free Apple Personal Team. Select your team in Signing & Capabilities; the app has no App Group entitlement or share extension. Free Personal Team provisioning expires periodically, so Xcode may need to rebuild and reinstall the app. See [architecture and device checks](docs/Architecture.md).
 
 The local checks are:
 
