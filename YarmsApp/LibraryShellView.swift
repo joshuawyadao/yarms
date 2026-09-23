@@ -100,7 +100,7 @@ struct LibraryShellView: View {
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
                 importBackup(result)
             }
-            .onAppear(perform: refresh)
+            .onAppear { refresh() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refresh() }
             }
@@ -125,10 +125,11 @@ struct LibraryShellView: View {
         }
     }
 
-    private func refresh() {
+    @discardableResult
+    private func refresh() -> Bool {
         guard let store = WorkoutStore.live() else {
             showMessage("Could not update workouts", "Yarms could not access its saved workouts.")
-            return
+            return false
         }
         do {
             workouts = try store.importPending()
@@ -136,8 +137,10 @@ struct LibraryShellView: View {
                 guard enriching.insert(workout.id).inserted else { continue }
                 Task { await enrich(workout, using: store) }
             }
+            return true
         } catch {
             showMessage("Could not update workouts", "Yarms could not read its saved workouts.")
+            return false
         }
     }
 
@@ -186,8 +189,10 @@ struct LibraryShellView: View {
             let hasAccess = url.startAccessingSecurityScopedResource()
             defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
             do {
-                pendingBackup = try WorkoutBackup.decode(Data(contentsOf: url, options: .mappedIfSafe))
+                pendingBackup = try WorkoutBackup.load(from: url)
                 confirmingRestore = true
+            } catch let error as WorkoutBackup.BackupError where error == .tooLarge {
+                showMessage("Backup too large", "Choose a Yarms backup smaller than 10 MB.")
             } catch {
                 showMessage("Could not read backup", "This file is not a supported Yarms backup.")
             }
@@ -202,14 +207,12 @@ struct LibraryShellView: View {
         pendingBackup = nil
         do {
             let result = try store.restoreBackup(backup)
-            do {
-                workouts = try store.importPending()
-            } catch {
+            if !refresh() {
                 workouts = (try? store.load()) ?? workouts
                 showMessage("Backup restored", "The backup was restored, but Yarms could not refresh every pending link. Reopen the app to refresh the library.")
                 return
             }
-            showMessage("Backup restored", "Added \(result.added) workouts and filled details for \(result.updated) existing workouts.")
+            showMessage("Backup restored", "Added \(result.added) workouts; updated or combined \(result.updated) existing records.")
         } catch {
             showMessage("Could not restore backup", "Yarms could not save the backup. Try again.")
         }
