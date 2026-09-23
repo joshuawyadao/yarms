@@ -19,3 +19,9 @@ Finish the Yarms MVP with a user-owned JSON backup that can be exported to Files
 
 ## Open questions
 - None. Restore is additive so an imported file cannot erase the current on-device collection.
+
+## PR #4 review follow-up
+- [ ] Resolve UUID conflicts before post matching, coalesce newly resolved duplicates, and index restore matches for large valid archives.
+- [ ] Normalize blank optional title, creator, and notes fields during backup decoding.
+- [ ] Check the selected file's size before reading, and schedule enrichment for incomplete workouts immediately after restore.
+- [ ] Add focused regressions for these cases, rerun the full simulator suite and signed build, push the fixes, and obtain a fresh Codex review and green CI.
