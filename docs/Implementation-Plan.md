@@ -24,4 +24,4 @@ Finish the Yarms MVP with a user-owned JSON backup that can be exported to Files
 - [x] Resolve UUID conflicts before post matching, coalesce newly resolved duplicates, and index restore matches for large valid archives.
 - [x] Normalize blank optional title, creator, and notes fields during backup decoding.
 - [x] Check the selected file's size before reading, and schedule enrichment for incomplete workouts immediately after restore.
-- [x] Add focused regressions for these cases, rerun the full simulator suite and signed build. Push the fixes and obtain a fresh Codex review and green CI next.
+- [x] Add focused regressions for these cases, rerun the full simulator suite and signed build, and push the fixes. PR #4 records the final review, CI, and merge status.

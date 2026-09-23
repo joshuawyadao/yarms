@@ -5,7 +5,7 @@
 
 Yarms is a personal iPhone app for saving TikTok workouts and following along with them in one organized place.
 
-> **Status:** The foundation, local library, and workout player milestones are merged. Backup and final polish are in progress; no release is available yet.
+> **Status:** The iPhone MVP is implemented across four milestones. There is no App Store release yet; installation requires building from source.
 
 ## Why this repository is public
 
