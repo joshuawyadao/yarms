@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes apply to the latest commit on `main`. Yarms currently has no usable app or supported release.
+Security fixes apply to the latest commit on `main`. Yarms is pre-release and has no supported distributed build yet.
 
 ## Reporting a vulnerability
 

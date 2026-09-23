@@ -1,23 +1,43 @@
 # Plan
 
-Turn a saved workout into a video-first follow-along screen. Use TikTok's documented embedded-player messages for simple playback controls, keep Open in TikTok visible, and store optional notes locally with the workout.
+Finish the Yarms MVP with a user-owned JSON backup that can be exported to Files and restored into the local library. Validate the whole archive before changing storage, merge matching workouts without erasing current notes, and keep the flow accessible without an account or required typing.
 
 ## Scope
-- In: official-player host page and bridge, play/pause and short seek controls with state/error feedback, optional saved notes, tests and documentation.
-- Out: video downloads, offline media, accounts, exercise programming, and backup/export (milestone 4).
+- In: versioned backup format, export and confirm-before-restore UI, additive library merge, empty/error/accessibility polish, tests, documentation, final main verification.
+- Out: TikTok video files, cloud sync, accounts, automatic backup, or overwriting a current library from an import.
 
 ## Action items
-[x] Confirm PR #2 merged, fast-forward `main`, and create a fresh feature branch from the merge commit.
-[x] Add a narrow host-to-player and player-to-host bridge for TikTok's documented `postMessage` interface; validate origin and message shape.
-[x] Make the workout screen video-first with easy play/pause, seek, and replay controls plus a persistent Open in TikTok fallback.
-[x] Add optional local notes to workout records; preserve them if duplicate links coalesce and ensure older library records decode.
-[x] Test player message parsing and commands, note persistence, backward compatibility, and duplicate-note behavior.
-[x] Update README, architecture, progress, and device checks; run simulator build, tests, repository verification, and signed-library visual inspection. Record the locked-Mac player-inspection limit.
-[x] Review error states, playback availability, notes durability, accessibility labels, and privacy before PR review.
+[x] Confirm PR #3 merged and create `feat/backup-polish` from its `main` merge commit.
+[x] Add a versioned backup codec and validate imported TikTok links, schema, and size before any library write.
+[x] Add additive restore logic that keeps existing workouts and notes, fills missing details, and remains idempotent on repeated import.
+[x] Add Files export and import with a restore confirmation and clear success/error feedback in the SwiftUI library.
+[x] Add focused backup tests for round-trip data, invalid/unsupported archives, duplicate imports, and preserving current notes.
+[x] Polish library empty states and accessibility around backup, then update README, architecture, and progress docs.
+[x] Run repository verification, full iPhone simulator tests, and signed simulator build; review privacy and device-only limitations.
+[ ] Commit and push the milestone, open PR #4, obtain Brooks and Codex reviews, clear all required checks, and merge after the gates pass.
+[ ] Update `main`, verify its final commit, app build, relevant tests, and four merged PRs.
 
 ## Open questions
-- None. Use the official player rather than downloading video, and keep notes optional and on device.
+- None. Restore is additive so an imported file cannot erase the current on-device collection.
 
-## PR #3 review follow-up
-- [x] Accept duration in either the ready or current-time event, and accept a current-time event that omits duration; preserve validation of malformed numbers.
-- [x] Cover both event shapes with focused tests and run the full simulator suite and repository verification. Push the fix and request a new Codex review next.
+## PR #4 review follow-up
+- [x] Resolve UUID conflicts before post matching, coalesce newly resolved duplicates, and index restore matches for large valid archives.
+- [x] Normalize blank optional title, creator, and notes fields during backup decoding.
+- [x] Check the selected file's size before reading, and schedule enrichment for incomplete workouts immediately after restore.
+- [x] Add focused regressions for these cases, rerun the full simulator suite and signed build, and push the fixes. PR #4 records the final review, CI, and merge status.
+
+## Second PR #4 review follow-up
+
+- [x] Persist locally confirmed source aliases across restore and repeat imports.
+- [x] Discard imported thumbnail URLs and unverified short-link resolutions before restore.
+- [x] Limit metadata requests after large restores and test queue behavior.
+- [x] Run all 50 simulator tests, signed simulator build, and repository verification.
+- [ ] Push the fixes, obtain a fresh Codex review, clear CI, and merge PR #4.
+
+## Third PR #4 review follow-up
+
+- [x] Keep same-video alias matching near-linear across large backups.
+- [x] Export every locally valid library and warn when its file exceeds this version's import limit.
+- [x] Preserve saved titles and creators during thumbnail refresh.
+- [x] Run all 53 simulator tests, signed simulator build, and repository verification.
+- [ ] Push the fixes, obtain a fresh Codex review, clear CI, and merge PR #4.
