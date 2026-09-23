@@ -25,3 +25,11 @@ Finish the Yarms MVP with a user-owned JSON backup that can be exported to Files
 - [x] Normalize blank optional title, creator, and notes fields during backup decoding.
 - [x] Check the selected file's size before reading, and schedule enrichment for incomplete workouts immediately after restore.
 - [x] Add focused regressions for these cases, rerun the full simulator suite and signed build, and push the fixes. PR #4 records the final review, CI, and merge status.
+
+## Second PR #4 review follow-up
+
+- [x] Persist locally confirmed source aliases across restore and repeat imports.
+- [x] Discard imported thumbnail URLs and unverified short-link resolutions before restore.
+- [x] Limit metadata requests after large restores and test queue behavior.
+- [x] Run all 50 simulator tests, signed simulator build, and repository verification.
+- [ ] Push the fixes, obtain a fresh Codex review, clear CI, and merge PR #4.

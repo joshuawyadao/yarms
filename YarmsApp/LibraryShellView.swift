@@ -6,7 +6,7 @@ struct LibraryShellView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var workouts: [Workout] = []
     @State private var searchText = ""
-    @State private var enriching = Set<UUID>()
+    @State private var enrichmentQueue = WorkoutEnrichmentQueue()
     @State private var message: String?
     @State private var messageTitle = "Could not update workouts"
     @State private var backupDocument: WorkoutBackupDocument?
@@ -133,14 +133,18 @@ struct LibraryShellView: View {
         }
         do {
             workouts = try store.importPending()
-            for workout in workouts where workout.title == nil || workout.playbackLink.videoID == nil {
-                guard enriching.insert(workout.id).inserted else { continue }
-                Task { await enrich(workout, using: store) }
-            }
+            enrichmentQueue.reset(with: workouts)
+            scheduleEnrichment(using: store)
             return true
         } catch {
             showMessage("Could not update workouts", "Yarms could not read its saved workouts.")
             return false
+        }
+    }
+
+    private func scheduleEnrichment(using store: WorkoutStore) {
+        for workout in enrichmentQueue.takeAvailable() {
+            Task { await enrich(workout, using: store) }
         }
     }
 
@@ -152,7 +156,8 @@ struct LibraryShellView: View {
         } catch {
             showMessage("Could not update workouts", "Yarms saved the link but could not update its details.")
         }
-        enriching.remove(workout.id)
+        enrichmentQueue.finish(workout.id)
+        scheduleEnrichment(using: store)
     }
 
     private func delete(at offsets: IndexSet) {
