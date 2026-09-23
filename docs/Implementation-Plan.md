@@ -13,6 +13,7 @@ Make Yarms installable with a free Apple Personal Team while keeping a no-typing
 - [x] Explain the one-time share-sheet Shortcut setup in the app and update README, architecture, and roadmap documentation.
 - [x] Add focused tests for Shortcut capture and app-local persistence; run targeted and full simulator tests plus repository verification.
 - [x] Build with the Personal Team and verify its signed app metadata and entitlements.
+- [x] Document a pre-upgrade backup and restore path for any earlier App Group build, since the free-team app cannot read that container after upgrading.
 - [ ] Commit and push the implemented changes, then open a PR and clear Codex review, Brooks review, and CI checks.
 - [ ] Install and run on the physical iPhone when it is reconnected; verify the Shortcut, paste, library, player, notes, and backup flows that can be exercised.
 - [ ] Merge the reviewed PR after all checks pass and confirm the final `main` build and tests.

@@ -1,6 +1,6 @@
 # Save TikTok workouts from the share sheet
 
-Yarms uses a personal Shortcut so it can be installed with a free Apple Personal Team. Set up **Save to Yarms** once on each iPhone. Afterward, sharing a TikTok link does not require copying it, opening Yarms, or typing.
+Yarms uses a personal Shortcut so it can be installed with a free Apple Personal Team. If this replaces an earlier signed Yarms build with saved workouts, [export and restore a backup](Storage-Migration.md) during the upgrade. Set up **Save to Yarms** once on each iPhone. Afterward, sharing a TikTok link does not require copying it, opening Yarms, or typing.
 
 1. Install and open Yarms once. In the **Shortcuts** app, create a new shortcut named **Save to Yarms**.
 2. In the shortcut's Details, turn on **Show in Share Sheet** and allow **URLs** and **Text** as input types.

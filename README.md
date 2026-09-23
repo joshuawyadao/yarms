@@ -27,6 +27,8 @@ GitHub secret scanning, push protection, Dependabot security updates, and privat
 
 Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. The [issue forms](.github/ISSUE_TEMPLATE/) and [pull request template](.github/pull_request_template.md) ask for clear outcomes and privacy considerations.
 
+**Before upgrading an earlier signed Yarms build:** Export a backup from that build and keep the JSON file in Files. This free-team build uses a new app-local storage location and cannot read the old App Group library after installation. Follow the [upgrade and restore steps](docs/Storage-Migration.md) before replacing the old app.
+
 Open `Yarms.xcodeproj` with Xcode. The app targets iOS 18 or later and can be built for a personal iPhone with a free Apple Personal Team. Select your team in Signing & Capabilities; the app has no App Group entitlement or share extension. Free Personal Team provisioning expires periodically, so Xcode may need to rebuild and reinstall the app. See [architecture and device checks](docs/Architecture.md).
 
 The local checks are:
