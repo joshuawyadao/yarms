@@ -7,11 +7,11 @@ Address the two suggestions from the Yarms test quality review. Make backup test
 - Out: app behavior changes and the separate UI integration coverage warning.
 
 ## Action items
-- [ ] Rename the two misleading backup tests and remove the assertion that implies a restore happened when only decode ran.
-- [ ] Add an opt-in benchmark that measures restore of two archive sizes across repeated fresh stores and checks for a substantial scaling regression.
-- [ ] Document how to run the benchmark outside the routine CI suite and register any new test file in the Xcode project.
-- [ ] Run repository verification, the opt-in benchmark, and the normal simulator test suite.
-- [ ] Commit the test and documentation changes, including the existing review record, and push the current branch.
+- [x] Rename the two misleading backup tests and remove the assertion that implies a restore happened when only decode ran.
+- [x] Add an opt-in benchmark that measures restore of two archive sizes across repeated fresh stores and checks for a substantial scaling regression.
+- [x] Document how to run the benchmark outside the routine CI suite and register any new test file in the Xcode project.
+- [x] Run repository verification, the opt-in benchmark, and the normal simulator test suite.
+- [x] Commit the test and documentation changes, including the existing review record, and push the current branch.
 
 ## Open questions
 - None.

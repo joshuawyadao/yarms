@@ -22,7 +22,7 @@ final class BackupTests: XCTestCase {
         try JSONEncoder().encode(library).write(to: directory.appendingPathComponent("Library.json"))
     }
 
-    func testRoundTripPreservesEntireWorkout() throws {
+    func testBackupRoundTripPreservesWorkoutFieldsButDiscardsThumbnail() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }
         var workout = try makeWorkout()
@@ -42,13 +42,7 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(try WorkoutBackup.decode(decoded.encode()).workouts, [imported])
     }
 
-    func testInvalidAndUnsupportedArchivesLeaveLibraryUntouched() throws {
-        let (store, directory) = makeStore()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let original = try makeWorkout()
-        try writeLibrary([original], into: directory)
-        let before = try Data(contentsOf: directory.appendingPathComponent("Library.json"))
-
+    func testDecoderRejectsInvalidAndUnsupportedArchives() throws {
         let unsupported = Data("{\"schemaVersion\":2,\"workouts\":[]}".utf8)
         XCTAssertThrowsError(try WorkoutBackup.decode(unsupported)) { error in
             XCTAssertEqual(error as? WorkoutBackup.BackupError, .unsupportedVersion)
@@ -68,9 +62,6 @@ final class BackupTests: XCTestCase {
         workouts[1]["sourceLink"] = forgedLink
         archive["workouts"] = workouts
         XCTAssertThrowsError(try WorkoutBackup.decode(JSONSerialization.data(withJSONObject: archive)))
-
-        XCTAssertEqual(try Data(contentsOf: directory.appendingPathComponent("Library.json")), before)
-        XCTAssertEqual(try store.load(), [original])
     }
 
     func testForgedVideoIDCannotBeImported() throws {

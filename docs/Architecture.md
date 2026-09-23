@@ -19,3 +19,15 @@ The library exports a versioned JSON backup through the system Files exporter. I
 ## Device checks before release
 
 Automated checks cover URL parsing, durable inbox writes and imports, metadata response handling, bounded redirects, player-message parsing, note persistence, backup validation and merge behavior, simulator build, and unit tests. On a signed iPhone build, verify that Share → Save to Yarms from TikTok and Safari writes the link before the app opens; verify the app sees it when foregrounded. Confirm canonical posts play inline in the workout screen, the custom play/pause/seek/replay buttons control the official player, short links resolve when TikTok permits, unavailable/private posts show a usable Open in TikTok path, metadata and thumbnail load on network, notes survive app relaunch, and paste works with a copied TikTok URL. Export a backup to Files, import it on a second installation, and verify links, notes, and duplicate handling. The live TikTok share sheet, App Group entitlement provisioning, oEmbed availability, redirect behavior, web playback, and Files interaction need this device check because unit tests cannot prove their behavior.
+
+## Restore scaling benchmark
+
+`BackupScalingBenchmarkTests` measures a fresh restore of 1,000 and 4,000 distinct TikTok URLs that refer to one video. It prepares archives before timing, takes five samples per size, and compares medians. The 4,000-link median must stay below 10 times the 1,000-link median; the generous ratio detects a major scaling regression while tolerating normal simulator timing variation. The benchmark is skipped in the regular test suite and CI Verify. Run it after changing backup validation or merge logic with an available iPhone simulator:
+
+```sh
+TEST_RUNNER_YARMS_RUN_BACKUP_BENCHMARK=1 xcodebuild \
+  -project Yarms.xcodeproj -scheme Yarms \
+  -destination 'platform=iOS Simulator,name=iPhone 17e' \
+  '-only-testing:YarmsTests/BackupScalingBenchmarkTests' \
+  CODE_SIGNING_ALLOWED=NO test
+```
