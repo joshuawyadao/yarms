@@ -1,43 +1,17 @@
 # Plan
 
-Finish the Yarms MVP with a user-owned JSON backup that can be exported to Files and restored into the local library. Validate the whole archive before changing storage, merge matching workouts without erasing current notes, and keep the flow accessible without an account or required typing.
+Address the two suggestions from the Yarms test quality review. Make backup test names describe the behavior they exercise, and add an opt-in measured restore scaling benchmark that can detect a return to expensive large-import behavior without slowing routine PR checks.
 
 ## Scope
-- In: versioned backup format, export and confirm-before-restore UI, additive library merge, empty/error/accessibility polish, tests, documentation, final main verification.
-- Out: TikTok video files, cloud sync, accounts, automatic backup, or overwriting a current library from an import.
+- In: focused backup test corrections, an opt-in two-size restore benchmark, benchmark documentation, repository and simulator verification.
+- Out: app behavior changes and the separate UI integration coverage warning.
 
 ## Action items
-[x] Confirm PR #3 merged and create `feat/backup-polish` from its `main` merge commit.
-[x] Add a versioned backup codec and validate imported TikTok links, schema, and size before any library write.
-[x] Add additive restore logic that keeps existing workouts and notes, fills missing details, and remains idempotent on repeated import.
-[x] Add Files export and import with a restore confirmation and clear success/error feedback in the SwiftUI library.
-[x] Add focused backup tests for round-trip data, invalid/unsupported archives, duplicate imports, and preserving current notes.
-[x] Polish library empty states and accessibility around backup, then update README, architecture, and progress docs.
-[x] Run repository verification, full iPhone simulator tests, and signed simulator build; review privacy and device-only limitations.
-[ ] Commit and push the milestone, open PR #4, obtain Brooks and Codex reviews, clear all required checks, and merge after the gates pass.
-[ ] Update `main`, verify its final commit, app build, relevant tests, and four merged PRs.
+- [ ] Rename the two misleading backup tests and remove the assertion that implies a restore happened when only decode ran.
+- [ ] Add an opt-in benchmark that measures restore of two archive sizes across repeated fresh stores and checks for a substantial scaling regression.
+- [ ] Document how to run the benchmark outside the routine CI suite and register any new test file in the Xcode project.
+- [ ] Run repository verification, the opt-in benchmark, and the normal simulator test suite.
+- [ ] Commit the test and documentation changes, including the existing review record, and push the current branch.
 
 ## Open questions
-- None. Restore is additive so an imported file cannot erase the current on-device collection.
-
-## PR #4 review follow-up
-- [x] Resolve UUID conflicts before post matching, coalesce newly resolved duplicates, and index restore matches for large valid archives.
-- [x] Normalize blank optional title, creator, and notes fields during backup decoding.
-- [x] Check the selected file's size before reading, and schedule enrichment for incomplete workouts immediately after restore.
-- [x] Add focused regressions for these cases, rerun the full simulator suite and signed build, and push the fixes. PR #4 records the final review, CI, and merge status.
-
-## Second PR #4 review follow-up
-
-- [x] Persist locally confirmed source aliases across restore and repeat imports.
-- [x] Discard imported thumbnail URLs and unverified short-link resolutions before restore.
-- [x] Limit metadata requests after large restores and test queue behavior.
-- [x] Run all 50 simulator tests, signed simulator build, and repository verification.
-- [ ] Push the fixes, obtain a fresh Codex review, clear CI, and merge PR #4.
-
-## Third PR #4 review follow-up
-
-- [x] Keep same-video alias matching near-linear across large backups.
-- [x] Export every locally valid library and warn when its file exceeds this version's import limit.
-- [x] Preserve saved titles and creators during thumbnail refresh.
-- [x] Run all 53 simulator tests, signed simulator build, and repository verification.
-- [ ] Push the fixes, obtain a fresh Codex review, clear CI, and merge PR #4.
+- None.
