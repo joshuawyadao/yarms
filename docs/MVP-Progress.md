@@ -10,7 +10,7 @@
 | 6. Compact player controls and UI automation | Merged into `main` at `c5041d5` | `codex/compact-player-ui-tests` | [#6](https://github.com/joshuawyadao/yarms/pull/6) | Codex and Brooks reviews completed; CI Verify and Repository Verify passed. |
 | 7. Lowercase app title | Merged into `main` at `ea4fdd9` | — | [#7](https://github.com/joshuawyadao/yarms/pull/7) | App and Share Sheet titles use lowercase `yarms`. |
 | 8. Workout folders | Merged into `main` at `e3a2045` | `codex/workout-folders` | [#8](https://github.com/joshuawyadao/yarms/pull/8) | Brooks and five Codex findings were addressed; the final Codex review and both required checks passed before the squash merge. CI Verify built the app and passed the simulator suite. |
-| 9. Library and workout UI refresh | Local validation passed | `codex/ui-refresh` | — | 72 unit and 5 UI tests pass (2 opt-in skips), the final focused folder UI flow and unsigned iPhone build pass, and repository verification is green. PR review and CI remain. |
+| 9. Library and workout UI refresh | PR review | `codex/ui-refresh` | [#9](https://github.com/joshuawyadao/yarms/pull/9) | 72 unit and 5 UI tests pass (2 opt-in skips), the final focused folder UI flow and unsigned iPhone build pass, and repository verification is green. Codex review and CI remain. |
 
 The four original MVP milestones and the free Personal Team sharing, player controls, lowercase title, and folder follow-ups are merged. The current work refreshes the library and workout UI. The review ledger below records historical App Group validation from the original implementation; [Shortcut-Sharing.md](Shortcut-Sharing.md) describes the current direct Share Sheet flow.
 

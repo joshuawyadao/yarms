@@ -261,7 +261,8 @@ struct LibraryShellView: View {
     }
 
     private var workoutList: some View {
-        let namesByID = Dictionary(uniqueKeysWithValues: folders.map { ($0.id, $0.name) })
+        let namesByID = Dictionary(folders.map { ($0.id, $0.name) },
+                                   uniquingKeysWith: { first, _ in first })
         return List {
             HStack {
                 Text("Saved workouts")
