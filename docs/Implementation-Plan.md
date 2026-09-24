@@ -28,12 +28,13 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 - [x] Scroll to Notes after reopening before checking whether its editor is present; older iOS may omit offscreen TextEditor elements from the accessibility tree. The focused local UI test passes and the saved-text assertion remains.
 - [x] Restart Yarms after saving a note and verify the persisted text in a newly loaded library record. Include the observed text on failure; the focused local UI test passes.
 - [x] Add a Done control for the notes keyboard and verify the editor contains typed text before saving; dismiss the keyboard, save, and read back the note after relaunch. The local full suite and signed iPhone build pass.
-- [ ] Verify that the same note flow passes on iOS 18.5 CI.
-- [ ] Wait for the fresh CI and Codex review gates before merging.
+- [x] Verify that the same note flow passes on iOS 18.5 CI. At `8a0c9b0`, CI Verify passed all 60 runnable tests with 2 expected opt-in skips.
+- [x] Check fresh Codex review and mergeability for `8a0c9b0`: no new findings, both checks green, no conflicts.
+- [ ] Recheck CI, Codex review, and mergeability on the final documentation commit before merging PR #6.
 
 ## PR #6 second review
 - [x] Launch each UI test with a unique temporary workout store and disable normal Keychain inbox import for that launch; invalid test-store arguments must never fall back to the normal library.
-- [ ] Verify the store-routing contract and rerun UI, unit, repository, signed-build, review, and CI gates before merge. Local tests and build pass; remote review and CI remain pending.
+- [x] Verify the store-routing contract and rerun UI, unit, repository, signed-build, review, and CI gates on `8a0c9b0`. Local and remote tests, review, and build pass.
 
 ## Open questions
 - None. The existing saved workout is useful for a device smoke check; deterministic simulator fixtures are better for repeatable tests.
