@@ -23,5 +23,9 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 - [x] Record an Xcode result bundle during CI Verify and print the failure summary when simulator tests fail. A superseded macOS 15 run reported a UI test failure after nearly ten minutes without its assertion details in the quiet log.
 - [ ] Use the next CI result to repair any iOS 18.5 UI test failure, rerun local validation, and wait for green checks and fresh review.
 
+## PR #6 second review
+- [ ] Launch each UI test with a unique temporary workout store and disable normal Keychain inbox import for that launch; invalid test-store arguments must never fall back to the normal library.
+- [ ] Verify the store-routing contract and rerun UI, unit, repository, signed-build, review, and CI gates before merge.
+
 ## Open questions
 - None. The existing saved workout is useful for a device smoke check; deterministic simulator fixtures are better for repeatable tests.
