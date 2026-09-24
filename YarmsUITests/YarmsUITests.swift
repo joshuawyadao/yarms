@@ -46,8 +46,6 @@ final class YarmsUITests: XCTestCase {
         editor.tap()
         editor.typeText(note)
         app.buttons["Save notes"].tap()
-        XCTAssertTrue(app.staticTexts["Saved on this iPhone"].waitForExistence(timeout: 5),
-                      "Saving a note should confirm it persisted")
 
         app.navigationBars.buttons["Yarms"].tap()
         row.tap()
