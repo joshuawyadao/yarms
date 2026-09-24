@@ -96,10 +96,13 @@ struct LibraryShellView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                saveCard
                 folderBar
                 libraryContent
             }
+            .background(Color("YarmsCanvas").ignoresSafeArea())
             .navigationTitle("yarms")
+            .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search workouts")
             .toolbar {
                 Menu {
@@ -191,46 +194,87 @@ struct LibraryShellView: View {
     @ViewBuilder
     private var libraryContent: some View {
         if workouts.isEmpty {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 ContentUnavailableView(
                     "No workouts yet",
                     systemImage: "figure.strengthtraining.traditional",
-                    description: Text("Share a TikTok workout to Yarms, or paste its link here.")
+                    description: Text("Share a workout from TikTok and it will appear here.")
                 )
-                pasteButton(identifier: "emptyPasteLinkButton")
-                    .tint(.purple)
                 Button("Restore a backup", systemImage: "square.and.arrow.down") {
                     showingImporter = true
                 }
                 .buttonStyle(.bordered)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if visibleWorkouts.isEmpty {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 ContentUnavailableView(
                     emptySelectionTitle,
                     systemImage: searchText.isEmpty ? "folder" : "magnifyingglass",
                     description: Text(emptySelectionDescription)
                 )
-                pasteButton(identifier: "noMatchesPasteLinkButton")
-                    .tint(.purple)
                 if searchText.isEmpty && selectedFolder != .all {
                     Button("Show all workouts") { selectedFolder = .all }
                         .buttonStyle(.bordered)
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             workoutList
         }
     }
 
-    private var workoutList: some View {
-        List {
-            HStack {
-                pasteButton(identifier: "libraryPasteLinkButton")
-                Text("a TikTok link")
+    private var saveCard: some View {
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Save a workout")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Share from TikTok, or paste a link")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            Spacer(minLength: 0)
+            pasteButton(identifier: pasteButtonIdentifier)
+                .tint(.accentColor)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color("YarmsSurface"))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color("YarmsBloom").opacity(0.35), lineWidth: 1)
+                }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+    }
+
+    private var pasteButtonIdentifier: String {
+        if workouts.isEmpty { return "emptyPasteLinkButton" }
+        if visibleWorkouts.isEmpty { return "noMatchesPasteLinkButton" }
+        return "libraryPasteLinkButton"
+    }
+
+    private var workoutList: some View {
+        let namesByID = Dictionary(uniqueKeysWithValues: folders.map { ($0.id, $0.name) })
+        return List {
+            HStack {
+                Text("Saved workouts")
+                    .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Text("\(visibleWorkouts.count)")
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 6, trailing: 20))
             ForEach(visibleWorkouts) { workout in
                 NavigationLink {
                     EmbeddedPlayerView(
@@ -240,21 +284,44 @@ struct LibraryShellView: View {
                         onFolderChanged: { destination in moveWorkout(workout, to: destination) }
                     )
                 } label: {
-                    WorkoutRow(workout: workout)
+                    WorkoutRow(workout: workout, folderName: workout.folderID.flatMap { namesByID[$0] })
                 }
                 .accessibilityIdentifier("workout-\(workout.sourceLink.videoID ?? workout.id.uuidString)")
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color("YarmsSurface"))
+                )
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Move", systemImage: "folder") { movingWorkout = workout }
-                        .tint(.purple)
+                        .tint(.accentColor)
                 }
             }
             .onDelete(perform: delete)
         }
+        .listStyle(.plain)
+        .contentMargins(.horizontal, 16, for: .scrollContent)
+        .scrollContentBackground(.hidden)
     }
 
     private var folderBar: some View {
         let counts = FolderCounts(workouts: workouts)
-        return HStack(spacing: 8) {
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Folders")
+                    .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Button(action: prepareNewFolder) {
+                    Label("New folder", systemImage: "plus")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minHeight: 44)
+                }
+                .accessibilityIdentifier("newFolderButton")
+            }
+            .padding(.horizontal, 20)
+
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
                     folderChip("All", count: counts.total, selection: .all, identifier: "folder-all")
@@ -278,16 +345,9 @@ struct LibraryShellView: View {
                 .padding(.horizontal, 16)
             }
             .scrollIndicators(.hidden)
-
-            Button(action: prepareNewFolder) {
-                Image(systemName: "folder.badge.plus")
-                    .frame(width: 44, height: 44)
-            }
-            .accessibilityLabel("New folder")
-            .accessibilityIdentifier("newFolderButton")
-            .padding(.trailing, 12)
         }
-        .padding(.vertical, 8)
+        .padding(.top, 16)
+        .padding(.bottom, 8)
     }
 
     private func folderChip(_ title: String, count: Int, selection: FolderSelection,
@@ -299,9 +359,9 @@ struct LibraryShellView: View {
             }
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, 13)
-            .frame(minHeight: 38)
+            .frame(minHeight: 44)
             .foregroundStyle(selectedFolder == selection ? .white : .primary)
-            .background(selectedFolder == selection ? Color.purple : Color(.secondarySystemBackground),
+            .background(selectedFolder == selection ? Color.accentColor : Color("YarmsSoft"),
                         in: Capsule())
         }
         .buttonStyle(.plain)
@@ -554,9 +614,10 @@ struct LibraryShellView: View {
 
 private struct WorkoutRow: View {
     let workout: Workout
+    let folderName: String?
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             AsyncImage(url: workout.thumbnailURL) { phase in
                 if let image = phase.image {
                     image.resizable().scaledToFill()
@@ -564,29 +625,36 @@ private struct WorkoutRow: View {
                     Image(systemName: "figure.strengthtraining.traditional")
                         .resizable()
                         .scaledToFit()
-                        .padding(18)
-                        .foregroundStyle(.secondary)
+                        .padding(24)
+                        .foregroundStyle(Color.accentColor)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(.quaternary)
+                        .background(Color("YarmsSoft"))
                 }
             }
-            .frame(width: 72, height: 88)
+            .frame(width: 84, height: 104)
             .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 7) {
                 Text(workout.title ?? "TikTok workout")
                     .font(.headline)
                     .lineLimit(2)
                 if let creator = workout.creator {
-                    Text(creator).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    Text(creator)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-                Text(workout.sourceLink.url.absoluteString)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Image(systemName: folderName == nil ? "tray" : "folder.fill")
+                    Text(folderName ?? "Unfiled")
+                        .lineLimit(1)
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.accentColor)
             }
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 3)
+        .padding(10)
     }
 }

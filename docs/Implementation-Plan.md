@@ -19,10 +19,10 @@ Add named folders so saved workouts can be organized without changing Share Shee
 - [x] Address local-library downgrade risk: write schema 2 libraries, read legacy schema 1 libraries, and prove folder data cannot be silently rewritten by an older build.
 - [x] Run focused and full iPhone simulator tests, an iPhone target build, repository checks, and a folder UI screenshot; commit, push, review, and merge the folder PR after green gates. PR #8 merged at `e3a2045`. A signed local build still needs refreshed Xcode account credentials; CI Verify built and tested the app successfully.
 - [x] Start a fresh UI branch from updated `main` at `e3a2045`.
-- [ ] Apply an accessible palette derived from the approved icon, with light and dark colors; simplify the library save action, folder navigation, workout cards, and empty states.
-- [ ] Restyle the workout screen while preserving full-width portrait playback, 44-point controls, optional notes, folder movement, and the full-width Open in TikTok fallback.
-- [ ] Add or update UI assertions for the new library hierarchy and player accessibility, keeping isolated fabricated TikTok links; update README, architecture, and progress docs.
-- [ ] Validate screenshots, the full simulator suite, an iPhone target build, and repository checks; commit and push the UI branch, complete Codex and Brooks reviews and CI, then merge the green PR.
+- [x] Apply an accessible palette derived from the approved icon, with light and dark colors; simplify the library save action, folder navigation, workout cards, and empty states.
+- [x] Restyle the workout screen while preserving full-width portrait playback, 44-point controls, optional notes, folder movement, and the full-width Open in TikTok fallback.
+- [x] Add or update UI assertions for the new library hierarchy and player accessibility, keeping isolated fabricated TikTok links; update README and architecture docs. Update the progress ledger with final review and merge evidence.
+- [ ] Validate screenshots, the full simulator suite, an iPhone target build, and repository checks; commit and push the UI branch, complete Codex and Brooks reviews and CI, then merge the green PR. Local validation passed: 72 unit tests and 5 UI tests (2 expected opt-in skips), a focused final folder UI test, an unsigned iPhone build, repository verification, and library/player screenshot inspection. PR gates remain pending.
 
 ## Open questions
 - None. Working defaults are one folder per workout and the approved icon palette; these can be adjusted if the owner steers the design.

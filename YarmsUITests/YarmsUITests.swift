@@ -25,6 +25,8 @@ final class YarmsUITests: XCTestCase {
 
         let back = app.buttons["Back 10 seconds"]
         let fallback = app.buttons["openInTikTokButton"]
+        XCTAssertTrue(app.staticTexts["WORKOUT"].waitForExistence(timeout: 5),
+                      "The player should show the workout heading above the video")
         XCTAssertTrue(back.waitForExistence(timeout: 10), "The workout should show playback controls")
         XCTAssertTrue(fallback.exists, "The workout should offer Open in TikTok")
         XCTAssertTrue(fallback.isHittable, "Open in TikTok should remain visible at the bottom")
@@ -151,6 +153,10 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(filedChip.waitForExistence(timeout: 5), "The folder count should update after moving")
         filedChip.tap()
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The folder should show its filed workout")
+        let libraryScreenshot = XCTAttachment(screenshot: app.screenshot())
+        libraryScreenshot.name = "Library save action, folders, and filed workout card"
+        libraryScreenshot.lifetime = .keepAlways
+        add(libraryScreenshot)
         app.buttons["folder-unfiled"].tap()
         XCTAssertFalse(row.exists, "The moved workout should leave Unfiled")
     }
@@ -167,12 +173,18 @@ final class YarmsUITests: XCTestCase {
         let videoID = "9\(Int(Date().timeIntervalSince1970 * 1000))"
         UIPasteboard.general.string = "https://www.tiktok.com/@yarms-test/video/\(videoID)"
         app.launch()
+        XCTAssertTrue(app.staticTexts["Save a workout"].waitForExistence(timeout: 10),
+                      "The library should make its save action clear")
+        XCTAssertTrue(app.staticTexts["Folders"].exists,
+                      "Folder browsing should have a visible section heading")
         let paste = app.buttons["emptyPasteLinkButton"]
         XCTAssertTrue(paste.waitForExistence(timeout: 10), "An isolated UI test should start with an empty library")
         XCTAssertTrue(paste.isEnabled, "Paste should accept the prepared TikTok link")
         paste.tap()
         XCTAssertTrue(app.buttons["libraryPasteLinkButton"].waitForExistence(timeout: 10),
                       "Pasting should populate the isolated library")
+        XCTAssertTrue(app.staticTexts["Saved workouts"].exists,
+                      "Saved videos should appear under a distinct library heading")
         return videoID
     }
 }
