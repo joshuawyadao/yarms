@@ -228,6 +228,22 @@ final class LibraryTests: XCTestCase {
         XCTAssertNil(try store.load().first?.folderID)
     }
 
+    func testNewShareSelectsUnfiledEvenWhenCurrentLibraryIsEmpty() throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let imported = Workout(id: UUID(), sourceLink: link, savedAt: Date())
+        let selected: LibraryShellView.FolderSelection = .folder(UUID())
+
+        XCTAssertEqual(LibraryShellView.FolderSelection.afterImport(
+            selected, previousIDs: [], imported: [imported], showNewShares: true
+        ), .unfiled, "A new Share Sheet save should be visible from an empty selected folder")
+        XCTAssertEqual(LibraryShellView.FolderSelection.afterImport(
+            selected, previousIDs: [imported.id], imported: [imported], showNewShares: true
+        ), selected, "Foregrounding without a new save should keep the chosen folder")
+        XCTAssertEqual(LibraryShellView.FolderSelection.afterImport(
+            selected, previousIDs: [], imported: [imported], showNewShares: false
+        ), selected, "Opening the library normally should keep its selected folder")
+    }
+
     func testCoalescingKeepsEarliestNoteAndAppendsDistinctLaterNotes() throws {
         let (store, _, container) = makeStore()
         defer { try? FileManager.default.removeItem(at: container) }

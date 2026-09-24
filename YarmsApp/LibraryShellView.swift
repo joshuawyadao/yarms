@@ -3,7 +3,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct LibraryShellView: View {
-    private enum FolderSelection: Equatable {
+    enum FolderSelection: Equatable {
         case all
         case unfiled
         case folder(UUID)
@@ -14,6 +14,13 @@ struct LibraryShellView: View {
             case .unfiled: return workout.folderID == nil
             case .folder(let id): return workout.folderID == id
             }
+        }
+
+        static func afterImport(_ current: Self, previousIDs: Set<UUID>,
+                                imported: [Workout], showNewShares: Bool) -> Self {
+            guard showNewShares,
+                  imported.contains(where: { !previousIDs.contains($0.id) }) else { return current }
+            return .unfiled
         }
     }
 
@@ -401,10 +408,10 @@ struct LibraryShellView: View {
             let currentIDs = Set(workouts.map(\.id))
             let imported = try store.importPending()
             folders = try store.loadFolders()
-            if showNewShares && !currentIDs.isEmpty &&
-                imported.contains(where: { !currentIDs.contains($0.id) }) {
-                selectedFolder = .unfiled
-            }
+            selectedFolder = FolderSelection.afterImport(
+                selectedFolder, previousIDs: currentIDs, imported: imported,
+                showNewShares: showNewShares
+            )
             if case .folder(let id) = selectedFolder,
                !folders.contains(where: { $0.id == id }) {
                 selectedFolder = .all
