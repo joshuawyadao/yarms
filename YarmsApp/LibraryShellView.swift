@@ -57,7 +57,9 @@ struct LibraryShellView: View {
                         }
                         ForEach(visibleWorkouts) { workout in
                             NavigationLink {
-                                EmbeddedPlayerView(workout: workout)
+                                EmbeddedPlayerView(workout: workout) {
+                                    _ = refresh()
+                                }
                             } label: {
                                 WorkoutRow(workout: workout)
                             }

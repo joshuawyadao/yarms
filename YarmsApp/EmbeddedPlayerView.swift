@@ -12,9 +12,11 @@ struct EmbeddedPlayerView: View {
     @State private var message: String?
 
     let workout: Workout
+    let onNotesSaved: () -> Void
 
-    init(workout: Workout) {
+    init(workout: Workout, onNotesSaved: @escaping () -> Void) {
         self.workout = workout
+        self.onNotesSaved = onNotesSaved
         _notesOpen = State(initialValue: workout.notes != nil)
         _noteText = State(initialValue: workout.notes ?? "")
     }
@@ -162,6 +164,7 @@ struct EmbeddedPlayerView: View {
         do {
             if try store.updateNotes(noteText, for: workout.id) {
                 noteSaved = true
+                onNotesSaved()
             } else {
                 message = "This workout changed while you were editing. Reopen it and try again."
             }

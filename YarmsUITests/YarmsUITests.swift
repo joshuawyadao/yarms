@@ -59,10 +59,11 @@ final class YarmsUITests: XCTestCase {
         let app = isolatedApp()
         app.launch()
         let backup = app.buttons["Backup and restore"]
-        XCTAssertTrue(backup.waitForExistence(timeout: 10))
+        XCTAssertTrue(backup.waitForExistence(timeout: 10), "The library should expose Backup and restore")
         backup.tap()
-        XCTAssertTrue(app.buttons["Export backup"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["Restore backup"].exists)
+        XCTAssertTrue(app.buttons["Export backup"].waitForExistence(timeout: 5),
+                      "The backup menu should offer Export")
+        XCTAssertTrue(app.buttons["Restore backup"].exists, "The backup menu should offer Restore")
     }
 
     @MainActor
@@ -71,13 +72,14 @@ final class YarmsUITests: XCTestCase {
         _ = pasteUniqueWorkout(into: app)
 
         let search = app.searchFields.firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        XCTAssertTrue(search.waitForExistence(timeout: 5), "A saved workout should expose search")
         search.tap()
         search.typeText("no-workout-matches-this-search")
 
-        XCTAssertTrue(app.staticTexts["No matching workouts"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["No matching workouts"].waitForExistence(timeout: 5),
+                      "The unique query should produce no results")
         let paste = app.buttons["noMatchesPasteLinkButton"]
-        XCTAssertTrue(paste.waitForExistence(timeout: 5))
+        XCTAssertTrue(paste.waitForExistence(timeout: 5), "Paste should remain in the zero-result state")
         XCTAssertTrue(paste.isEnabled, "A zero-result search should still offer Paste")
     }
 
