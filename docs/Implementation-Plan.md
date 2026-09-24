@@ -1,17 +1,19 @@
 # Plan
 
-Use lowercase `yarms` for the iPhone Home Screen label, the library title, and the Share Sheet action. Keep the existing Xcode target, module, and bundle identifiers so signing and stored data continue to use the same app identity.
+Add named folders so saved workouts can be organized without changing Share Sheet capture or video playback. Deliver that as one reviewed milestone, then refresh the library and workout UI in a second milestone using the approved yarms icon's pink and purple palette.
 
 ## Scope
-- In: app and Share extension display names, library title, matching sharing instructions, and direct verification of the built app's Info.plist.
-- Out: target and bundle identifier renames, backup format changes, and general copy editing beyond the visible titles.
+- In: one folder per workout, Unfiled for new shares, folder create/rename/delete, moving workouts, folder browsing and search, backup/restore preservation, accessible library and player UI polish, tests, and current docs.
+- Out: downloaded video files, app accounts, cloud sync, nested folders, multiple folders on one workout, and changes to TikTok's official player controls.
 
 ## Action items
-- [x] Set the main app and Share extension display names in the checked-in Xcode project, project generator, and Share extension Info.plist.
-- [x] Change the library navigation title to `yarms`. Skip new tests that would only mirror a literal display label; inspect the built metadata and run the existing UI flow instead.
-- [x] Update README and sharing instructions so the Share Sheet action name matches the app.
-- [x] Verify project generation preserves the names, inspect built Info.plist values, run the focused UI test and repository checks, and confirm signing remains valid. The signed app builds; its display name is `yarms`, the Share extension is `Save to yarms`, and the focused UI test passes.
-- [x] Prepare the verified branch for commit and push with only title-related files staged.
+- [ ] Add durable folder records and workout assignments in `WorkoutStore`, with safe decoding of existing libraries, folder deletion that keeps workouts, and deterministic assignment when duplicate links merge.
+- [ ] Include folders in backup export/import with validation, stable restore mapping, and compatibility with older backups.
+- [ ] Add library and workout controls for creating, renaming, deleting, browsing, and assigning folders; keep saving a shared TikTok link immediate and Unfiled by default.
+- [ ] Add meaningful unit and UI tests for legacy data, folder operations, duplicate resolution, backup round trips, and the main folder flow; update README and architecture docs.
+- [ ] Run focused and full iPhone simulator tests, signed iPhone build, repository checks, and a folder UI screenshot; commit, push, review, and merge the folder PR after green gates.
+- [ ] Start a fresh UI branch from updated main; restyle the library and workout screens around the approved icon palette while keeping video prominent, controls usable, and folders easy to scan.
+- [ ] Validate accessibility, screenshots, UI flows, build, and tests; update docs, commit, push, review, and merge the UI PR after green gates.
 
 ## Open questions
-- None.
+- None. Working defaults are one folder per workout and the approved icon palette; these can be adjusted if the owner steers the design.
