@@ -21,7 +21,7 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 
 ## CI diagnosis
 - [x] Record an Xcode result bundle during CI Verify and print the failure summary when simulator tests fail. A superseded macOS 15 run reported a UI test failure after nearly ten minutes without its assertion details in the quiet log.
-- [x] Print the failing test's detailed Xcode result, including its source location; the summary exposed an `XCTAssertTrue` failure in `testPasteSearchPlayerLayoutAndNotesPersistence` but not its line.
+- [x] Print the failing test's detailed Xcode result. It still omitted the assertion line, so label each assertion in the failing UI flow and print its recent XCTest activities on the next CI failure.
 - [ ] Use the detailed CI result to repair the iOS 18.5 UI test failure, rerun local validation, and wait for green checks and fresh review.
 
 ## PR #6 second review

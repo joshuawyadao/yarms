@@ -63,6 +63,24 @@ jobs:
               if test_id:
                   subprocess.run(["xcrun", "xcresulttool", "get", "test-results", "test-details",
                                   "--path", sys.argv[1], "--test-id", test_id], check=False)
+                  result = subprocess.run(["xcrun", "xcresulttool", "get", "test-results", "activities",
+                                           "--path", sys.argv[1], "--test-id", test_id],
+                                          capture_output=True, text=True, check=False)
+                  if result.returncode == 0:
+                      activities = []
+                      def collect(value):
+                          if isinstance(value, dict):
+                              if "title" in value and "startTime" in value:
+                                  activities.append((value["startTime"], value["title"]))
+                              for child in value.values():
+                                  collect(child)
+                          elif isinstance(value, list):
+                              for child in value:
+                                  collect(child)
+                      collect(json.loads(result.stdout))
+                      print("Recent test activities for", test_id, flush=True)
+                      for _, title in sorted(activities)[-25:]:
+                          print(title, flush=True)
           PY
             fi
             exit "$test_status"

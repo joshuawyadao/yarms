@@ -17,7 +17,7 @@ final class YarmsUITests: XCTestCase {
         }
 
         let search = app.searchFields.firstMatch
-        XCTAssertTrue(search.exists)
+        XCTAssertTrue(search.exists, "Search should appear after a workout is saved")
         search.tap()
         search.typeText(videoID)
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The saved link should be searchable")
@@ -25,8 +25,8 @@ final class YarmsUITests: XCTestCase {
 
         let back = app.buttons["Back 10 seconds"]
         let fallback = app.buttons["openInTikTokButton"]
-        XCTAssertTrue(back.waitForExistence(timeout: 10))
-        XCTAssertTrue(fallback.exists)
+        XCTAssertTrue(back.waitForExistence(timeout: 10), "The workout should show playback controls")
+        XCTAssertTrue(fallback.exists, "The workout should offer Open in TikTok")
         XCTAssertTrue(fallback.isHittable, "Open in TikTok should remain visible at the bottom")
         XCTAssertLessThanOrEqual(back.frame.width, 56, "Playback buttons should stay compact")
         XCTAssertGreaterThan(fallback.frame.width, app.frame.width * 0.75,
@@ -41,16 +41,17 @@ final class YarmsUITests: XCTestCase {
         app.swipeUp()
         notes.tap()
         let editor = app.textViews["Workout notes"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "Opening Notes should reveal its editor")
         let note = "UI test: three rounds"
         editor.tap()
         editor.typeText(note)
         app.buttons["Save notes"].tap()
-        XCTAssertTrue(app.staticTexts["Saved on this iPhone"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Saved on this iPhone"].waitForExistence(timeout: 5),
+                      "Saving a note should confirm it persisted")
 
         app.navigationBars.buttons["Yarms"].tap()
         row.tap()
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "Reopening the workout should show saved notes")
         XCTAssertTrue((editor.value as? String)?.contains(note) == true,
                       "A saved note should remain after leaving and reopening the workout")
     }
@@ -95,10 +96,11 @@ final class YarmsUITests: XCTestCase {
         UIPasteboard.general.string = "https://www.tiktok.com/@yarms-test/video/\(videoID)"
         app.launch()
         let paste = app.buttons["emptyPasteLinkButton"]
-        XCTAssertTrue(paste.waitForExistence(timeout: 10))
-        XCTAssertTrue(paste.isEnabled)
+        XCTAssertTrue(paste.waitForExistence(timeout: 10), "An isolated UI test should start with an empty library")
+        XCTAssertTrue(paste.isEnabled, "Paste should accept the prepared TikTok link")
         paste.tap()
-        XCTAssertTrue(app.buttons["libraryPasteLinkButton"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["libraryPasteLinkButton"].waitForExistence(timeout: 10),
+                      "Pasting should populate the isolated library")
         return videoID
     }
 }
