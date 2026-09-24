@@ -6,8 +6,16 @@ struct PendingLink: Codable, Identifiable {
     let savedAt: Date
 }
 
-struct SharedInbox {
-    static let appGroup = "group.com.joshuawyadao.yarms"
+protocol PendingLinkInbox {
+    func load() throws -> [PendingLink]
+    func remove(_ id: UUID) throws
+}
+
+struct SharedInbox: PendingLinkInbox {
+    static var liveContainer: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
+            .first?.appendingPathComponent("Yarms", isDirectory: true)
+    }
 
     private let directory: URL
 
@@ -16,9 +24,7 @@ struct SharedInbox {
     }
 
     static func live() -> SharedInbox? {
-        guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
-            return nil
-        }
+        guard let container = liveContainer else { return nil }
         return SharedInbox(directory: container.appendingPathComponent("Inbox", isDirectory: true))
     }
 

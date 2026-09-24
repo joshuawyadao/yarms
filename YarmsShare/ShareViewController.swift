@@ -36,10 +36,7 @@ final class ShareViewController: UIViewController {
                 guard provider.hasItemConformingToTypeIdentifier(type) else { continue }
                 guard let text = await loadText(from: provider, type: type),
                       let link = TikTokLink(text: text) else { continue }
-                guard let inbox = SharedInbox.live() else {
-                    finish(error: "Yarms storage is unavailable.")
-                    return
-                }
+                let inbox = KeychainInbox.live()
                 do {
                     try inbox.save(link)
                     extensionContext?.completeRequest(returningItems: nil)

@@ -16,19 +16,20 @@ struct WorkoutStore {
 
     private let fileURL: URL
     private let inbox: SharedInbox
+    private let shareInbox: (any PendingLinkInbox)?
 
-    init(fileURL: URL, inbox: SharedInbox) {
+    init(fileURL: URL, inbox: SharedInbox, shareInbox: (any PendingLinkInbox)? = nil) {
         self.fileURL = fileURL
         self.inbox = inbox
+        self.shareInbox = shareInbox
     }
 
     static func live() -> WorkoutStore? {
-        guard let container = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: SharedInbox.appGroup
-        ) else { return nil }
+        guard let container = SharedInbox.liveContainer else { return nil }
         return WorkoutStore(
             fileURL: container.appendingPathComponent("Library.json"),
-            inbox: SharedInbox(directory: container.appendingPathComponent("Inbox", isDirectory: true))
+            inbox: SharedInbox(directory: container.appendingPathComponent("Inbox", isDirectory: true)),
+            shareInbox: KeychainInbox.live()
         )
     }
 
@@ -47,6 +48,14 @@ struct WorkoutStore {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
         var workouts = try load()
+        try importPending(from: inbox, into: &workouts)
+        if let shareInbox {
+            try importPending(from: shareInbox, into: &workouts)
+        }
+        return workouts.sorted { $0.savedAt > $1.savedAt }
+    }
+
+    private func importPending(from inbox: any PendingLinkInbox, into workouts: inout [Workout]) throws {
         for pending in try inbox.load().reversed() {
             let duplicate = workouts.contains { workout in
                 workout.sourceLink.url == pending.link.url ||
@@ -59,7 +68,6 @@ struct WorkoutStore {
             }
             try inbox.remove(pending.id)
         }
-        return workouts.sorted { $0.savedAt > $1.savedAt }
     }
 
     func applyEnrichment(_ enrichment: TikTokEnrichment, to id: UUID) throws {

@@ -13,6 +13,17 @@ end
 
 if File.exist?(File.join(path, 'project.pbxproj'))
   project = Xcodeproj::Project.open(path)
+  project.targets.each do |target|
+    target.source_build_phase.files.select { |build_file| build_file.file_ref.nil? }
+          .each(&:remove_from_project)
+  end
+  %w[Yarms YarmsShare].each do |name|
+    target = project.targets.find { |item| item.name == name }
+    target.build_configurations.each do |config|
+      config.build_settings['YARMS_KEYCHAIN_GROUP'] = '$(AppIdentifierPrefix)com.joshuawyadao.yarms.shared'
+      config.build_settings.delete('INFOPLIST_KEY_YarmsKeychainAccessGroup')
+    end
+  end
   {
     'YarmsApp' => %w[Yarms],
     'YarmsShare' => %w[YarmsShare],
@@ -20,6 +31,15 @@ if File.exist?(File.join(path, 'project.pbxproj'))
     'YarmsCore' => %w[Yarms YarmsShare]
   }.each do |folder, target_names|
     group = project.main_group.find_subpath(folder, false)
+    group.files.select { |item|
+      item.path&.end_with?('.swift') && !File.exist?(File.join(root, folder, item.path))
+    }.each do |reference|
+      project.targets.each do |target|
+        target.source_build_phase.files.select { |build_file| build_file.file_ref == reference }
+              .each(&:remove_from_project)
+      end
+      reference.remove_from_project
+    end
     Dir.glob(File.join(root, folder, '*.swift')).sort.each do |file|
       reference = group.files.find { |item| item.path == File.basename(file) } ||
                   group.new_file(File.basename(file))
@@ -100,6 +120,9 @@ end
     settings['CURRENT_PROJECT_VERSION'] = '1'
     settings['CODE_SIGN_STYLE'] = 'Automatic'
     settings['CODE_SIGN_ENTITLEMENTS'] = entitlements if entitlements
+    if target == app || target == share
+      settings['YARMS_KEYCHAIN_GROUP'] = '$(AppIdentifierPrefix)com.joshuawyadao.yarms.shared'
+    end
     settings['SWIFT_EMIT_LOC_STRINGS'] = 'YES'
     if target == app
       settings['GENERATE_INFOPLIST_FILE'] = 'YES'

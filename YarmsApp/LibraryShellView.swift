@@ -28,8 +28,10 @@ struct LibraryShellView: View {
                         ContentUnavailableView(
                             "No workouts yet",
                             systemImage: "figure.strengthtraining.traditional",
-                            description: Text("Share a TikTok workout to Yarms or paste its link here.")
+                            description: Text("Share a TikTok workout to Yarms, or paste its link here.")
                         )
+                        Button("Paste a TikTok link", systemImage: "doc.on.clipboard", action: pasteLink)
+                        .buttonStyle(.borderedProminent)
                         Button("Restore a backup", systemImage: "square.and.arrow.down") {
                             showingImporter = true
                         }
