@@ -98,7 +98,7 @@ final class BackupTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let local = try store.createFolder(named: "Strength")
         let collided = try store.createFolder(named: "Cardio")
-        let incomingStrength = WorkoutFolder(id: UUID(), name: "strength")
+        let incomingStrength = WorkoutFolder(id: UUID(), name: "Stréngth")
         let incomingNew = WorkoutFolder(id: collided.id, name: "Yoga")
         var first = try makeWorkout("123")
         first.folderID = incomingStrength.id
@@ -115,6 +115,26 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(try store.load().first { $0.id == second.id }?.folderID, yoga.id)
         XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
         XCTAssertEqual(try store.loadFolders(), folders)
+    }
+
+    func testRestoreMapsManyFolderNamesWithoutDuplicatingExistingFolders() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let existing = (0..<1_200).map { WorkoutFolder(id: UUID(), name: "Session \($0)") }
+        try writeLibrary([], into: directory, folders: existing)
+        let incoming = existing.map { WorkoutFolder(id: UUID(), name: $0.name.lowercased()) }
+        var workout = try makeWorkout()
+        workout.folderID = try XCTUnwrap(incoming.last?.id)
+        let backup = try WorkoutBackup(workouts: [workout], folders: incoming)
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 1, updated: 0),
+                       "The workout should import into the existing folder collection")
+        XCTAssertEqual(try store.loadFolders().count, existing.count,
+                       "Equivalent folder names should not create duplicate folders")
+        XCTAssertEqual(try store.load().first?.folderID, existing.last?.id,
+                       "The imported workout should map to the matching local folder ID")
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0),
+                       "Repeated restore should remain idempotent with many folders")
     }
 
     func testRestorePreservesExistingFolderAndFillsUnfiledDuplicate() throws {

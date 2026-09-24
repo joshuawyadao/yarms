@@ -95,8 +95,7 @@ struct WorkoutBackup {
         var folderIDs = Set<UUID>()
         var folderNames = Set<String>()
         for folder in folders {
-            let normalized = folder.name.folding(options: [.caseInsensitive, .diacriticInsensitive],
-                                                 locale: Locale(identifier: "en_US_POSIX"))
+            let normalized = WorkoutStore.folderNameKey(folder.name)
             guard folderIDs.insert(folder.id).inserted,
                   folderNames.insert(normalized).inserted else { throw BackupError.invalidArchive }
         }

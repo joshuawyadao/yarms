@@ -11,6 +11,7 @@ Add named folders so saved workouts can be organized without changing Share Shee
 - [x] Include folders in backup export/import with validation, stable restore mapping, and compatibility with older backups.
 - [x] Add library and workout controls for creating, renaming, deleting, browsing, and assigning folders; keep saving a shared TikTok link immediate and Unfiled by default.
 - [x] Add meaningful unit and UI tests for legacy data, folder operations, duplicate resolution, backup round trips, and the main folder flow; update README and architecture docs.
+- [x] Address Brooks review: index folder names and IDs during backup restore so a large archive does not repeatedly scan the growing folder list; verify the mapping and document the review result.
 - [ ] Run focused and full iPhone simulator tests, an iPhone target build, repository checks, and a folder UI screenshot; commit, push, review, and merge the folder PR after green gates. Signed build currently needs Xcode account credentials refreshed; the unsigned iPhone target build passes.
 - [ ] Start a fresh UI branch from updated main; restyle the library and workout screens around the approved icon palette while keeping video prominent, controls usable, and folders easy to scan.
 - [ ] Validate accessibility, screenshots, UI flows, build, and tests; update docs, commit, push, review, and merge the UI PR after green gates.

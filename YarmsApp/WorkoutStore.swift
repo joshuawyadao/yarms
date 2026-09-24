@@ -236,13 +236,24 @@ struct WorkoutStore {
         let current = library.workouts.sorted { $0.savedAt > $1.savedAt }
         var folders = library.folders ?? []
         var folderIDs: [UUID: UUID] = [:]
+        var existingFolderIDsByName: [String: UUID] = [:]
+        var usedFolderIDs = Set<UUID>()
+        for folder in folders {
+            let key = Self.folderNameKey(folder.name)
+            if existingFolderIDsByName[key] == nil { existingFolderIDsByName[key] = folder.id }
+            usedFolderIDs.insert(folder.id)
+        }
         for incoming in validated.folders {
-            if let existing = folders.first(where: { Self.sameFolderName($0.name, incoming.name) }) {
-                folderIDs[incoming.id] = existing.id
+            let key = Self.folderNameKey(incoming.name)
+            if let existingID = existingFolderIDsByName[key] {
+                folderIDs[incoming.id] = existingID
             } else {
-                let id = folders.contains(where: { $0.id == incoming.id }) ? UUID() : incoming.id
+                var id = incoming.id
+                while usedFolderIDs.contains(id) { id = UUID() }
                 folders.append(WorkoutFolder(id: id, name: incoming.name))
                 folderIDs[incoming.id] = id
+                existingFolderIDsByName[key] = id
+                usedFolderIDs.insert(id)
             }
         }
         var index = BackupMergeIndex(current)
@@ -297,10 +308,13 @@ struct WorkoutStore {
         return normalized
     }
 
-    private static func sameFolderName(_ left: String, _ right: String) -> Bool {
+    static func folderNameKey(_ name: String) -> String {
         let locale = Locale(identifier: "en_US_POSIX")
-        return left.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: locale) ==
-            right.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
+        return name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
+    }
+
+    private static func sameFolderName(_ left: String, _ right: String) -> Bool {
+        folderNameKey(left) == folderNameKey(right)
     }
 }
 

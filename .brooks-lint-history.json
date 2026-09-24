@@ -108,5 +108,27 @@
       "suggestion": 0
     },
     "scope": "PR #7 lowercase app and Share Sheet titles; generated Xcode project skipped; no new findings"
+  },
+  {
+    "date": "2026-09-24",
+    "mode": "PR Review",
+    "score": 95,
+    "findings": {
+      "critical": 0,
+      "warning": 1,
+      "suggestion": 0
+    },
+    "scope": "PR #8 folder milestone; repeated array scans when mapping backup folders to local names and IDs"
+  },
+  {
+    "date": "2026-09-24",
+    "mode": "PR Review",
+    "score": 100,
+    "findings": {
+      "critical": 0,
+      "warning": 0,
+      "suggestion": 0
+    },
+    "scope": "PR #8 folder milestone after indexed folder restore and 39 focused tests"
   }
 ]
