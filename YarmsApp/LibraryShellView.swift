@@ -69,7 +69,7 @@ struct LibraryShellView: View {
                     }
                 }
             }
-            .navigationTitle("Yarms")
+            .navigationTitle("yarms")
             .searchable(text: $searchText, prompt: "Search workouts")
             .toolbar {
                 Menu {

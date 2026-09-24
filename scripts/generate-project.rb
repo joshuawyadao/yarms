@@ -33,6 +33,12 @@ if File.exist?(File.join(path, 'project.pbxproj'))
   project = Xcodeproj::Project.open(path)
   app = project.targets.find { |target| target.name == 'Yarms' }
   ui_tests = ensure_ui_test_target(project, app)
+  app.build_configurations.each do |config|
+    config.build_settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'yarms'
+  end
+  project.targets.find { |target| target.name == 'YarmsShare' }.build_configurations.each do |config|
+    config.build_settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'Save to yarms'
+  end
   project.targets.each do |target|
     target.source_build_phase.files.select { |build_file| build_file.file_ref.nil? }
           .each(&:remove_from_project)
@@ -155,13 +161,13 @@ end
     settings['SWIFT_EMIT_LOC_STRINGS'] = 'YES'
     if target == app
       settings['GENERATE_INFOPLIST_FILE'] = 'YES'
-      settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'Yarms'
+      settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'yarms'
       settings['INFOPLIST_KEY_UILaunchScreen_Generation'] = 'YES'
       settings['ASSETCATALOG_COMPILER_APPICON_NAME'] = 'AppIcon'
     elsif target == share
       settings['GENERATE_INFOPLIST_FILE'] = 'NO'
       settings['INFOPLIST_FILE'] = 'YarmsShare/Info.plist'
-      settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'Save to Yarms'
+      settings['INFOPLIST_KEY_CFBundleDisplayName'] = 'Save to yarms'
       settings['APPLICATION_EXTENSION_API_ONLY'] = 'YES'
       settings['SKIP_INSTALL'] = 'YES'
     else

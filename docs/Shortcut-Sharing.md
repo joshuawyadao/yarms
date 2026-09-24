@@ -1,6 +1,6 @@
 # Save TikTok workouts from the Share Sheet
 
-After Yarms is installed, no Shortcut setup is needed. In TikTok, open a workout video, tap **Share**, and choose **Save to Yarms**. If it is not visible, open **More** in the iPhone share sheet and enable or select Save to Yarms. Yarms accepts a TikTok video URL or text containing one and confirms the save; an invalid link shows an error.
+After Yarms is installed, no Shortcut setup is needed. In TikTok, open a workout video, tap **Share**, and choose **Save to yarms**. If it is not visible, open **More** in the iPhone share sheet and enable or select Save to yarms. Yarms accepts a TikTok video URL or text containing one and confirms the save; an invalid link shows an error.
 
 The Share extension saves only a small link record to a shared, on-device Keychain queue. Open Yarms later to add that record to the app-local library and fetch available title, creator, and thumbnail. Yarms does not need to open during the share, and it does not download the video. The app's **Paste** control remains available for a copied link and uses iOS's system paste permission handling. An existing personal Shortcut using Yarms's **Save TikTok Workout** action also continues to work, but it is optional.
 
