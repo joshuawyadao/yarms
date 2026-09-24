@@ -8,7 +8,7 @@ final class YarmsUITests: XCTestCase {
 
     @MainActor
     func testPasteSearchPlayerLayoutAndNotesPersistence() throws {
-        let app = XCUIApplication()
+        let app = isolatedApp()
         let videoID = pasteUniqueWorkout(into: app)
         let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
         if !row.waitForExistence(timeout: 10) {
@@ -57,7 +57,7 @@ final class YarmsUITests: XCTestCase {
 
     @MainActor
     func testBackupMenuShowsExportAndRestoreActions() throws {
-        let app = XCUIApplication()
+        let app = isolatedApp()
         app.launch()
         let backup = app.buttons["Backup and restore"]
         XCTAssertTrue(backup.waitForExistence(timeout: 10))
@@ -68,7 +68,7 @@ final class YarmsUITests: XCTestCase {
 
     @MainActor
     func testPasteStaysAvailableWhenSearchHasNoMatches() throws {
-        let app = XCUIApplication()
+        let app = isolatedApp()
         _ = pasteUniqueWorkout(into: app)
 
         let search = app.searchFields.firstMatch
@@ -83,16 +83,22 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    private func isolatedApp() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]
+        return app
+    }
+
+    @MainActor
     private func pasteUniqueWorkout(into app: XCUIApplication) -> String {
         let videoID = "9\(Int(Date().timeIntervalSince1970 * 1000))"
         UIPasteboard.general.string = "https://www.tiktok.com/@yarms-test/video/\(videoID)"
         app.launch()
-        let emptyPaste = app.buttons["emptyPasteLinkButton"]
-        let paste = emptyPaste.waitForExistence(timeout: 3)
-            ? emptyPaste : app.buttons["libraryPasteLinkButton"]
+        let paste = app.buttons["emptyPasteLinkButton"]
         XCTAssertTrue(paste.waitForExistence(timeout: 10))
         XCTAssertTrue(paste.isEnabled)
         paste.tap()
+        XCTAssertTrue(app.buttons["libraryPasteLinkButton"].waitForExistence(timeout: 10))
         return videoID
     }
 }

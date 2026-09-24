@@ -29,7 +29,7 @@ struct WorkoutStore {
         return WorkoutStore(
             fileURL: container.appendingPathComponent("Library.json"),
             inbox: SharedInbox(directory: container.appendingPathComponent("Inbox", isDirectory: true)),
-            shareInbox: KeychainInbox.live()
+            shareInbox: SharedInbox.isUITestStoreRequested ? nil : KeychainInbox.live()
         )
     }
 

@@ -24,8 +24,8 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 - [ ] Use the next CI result to repair any iOS 18.5 UI test failure, rerun local validation, and wait for green checks and fresh review.
 
 ## PR #6 second review
-- [ ] Launch each UI test with a unique temporary workout store and disable normal Keychain inbox import for that launch; invalid test-store arguments must never fall back to the normal library.
-- [ ] Verify the store-routing contract and rerun UI, unit, repository, signed-build, review, and CI gates before merge.
+- [x] Launch each UI test with a unique temporary workout store and disable normal Keychain inbox import for that launch; invalid test-store arguments must never fall back to the normal library.
+- [ ] Verify the store-routing contract and rerun UI, unit, repository, signed-build, review, and CI gates before merge. Local tests and build pass; remote review and CI remain pending.
 
 ## Open questions
 - None. The existing saved workout is useful for a device smoke check; deterministic simulator fixtures are better for repeatable tests.

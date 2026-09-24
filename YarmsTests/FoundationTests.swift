@@ -51,4 +51,25 @@ final class FoundationTests: XCTestCase {
         try Data("broken".utf8).write(to: directory.appendingPathComponent("damaged.json"))
         XCTAssertEqual(try inbox.load().map(\.link), [link])
     }
+
+    func testUITestStoreUsesUniqueTemporaryContainerAndRejectsInvalidIdentifier() {
+        let support = URL(fileURLWithPath: "/support")
+        let temporary = URL(fileURLWithPath: "/temporary")
+        let identifier = UUID()
+        let testArguments = ["Yarms", SharedInbox.uiTestStoreArgument, identifier.uuidString]
+
+        XCTAssertEqual(
+            SharedInbox.container(arguments: testArguments, applicationSupport: support, temporaryDirectory: temporary),
+            temporary.appendingPathComponent("YarmsUITests/\(identifier.uuidString)", isDirectory: true)
+        )
+        XCTAssertNil(SharedInbox.container(
+            arguments: ["Yarms", SharedInbox.uiTestStoreArgument, "invalid"],
+            applicationSupport: support,
+            temporaryDirectory: temporary
+        ))
+        XCTAssertEqual(
+            SharedInbox.container(arguments: ["Yarms"], applicationSupport: support, temporaryDirectory: temporary),
+            support.appendingPathComponent("Yarms", isDirectory: true)
+        )
+    }
 }
