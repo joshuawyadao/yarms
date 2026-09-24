@@ -283,11 +283,22 @@ struct WorkoutStore {
 
     private func readLibrary() throws -> LibraryFile {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            return LibraryFile(schemaVersion: 1, workouts: [], folders: [])
+            return LibraryFile(schemaVersion: 2, workouts: [], folders: [])
         }
         let data = try Data(contentsOf: fileURL)
         let library = try JSONDecoder().decode(LibraryFile.self, from: data)
-        guard library.schemaVersion == 1 else { throw StoreError.unsupportedVersion }
+        guard library.schemaVersion == 1 || library.schemaVersion == 2 else {
+            throw StoreError.unsupportedVersion
+        }
+        // Folder data written by an early build used schema 1. Upgrade it on
+        // read so an older app cannot later rewrite the file and drop folders.
+        if library.schemaVersion == 1,
+           (library.folders?.isEmpty == false || library.workouts.contains(where: { $0.folderID != nil })) {
+            let migrated = LibraryFile(schemaVersion: 2, workouts: library.workouts,
+                                       folders: library.folders ?? [])
+            try save(migrated)
+            return migrated
+        }
         return library
     }
 
@@ -295,7 +306,9 @@ struct WorkoutStore {
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
-        let data = try JSONEncoder().encode(library)
+        let data = try JSONEncoder().encode(LibraryFile(
+            schemaVersion: 2, workouts: library.workouts, folders: library.folders ?? []
+        ))
         try data.write(to: fileURL, options: .atomic)
     }
 

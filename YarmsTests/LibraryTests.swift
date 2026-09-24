@@ -190,6 +190,44 @@ final class LibraryTests: XCTestCase {
         XCTAssertTrue(try store.loadFolders().isEmpty)
     }
 
+    func testLegacyLibraryWritesVersionTwoAfterFolderCreation() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let workout = Workout(id: UUID(), sourceLink: link, savedAt: Date(timeIntervalSince1970: 100))
+        let file = container.appendingPathComponent("Library.json")
+        try JSONEncoder().encode(TestLibraryFile(workouts: [workout])).write(to: file)
+
+        XCTAssertEqual(try store.load().first?.id, workout.id, "Legacy schema 1 must remain readable")
+        let folder = try store.createFolder(named: "Strength")
+        XCTAssertTrue(try store.moveWorkout(workout.id, to: folder.id))
+        let raw = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        XCTAssertEqual(raw["schemaVersion"] as? Int, 2,
+                       "Older app builds must reject a library that now contains folders")
+        XCTAssertEqual(try store.loadFolders(), [folder], "Migration should retain the created folder")
+        XCTAssertEqual(try store.load().first?.folderID, folder.id,
+                       "Migration should retain the workout's folder assignment")
+    }
+
+    func testEarlyFolderLibraryUpgradesVersionOnRead() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let folder = WorkoutFolder(id: UUID(), name: "Strength")
+        var workout = Workout(id: UUID(), sourceLink: link, savedAt: Date(timeIntervalSince1970: 100))
+        workout.folderID = folder.id
+        let file = container.appendingPathComponent("Library.json")
+        try JSONEncoder().encode(TestLibraryFile(workouts: [workout], folders: [folder])).write(to: file)
+
+        XCTAssertEqual(try store.load().first?.folderID, folder.id,
+                       "Folder data from an early schema 1 build should survive")
+        let raw = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        XCTAssertEqual(raw["schemaVersion"] as? Int, 2,
+                       "Reading early folder data should make a downgrade reject the library")
+    }
+
     func testFolderCRUDAndMovePreserveWorkouts() throws {
         let (store, inbox, container) = makeStore()
         defer { try? FileManager.default.removeItem(at: container) }
@@ -298,7 +336,8 @@ final class LibraryTests: XCTestCase {
         var filedDuplicate = Workout(id: UUID(), sourceLink: canonical,
                                      savedAt: Date(timeIntervalSince1970: 200))
         filedDuplicate.folderID = folder.id
-        let data = try JSONEncoder().encode(TestLibraryFile(workouts: [filedDuplicate, earliest],
+        let data = try JSONEncoder().encode(TestLibraryFile(schemaVersion: 2,
+                                                            workouts: [filedDuplicate, earliest],
                                                             folders: [folder]))
         try data.write(to: container.appendingPathComponent("Library.json"))
 
@@ -313,7 +352,7 @@ final class LibraryTests: XCTestCase {
 }
 
 private struct TestLibraryFile: Encodable {
-    let schemaVersion = 1
+    var schemaVersion = 1
     let workouts: [Workout]
     var folders: [WorkoutFolder]? = nil
 }

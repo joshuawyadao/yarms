@@ -19,7 +19,8 @@ final class BackupTests: XCTestCase {
     private func writeLibrary(_ workouts: [Workout], into directory: URL,
                               folders: [WorkoutFolder]? = nil) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let library = TestBackupLibrary(schemaVersion: 1, workouts: workouts, folders: folders)
+        let library = TestBackupLibrary(schemaVersion: folders == nil ? 1 : 2,
+                                        workouts: workouts, folders: folders)
         try JSONEncoder().encode(library).write(to: directory.appendingPathComponent("Library.json"))
     }
 
