@@ -12,6 +12,7 @@ Make TikTok Share → Save to Yarms work directly after installation, with no Sh
 - [x] Import pending links from both stores into the local library without duplicates or data loss after an interrupted import.
 - [x] Replace the Shortcut-first onboarding with direct Share Sheet guidance in the app, README, architecture, roadmap, and device checklist; keep optional Shortcuts compatibility clear.
 - [x] Add focused tests for Keychain handoff, invalid input, and dual-inbox import; run repository verification, the full simulator suite, and a Personal Team signed iPhone build and tests.
+- [ ] Enlarge the portrait player to the workout screen width and increase the custom playback control targets after the first live iPhone check; verify with a signed device build and user-assisted playback. This is a visual/device interaction change, so existing player bridge tests remain the automated coverage and a live screen check supplies the missing layout evidence.
 - [ ] Install on the iPhone and verify direct TikTok sharing, library, player, notes, paste, and backup with user-assisted taps.
 - [ ] Push the branch, re-run Codex and Brooks reviews and required CI checks on the new head, resolve actionable feedback, then merge only after the live flow passes.
 
