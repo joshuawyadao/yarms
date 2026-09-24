@@ -251,11 +251,36 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(merged.id, first.id)
         XCTAssertEqual(merged.notes, "Warm up\n\nAdd a stretch")
     }
+
+    func testCoalescingFillsUnfiledSurvivorFromFiledDuplicate() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let folder = WorkoutFolder(id: UUID(), name: "Strength")
+        let earliest = Workout(id: UUID(), sourceLink: canonical,
+                               savedAt: Date(timeIntervalSince1970: 100))
+        var filedDuplicate = Workout(id: UUID(), sourceLink: canonical,
+                                     savedAt: Date(timeIntervalSince1970: 200))
+        filedDuplicate.folderID = folder.id
+        let data = try JSONEncoder().encode(TestLibraryFile(workouts: [filedDuplicate, earliest],
+                                                            folders: [folder]))
+        try data.write(to: container.appendingPathComponent("Library.json"))
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil),
+                                  to: filedDuplicate.id)
+
+        let merged = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(merged.id, earliest.id, "Coalescing should keep the earliest save")
+        XCTAssertEqual(merged.folderID, folder.id,
+                       "Coalescing should fill the survivor's empty folder from its duplicate")
+    }
 }
 
 private struct TestLibraryFile: Encodable {
     let schemaVersion = 1
     let workouts: [Workout]
+    var folders: [WorkoutFolder]? = nil
 }
 
 private extension Array {
