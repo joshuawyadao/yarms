@@ -48,6 +48,10 @@ if project_file.is_file():
     project_text = project_file.read_text(encoding="utf-8")
     if "YarmsShare" not in project_text or "CODE_SIGN_ENTITLEMENTS" not in project_text:
         errors.append("The direct Share Sheet build must include the signed YarmsShare target")
+    build_files = re.findall(r"\bisa = PBXBuildFile;([^}]*)\};", project_text)
+    if not build_files or any("fileRef =" not in entry and "productRef =" not in entry
+                              for entry in build_files):
+        errors.append("Every Xcode build entry must reference a file or product")
 
 for name in ("YarmsApp", "YarmsShare"):
     entitlement_path = root / name / "Yarms.entitlements"

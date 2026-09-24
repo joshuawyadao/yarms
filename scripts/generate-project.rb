@@ -13,6 +13,10 @@ end
 
 if File.exist?(File.join(path, 'project.pbxproj'))
   project = Xcodeproj::Project.open(path)
+  project.targets.each do |target|
+    target.source_build_phase.files.select { |build_file| build_file.file_ref.nil? }
+          .each(&:remove_from_project)
+  end
   %w[Yarms YarmsShare].each do |name|
     target = project.targets.find { |item| item.name == name }
     target.build_configurations.each do |config|
@@ -29,7 +33,13 @@ if File.exist?(File.join(path, 'project.pbxproj'))
     group = project.main_group.find_subpath(folder, false)
     group.files.select { |item|
       item.path&.end_with?('.swift') && !File.exist?(File.join(root, folder, item.path))
-    }.each(&:remove_from_project)
+    }.each do |reference|
+      project.targets.each do |target|
+        target.source_build_phase.files.select { |build_file| build_file.file_ref == reference }
+              .each(&:remove_from_project)
+      end
+      reference.remove_from_project
+    end
     Dir.glob(File.join(root, folder, '*.swift')).sort.each do |file|
       reference = group.files.find { |item| item.path == File.basename(file) } ||
                   group.new_file(File.basename(file))

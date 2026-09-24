@@ -17,7 +17,6 @@
 		252F1709496E9E751F028D7F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 757FBB9EDF95ED5E71ABC01D /* Foundation.framework */; };
 		26AEEC60EDF99D75519BE413 /* TikTokMetadataClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F3B47CAD1031A5BD8D7BC83 /* TikTokMetadataClient.swift */; };
 		43EDC79FC6A58D8DB42E48D3 /* BackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96701BEDBB3F7C43CD66CBD3 /* BackupTests.swift */; };
-		4C9DE76468C5CA70CB6C2F07 /* BuildFile in Sources */ = {isa = PBXBuildFile; };
 		5679D72CA3EA9628A0948CBE /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E0B90C9A2FBE8A797AD000 /* MetadataTests.swift */; };
 		67E0CF9816995152C213115F /* KeychainInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C58C75F638A33D8396B9E6 /* KeychainInbox.swift */; };
 		6B7191461663479AFC21DC1E /* PlayerBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26CEC9617BA9DB518463CF3 /* PlayerBridgeTests.swift */; };
@@ -409,7 +408,6 @@
 				1E0524D4A808745FF0420C31 /* WorkoutBackupDocument.swift in Sources */,
 				7EB0AC0CE026F862D68BA198 /* WorkoutEnrichmentQueue.swift in Sources */,
 				D1352659D8F828576379E0DF /* SaveTikTokWorkoutIntent.swift in Sources */,
-				4C9DE76468C5CA70CB6C2F07 /* BuildFile in Sources */,
 				A7749C318131BECBEEA77DED /* KeychainInbox.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
