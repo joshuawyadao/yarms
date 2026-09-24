@@ -95,11 +95,20 @@ struct LibraryShellView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            List {
                 saveCard
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
                 folderBar
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
                 libraryContent
             }
+            .listStyle(.plain)
+            .contentMargins(.horizontal, 16, for: .scrollContent)
+            .scrollContentBackground(.hidden)
             .background(Color("YarmsCanvas").ignoresSafeArea())
             .navigationTitle("yarms")
             .navigationBarTitleDisplayMode(.inline)
@@ -205,7 +214,11 @@ struct LibraryShellView: View {
                 }
                 .buttonStyle(.bordered)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 40)
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
         } else if visibleWorkouts.isEmpty {
             VStack(spacing: 12) {
                 ContentUnavailableView(
@@ -218,9 +231,13 @@ struct LibraryShellView: View {
                         .buttonStyle(.bordered)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, 40)
+            .frame(maxWidth: .infinity)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            .listRowInsets(EdgeInsets())
         } else {
-            workoutList
+            workoutRows
         }
     }
 
@@ -238,7 +255,7 @@ struct LibraryShellView: View {
             }
             Spacer(minLength: 0)
             pasteButton(identifier: pasteButtonIdentifier)
-                .tint(.accentColor)
+                .tint(Color("YarmsAction"))
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -250,7 +267,6 @@ struct LibraryShellView: View {
                         .strokeBorder(Color("YarmsBloom").opacity(0.35), lineWidth: 1)
                 }
         }
-        .padding(.horizontal, 16)
         .padding(.top, 12)
     }
 
@@ -260,10 +276,10 @@ struct LibraryShellView: View {
         return "libraryPasteLinkButton"
     }
 
-    private var workoutList: some View {
+    private var workoutRows: some View {
         let namesByID = Dictionary(folders.map { ($0.id, $0.name) },
                                    uniquingKeysWith: { first, _ in first })
-        return List {
+        return Group {
             HStack {
                 Text("Saved workouts")
                     .font(.headline)
@@ -275,7 +291,7 @@ struct LibraryShellView: View {
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 6, trailing: 20))
+            .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 6, trailing: 4))
             ForEach(visibleWorkouts) { workout in
                 NavigationLink {
                     EmbeddedPlayerView(
@@ -293,17 +309,14 @@ struct LibraryShellView: View {
                         .fill(Color("YarmsSurface"))
                 )
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0))
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Move", systemImage: "folder") { movingWorkout = workout }
-                        .tint(.accentColor)
+                        .tint(Color("YarmsAction"))
                 }
             }
             .onDelete(perform: delete)
         }
-        .listStyle(.plain)
-        .contentMargins(.horizontal, 16, for: .scrollContent)
-        .scrollContentBackground(.hidden)
     }
 
     private var folderBar: some View {
@@ -321,7 +334,7 @@ struct LibraryShellView: View {
                 }
                 .accessibilityIdentifier("newFolderButton")
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 4)
 
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
@@ -343,7 +356,6 @@ struct LibraryShellView: View {
                             }
                     }
                 }
-                .padding(.horizontal, 16)
             }
             .scrollIndicators(.hidden)
         }
@@ -362,7 +374,7 @@ struct LibraryShellView: View {
             .padding(.horizontal, 13)
             .frame(minHeight: 44)
             .foregroundStyle(selectedFolder == selection ? .white : .primary)
-            .background(selectedFolder == selection ? Color.accentColor : Color("YarmsSoft"),
+            .background(selectedFolder == selection ? Color("YarmsAction") : Color("YarmsSoft"),
                         in: Capsule())
         }
         .buttonStyle(.plain)
@@ -646,6 +658,13 @@ private struct WorkoutRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+                if workout.title == nil {
+                    Text(sourceReference)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
                 HStack(spacing: 5) {
                     Image(systemName: folderName == nil ? "tray" : "folder.fill")
                     Text(folderName ?? "Unfiled")
@@ -657,5 +676,10 @@ private struct WorkoutRow: View {
             Spacer(minLength: 0)
         }
         .padding(10)
+    }
+
+    private var sourceReference: String {
+        let url = workout.sourceLink.url
+        return (url.host ?? "tiktok.com") + url.path
     }
 }

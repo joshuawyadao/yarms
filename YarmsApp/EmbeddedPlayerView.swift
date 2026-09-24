@@ -118,7 +118,7 @@ struct EmbeddedPlayerView: View {
                         .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(Color.accentColor)
+                .tint(Color("YarmsAction"))
                 .accessibilityIdentifier("openInTikTokButton")
             }
             .padding(.horizontal, 16)

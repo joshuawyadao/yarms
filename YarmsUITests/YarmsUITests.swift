@@ -15,6 +15,8 @@ final class YarmsUITests: XCTestCase {
             XCTFail("The pasted link should appear in the library. \(app.debugDescription)")
             return
         }
+        XCTAssertTrue(row.label.contains(videoID),
+                      "A workout without TikTok metadata should retain its unique video link in the row label")
 
         let search = app.searchFields.firstMatch
         XCTAssertTrue(search.exists, "Search should appear after a workout is saved")
