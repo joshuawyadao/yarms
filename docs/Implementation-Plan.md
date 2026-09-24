@@ -15,7 +15,7 @@ Add named folders so saved workouts can be organized without changing Share Shee
 - [x] Address Codex review: allow a folder-only library to export a backup, with a UI regression test.
 - [x] Address Codex review: foregrounding after a new share must reveal it in Unfiled even when the current library is empty, with a focused selection regression test.
 - [x] Address Codex review: count workouts by folder in one pass before rendering folder chips, with focused count tests.
-- [ ] Address final Codex review: export folder-aware backups as schema 2 so older apps reject them, continue importing schema 1 backups, and test both compatibility directions.
+- [x] Address final Codex review: export folder-aware backups as schema 2 so older apps reject them, continue importing schema 1 backups, and test both compatibility directions.
 - [ ] Run focused and full iPhone simulator tests, an iPhone target build, repository checks, and a folder UI screenshot; commit, push, review, and merge the folder PR after green gates. Signed build currently needs Xcode account credentials refreshed; the unsigned iPhone target build passes.
 - [ ] Start a fresh UI branch from updated main; restyle the library and workout screens around the approved icon palette while keeping video prominent, controls usable, and folders easy to scan.
 - [ ] Validate accessibility, screenshots, UI flows, build, and tests; update docs, commit, push, review, and merge the UI PR after green gates.

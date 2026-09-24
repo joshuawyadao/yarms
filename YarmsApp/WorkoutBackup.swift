@@ -79,7 +79,15 @@ struct WorkoutBackup {
         } catch {
             throw BackupError.invalidArchive
         }
-        guard archive.schemaVersion == 1 else { throw BackupError.unsupportedVersion }
+        guard archive.schemaVersion == 1 || archive.schemaVersion == 2 else {
+            throw BackupError.unsupportedVersion
+        }
+        if archive.schemaVersion == 1 {
+            guard archive.folders?.isEmpty != false,
+                  archive.workouts.allSatisfy({ $0.folderID == nil }) else {
+                throw BackupError.invalidArchive
+            }
+        }
         return try WorkoutBackup(workouts: archive.workouts, folders: archive.folders ?? [], importing: true)
     }
 
@@ -88,7 +96,7 @@ struct WorkoutBackup {
         encoder.outputFormatting = [.sortedKeys]
         // Local libraries can grow beyond the defensive import limit through
         // notes and later saves. An export must still include every record.
-        return try encoder.encode(Archive(schemaVersion: 1, workouts: workouts, folders: folders))
+        return try encoder.encode(Archive(schemaVersion: 2, workouts: workouts, folders: folders))
     }
 
     private static func validate(_ workouts: [Workout], folders: [WorkoutFolder]) throws {

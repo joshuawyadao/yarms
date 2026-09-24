@@ -49,7 +49,11 @@ final class BackupTests: XCTestCase {
         var workout = try makeWorkout()
         workout.folderID = folder.id
         let backup = try WorkoutBackup(workouts: [workout], folders: [folder])
-        let decoded = try WorkoutBackup.decode(backup.encode())
+        let encoded = try backup.encode()
+        let archive = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        XCTAssertEqual(archive["schemaVersion"] as? Int, 2,
+                       "New backups must be rejected by older apps that cannot preserve folders")
+        let decoded = try WorkoutBackup.decode(encoded)
         XCTAssertEqual(decoded.folders, [folder])
         XCTAssertEqual(decoded.workouts.first?.folderID, folder.id)
 
@@ -59,6 +63,14 @@ final class BackupTests: XCTestCase {
         let legacyDecoded = try WorkoutBackup.decode(legacy)
         XCTAssertTrue(legacyDecoded.folders.isEmpty)
         XCTAssertNil(legacyDecoded.workouts.first?.folderID)
+
+        let mislabeled = try JSONEncoder().encode(TestBackupLibrary(
+            schemaVersion: 1, workouts: [workout], folders: [folder]
+        ))
+        XCTAssertThrowsError(try WorkoutBackup.decode(mislabeled)) { error in
+            XCTAssertEqual(error as? WorkoutBackup.BackupError, .invalidArchive,
+                           "Schema 1 must not silently carry folder data")
+        }
     }
 
     func testStoreExportAndRestoreKeepFolderMembership() throws {
@@ -161,7 +173,7 @@ final class BackupTests: XCTestCase {
     }
 
     func testDecoderRejectsInvalidAndUnsupportedArchives() throws {
-        let unsupported = Data("{\"schemaVersion\":2,\"workouts\":[]}".utf8)
+        let unsupported = Data("{\"schemaVersion\":3,\"workouts\":[]}".utf8)
         XCTAssertThrowsError(try WorkoutBackup.decode(unsupported)) { error in
             XCTAssertEqual(error as? WorkoutBackup.BackupError, .unsupportedVersion)
         }
