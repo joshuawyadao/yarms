@@ -12,11 +12,11 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 - [x] Keep Files export/restore archive behavior covered by existing unit tests; document the system picker and live TikTok flows as device-only gaps. The UI test checks that both backup actions are present.
 - [x] Run the focused UI tests, full simulator suite, repository verification, and signed generic iPhone build; inspect screenshots or UI hierarchy for the control and button layout. Avoid overwriting the user's library during automation.
 - [x] Update Architecture and MVP Progress with the layout, test coverage, results, and any live TikTok or Files behavior automation could not prove.
-- [ ] Commit and push the branch, then prepare a reviewed, green PR in keeping with the project's milestone workflow.
+- [x] Commit and push the branch, then open PR #6 for the project's milestone workflow. Review and CI gates remain in progress.
 
 ## PR #6 feedback
-- [ ] Keep Paste available when a nonempty library has zero search matches. Reuse one system PasteButton implementation across empty, filtered, and populated library states.
-- [ ] Add a UI regression test for the zero-match search state, run the focused and complete simulator suite plus repository checks, and update the review ledger.
+- [x] Keep Paste available when a nonempty library has zero search matches. Reuse one system PasteButton implementation across empty, filtered, and populated library states.
+- [x] Add a UI regression test for the zero-match search state, run the focused and complete simulator suite plus repository checks, and update the review ledger.
 - [ ] Save and push the fix, acknowledge the addressed Codex comment, and wait for a fresh review and required checks on the new head.
 
 ## Open questions

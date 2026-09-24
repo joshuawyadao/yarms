@@ -30,29 +30,27 @@ struct LibraryShellView: View {
                             systemImage: "figure.strengthtraining.traditional",
                             description: Text("Share a TikTok workout to Yarms, or paste its link here.")
                         )
-                        PasteButton(payloadType: String.self) { strings in
-                            pasteLink(strings.first)
-                        }
-                        .tint(.purple)
-                        .accessibilityIdentifier("emptyPasteLinkButton")
+                        pasteButton(identifier: "emptyPasteLinkButton")
+                            .tint(.purple)
                         Button("Restore a backup", systemImage: "square.and.arrow.down") {
                             showingImporter = true
                         }
                         .buttonStyle(.bordered)
                     }
                 } else if visibleWorkouts.isEmpty {
-                    ContentUnavailableView(
-                        "No matching workouts",
-                        systemImage: "magnifyingglass",
-                        description: Text("Try a different title, creator, or link.")
-                    )
+                    VStack(spacing: 16) {
+                        ContentUnavailableView(
+                            "No matching workouts",
+                            systemImage: "magnifyingglass",
+                            description: Text("Try a different title, creator, or link.")
+                        )
+                        pasteButton(identifier: "noMatchesPasteLinkButton")
+                            .tint(.purple)
+                    }
                 } else {
                     List {
                         HStack {
-                            PasteButton(payloadType: String.self) { strings in
-                                pasteLink(strings.first)
-                            }
-                            .accessibilityIdentifier("libraryPasteLinkButton")
+                            pasteButton(identifier: "libraryPasteLinkButton")
                             Text("a TikTok link")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
@@ -124,6 +122,13 @@ struct LibraryShellView: View {
                 if phase == .active { refresh() }
             }
         }
+    }
+
+    private func pasteButton(identifier: String) -> some View {
+        PasteButton(payloadType: String.self) { strings in
+            pasteLink(strings.first)
+        }
+        .accessibilityIdentifier(identifier)
     }
 
     private func pasteLink(_ pastedText: String?) {

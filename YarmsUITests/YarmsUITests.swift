@@ -67,6 +67,22 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testPasteStaysAvailableWhenSearchHasNoMatches() throws {
+        let app = XCUIApplication()
+        _ = pasteUniqueWorkout(into: app)
+
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("no-workout-matches-this-search")
+
+        XCTAssertTrue(app.staticTexts["No matching workouts"].waitForExistence(timeout: 5))
+        let paste = app.buttons["noMatchesPasteLinkButton"]
+        XCTAssertTrue(paste.waitForExistence(timeout: 5))
+        XCTAssertTrue(paste.isEnabled, "A zero-result search should still offer Paste")
+    }
+
+    @MainActor
     private func pasteUniqueWorkout(into app: XCUIApplication) -> String {
         let videoID = "9\(Int(Date().timeIntervalSince1970 * 1000))"
         UIPasteboard.general.string = "https://www.tiktok.com/@yarms-test/video/\(videoID)"
