@@ -17,6 +17,8 @@ From TikTok, tap **Share → Save to yarms** to save a workout directly, or past
 
 The Backup menu exports a JSON copy of workout links, details, notes, and folders to a location you choose in Files. Restoring a backup adds missing workouts, maps folders by name, fills gaps in existing records, and appends distinct backed-up notes without erasing current notes. This version imports older backups, while older app builds reject new folder-aware backups so they cannot silently lose your organization. Import is limited to 10 MB; a larger local library can still be exported, and the app warns that this version cannot import the resulting file. Backup files include personal notes, so store them somewhere private. Yarms does not include or download video files in a backup.
 
+The library keeps the paste action above the folder filters and presents saved workouts as thumbnail cards with their folder names. The workout screen puts its title and folder above the portrait video, with compact playback controls and a full-width Open in TikTok action below. Light and dark colors draw from the approved yarms icon; the UI follows iOS text sizing and VoiceOver labels.
+
 ## Privacy and security
 
 Do not commit TikTok account data, saved workout collections, personal health information, credentials, videos, or private screenshots. Use invented examples in issues, pull requests, and future tests. Report security concerns through the private process in [SECURITY.md](SECURITY.md).

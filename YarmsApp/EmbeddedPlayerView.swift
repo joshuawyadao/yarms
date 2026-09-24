@@ -32,7 +32,9 @@ struct EmbeddedPlayerView: View {
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 20) {
+                    workoutHeading
+
                     if let playerURL = workout.playbackLink.playerURL,
                        let html = TikTokPlayerHTML.document(for: playerURL) {
                         let playerWidth = max(0, min(geometry.size.width, Self.maximumContentWidth) - 32)
@@ -40,7 +42,11 @@ struct EmbeddedPlayerView: View {
                             .frame(width: playerWidth, height: playerWidth * 16 / 9)
                             .frame(maxWidth: .infinity)
                             .background(.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .clipShape(RoundedRectangle(cornerRadius: 22))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 22)
+                                    .strokeBorder(Color.white.opacity(0.12))
+                            }
 
                         if player.hasError {
                             Label("This post could not play here. Try TikTok.",
@@ -49,7 +55,7 @@ struct EmbeddedPlayerView: View {
                                 .foregroundStyle(.secondary)
                         } else if !player.isReady {
                             Text("Player controls activate when TikTok is ready.")
-                                .font(.subheadline)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
@@ -62,19 +68,17 @@ struct EmbeddedPlayerView: View {
                         .frame(maxWidth: .infinity)
                     }
 
-                    Label(selectedFolderName, systemImage: "folder")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel("Folder: \(selectedFolderName)")
-
                     DisclosureGroup(isExpanded: $notesOpen) {
                         TextEditor(text: $noteText)
                             .frame(minHeight: 110)
                             .accessibilityLabel("Workout notes")
                             .focused($notesFocused)
+                            .scrollContentBackground(.hidden)
+                            .padding(8)
+                            .background(Color("YarmsCanvas"), in: RoundedRectangle(cornerRadius: 12))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(.quaternary)
+                                RoundedRectangle(cornerRadius: 12)
+                                    .strokeBorder(Color("YarmsSoft"), lineWidth: 1)
                             }
                             .onChange(of: noteText) { _, _ in noteSaved = false }
                         HStack {
@@ -87,14 +91,20 @@ struct EmbeddedPlayerView: View {
                             }
                         }
                     } label: {
-                        Text("Notes (optional)")
-                            .font(.headline)
+                        Label("Notes (optional)", systemImage: "square.and.pencil")
+                            .font(.headline.weight(.semibold))
                     }
+                    .tint(Color.accentColor)
+                    .padding(16)
+                    .background(Color("YarmsSurface"), in: RoundedRectangle(cornerRadius: 18))
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.top, 18)
+                .padding(.bottom, 24)
                 .frame(maxWidth: Self.maximumContentWidth)
                 .frame(maxWidth: .infinity)
             }
+            .background(Color("YarmsCanvas"))
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 8) {
@@ -108,13 +118,18 @@ struct EmbeddedPlayerView: View {
                         .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(Color("YarmsAction"))
                 .accessibilityIdentifier("openInTikTokButton")
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(.regularMaterial)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+            .frame(maxWidth: Self.maximumContentWidth)
+            .frame(maxWidth: .infinity)
+            .background(Color("YarmsSurface"))
+            .overlay(alignment: .top) { Rectangle().fill(Color("YarmsSoft")).frame(height: 1) }
         }
-        .navigationTitle(workout.title ?? "Workout")
+        .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -146,6 +161,39 @@ struct EmbeddedPlayerView: View {
         } message: {
             Text(message ?? "")
         }
+    }
+
+    private var workoutHeading: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("WORKOUT")
+                .font(.caption.weight(.bold))
+                .tracking(1.7)
+                .foregroundStyle(Color.accentColor)
+
+            Text(workout.title ?? "TikTok workout")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                if let creator = workout.creator {
+                    Text(creator)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Label(selectedFolderName, systemImage: "folder")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .lineLimit(1)
+                    .padding(.horizontal, 11)
+                    .padding(.vertical, 7)
+                    .background(Color("YarmsSoft"), in: Capsule())
+                    .accessibilityLabel("Folder: \(selectedFolderName)")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var selectedFolderName: String {
@@ -221,9 +269,10 @@ struct EmbeddedPlayerView: View {
 private struct CompactPlaybackButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.title3)
+            .font(.title3.weight(.semibold))
+            .foregroundStyle(Color.accentColor)
             .frame(width: 44, height: 44)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+            .background(Color("YarmsSoft"), in: RoundedRectangle(cornerRadius: 12))
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
