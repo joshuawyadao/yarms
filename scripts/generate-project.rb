@@ -11,8 +11,28 @@ def set_scheme_executable(scheme, app)
   scheme.profile_action.buildable_product_runnable = Xcodeproj::XCScheme::BuildableProductRunnable.new(app)
 end
 
+def ensure_ui_test_target(project, app)
+  target = project.targets.find { |item| item.name == 'YarmsUITests' } ||
+           project.new_target(:ui_test_bundle, 'YarmsUITests', :ios, '18.0')
+  target.add_dependency(app) unless target.dependencies.any? { |dependency| dependency.target == app }
+  project.root_object.attributes['TargetAttributes'][target.uuid] = { 'TestTargetID' => app.uuid }
+  target.build_configurations.each do |config|
+    settings = config.build_settings
+    settings['SWIFT_VERSION'] = '5.0'
+    settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
+    settings['TARGETED_DEVICE_FAMILY'] = '1'
+    settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.joshuawyadao.yarms.uitests'
+    settings['GENERATE_INFOPLIST_FILE'] = 'YES'
+    settings['CODE_SIGN_STYLE'] = 'Automatic'
+    settings['TEST_TARGET_NAME'] = app.name
+  end
+  target
+end
+
 if File.exist?(File.join(path, 'project.pbxproj'))
   project = Xcodeproj::Project.open(path)
+  app = project.targets.find { |target| target.name == 'Yarms' }
+  ui_tests = ensure_ui_test_target(project, app)
   project.targets.each do |target|
     target.source_build_phase.files.select { |build_file| build_file.file_ref.nil? }
           .each(&:remove_from_project)
@@ -28,9 +48,11 @@ if File.exist?(File.join(path, 'project.pbxproj'))
     'YarmsApp' => %w[Yarms],
     'YarmsShare' => %w[YarmsShare],
     'YarmsTests' => %w[YarmsTests],
+    'YarmsUITests' => %w[YarmsUITests],
     'YarmsCore' => %w[Yarms YarmsShare]
   }.each do |folder, target_names|
-    group = project.main_group.find_subpath(folder, false)
+    group = project.main_group.find_subpath(folder, false) ||
+            project.main_group.new_group(folder, folder)
     group.files.select { |item|
       item.path&.end_with?('.swift') && !File.exist?(File.join(root, folder, item.path))
     }.each do |reference|
@@ -52,7 +74,12 @@ if File.exist?(File.join(path, 'project.pbxproj'))
   project.save
   scheme_path = File.join(path, 'xcshareddata', 'xcschemes', 'Yarms.xcscheme')
   scheme = Xcodeproj::XCScheme.new(scheme_path)
-  set_scheme_executable(scheme, project.targets.find { |target| target.name == 'Yarms' })
+  set_scheme_executable(scheme, app)
+  unless scheme.test_action.testables.flat_map(&:buildable_references).any? { |reference|
+    reference.target_name == ui_tests.name
+  }
+    scheme.add_test_target(ui_tests)
+  end
   scheme.save_as(path, 'Yarms', true)
   puts "Updated #{path} without replacing existing target identifiers"
   exit
@@ -65,6 +92,7 @@ project.root_object.attributes['TargetAttributes'] = {}
 app = project.new_target(:application, 'Yarms', :ios, '18.0')
 share = project.new_target(:app_extension, 'YarmsShare', :ios, '18.0')
 tests = project.new_target(:unit_test_bundle, 'YarmsTests', :ios, '18.0')
+ui_tests = ensure_ui_test_target(project, app)
 
 def sources(project, target, root, folder)
   group = project.main_group.new_group(folder, folder)
@@ -76,6 +104,7 @@ end
 sources(project, app, root, 'YarmsApp')
 sources(project, share, root, 'YarmsShare')
 sources(project, tests, root, 'YarmsTests')
+sources(project, ui_tests, root, 'YarmsUITests')
 core_group = project.main_group.new_group('YarmsCore', 'YarmsCore')
 Dir.glob(File.join(root, 'YarmsCore', '*.swift')).sort.each do |file|
   reference = core_group.new_file(File.basename(file))
@@ -147,6 +176,7 @@ project.save
 scheme = Xcodeproj::XCScheme.new
 scheme.add_build_target(app)
 scheme.add_test_target(tests)
+scheme.add_test_target(ui_tests)
 set_scheme_executable(scheme, app)
 scheme.save_as(path, 'Yarms', true)
 puts "Generated #{path}"

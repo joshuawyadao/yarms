@@ -30,8 +30,11 @@ struct LibraryShellView: View {
                             systemImage: "figure.strengthtraining.traditional",
                             description: Text("Share a TikTok workout to Yarms, or paste its link here.")
                         )
-                        Button("Paste a TikTok link", systemImage: "doc.on.clipboard", action: pasteLink)
-                        .buttonStyle(.borderedProminent)
+                        PasteButton(payloadType: String.self) { strings in
+                            pasteLink(strings.first)
+                        }
+                        .tint(.purple)
+                        .accessibilityIdentifier("emptyPasteLinkButton")
                         Button("Restore a backup", systemImage: "square.and.arrow.down") {
                             showingImporter = true
                         }
@@ -45,12 +48,22 @@ struct LibraryShellView: View {
                     )
                 } else {
                     List {
+                        HStack {
+                            PasteButton(payloadType: String.self) { strings in
+                                pasteLink(strings.first)
+                            }
+                            .accessibilityIdentifier("libraryPasteLinkButton")
+                            Text("a TikTok link")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                         ForEach(visibleWorkouts) { workout in
                             NavigationLink {
                                 EmbeddedPlayerView(workout: workout)
                             } label: {
                                 WorkoutRow(workout: workout)
                             }
+                            .accessibilityIdentifier("workout-\(workout.sourceLink.videoID ?? workout.id.uuidString)")
                         }
                         .onDelete(perform: delete)
                     }
@@ -59,7 +72,6 @@ struct LibraryShellView: View {
             .navigationTitle("Yarms")
             .searchable(text: $searchText, prompt: "Search workouts")
             .toolbar {
-                Button("Paste link", systemImage: "doc.on.clipboard", action: pasteLink)
                 Menu {
                     Button("Export backup", systemImage: "square.and.arrow.up", action: exportBackup)
                         .disabled(workouts.isEmpty)
@@ -114,8 +126,8 @@ struct LibraryShellView: View {
         }
     }
 
-    private func pasteLink() {
-        guard let text = UIPasteboard.general.string,
+    private func pasteLink(_ pastedText: String?) {
+        guard let text = pastedText,
               let link = TikTokLink(text: text) else {
             showMessage("Could not update workouts", "Copy a TikTok video link, then try again.")
             return

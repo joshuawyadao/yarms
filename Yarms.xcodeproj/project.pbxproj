@@ -19,9 +19,11 @@
 		43EDC79FC6A58D8DB42E48D3 /* BackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96701BEDBB3F7C43CD66CBD3 /* BackupTests.swift */; };
 		5679D72CA3EA9628A0948CBE /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E0B90C9A2FBE8A797AD000 /* MetadataTests.swift */; };
 		67E0CF9816995152C213115F /* KeychainInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C58C75F638A33D8396B9E6 /* KeychainInbox.swift */; };
+		6B4CA170728BC85B0A5B4A6F /* YarmsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00808A21AB8758FF3C27E155 /* YarmsUITests.swift */; };
 		6B7191461663479AFC21DC1E /* PlayerBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26CEC9617BA9DB518463CF3 /* PlayerBridgeTests.swift */; };
 		7E04A21B7E89176CC58CBC2A /* EmbeddedPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6BA23DA70566BF0D8D9AB1E /* EmbeddedPlayerView.swift */; };
 		7EB0AC0CE026F862D68BA198 /* WorkoutEnrichmentQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA76DE1F7281176E457C30C1 /* WorkoutEnrichmentQueue.swift */; };
+		7ECCD2A7522B5388DBFB076A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 757FBB9EDF95ED5E71ABC01D /* Foundation.framework */; };
 		82841AE84968638F0A239EA8 /* WorkoutBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7856CD9DA092B69BAD66414 /* WorkoutBackup.swift */; };
 		85BDFE072771CC23EE219565 /* LibraryShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF97A28B418A46FD8C5CF7C /* LibraryShellView.swift */; };
 		89DFAFDB0188800B6B5D2CEE /* TikTokLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1CD8D1E0866F31C62A9ACF /* TikTokLink.swift */; };
@@ -51,6 +53,13 @@
 			remoteGlobalIDString = 779D7B2F47A30530600BCFC2;
 			remoteInfo = YarmsShare;
 		};
+		A4D5B1477AF3ACD18EABFCFB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 62C52A498221FF00A8E0AB40 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AEC32027E5244E2F6140A4F7;
+			remoteInfo = Yarms;
+		};
 		AF921FCA61A7BC8613AC4175 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 62C52A498221FF00A8E0AB40 /* Project object */;
@@ -75,8 +84,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		00808A21AB8758FF3C27E155 /* YarmsUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = YarmsUITests.swift; sourceTree = "<group>"; };
 		038B2BE5C7D5D334E2A1F3DE /* Yarms.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Yarms.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A324C32D46BEE1B46AC31B7 /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		170C66FD7CB525F54CF98A71 /* YarmsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YarmsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		20E0B90C9A2FBE8A797AD000 /* MetadataTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MetadataTests.swift; sourceTree = "<group>"; };
 		24BBDA45F110B21E26CD6BAD /* WorkoutStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutStore.swift; sourceTree = "<group>"; };
 		3F3B47CAD1031A5BD8D7BC83 /* TikTokMetadataClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TikTokMetadataClient.swift; sourceTree = "<group>"; };
@@ -120,6 +131,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9B4E7059292D24F12AAFB9DB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7ECCD2A7522B5388DBFB076A /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A042FC51BAC2C6B87B8FCB89 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -145,6 +164,7 @@
 				038B2BE5C7D5D334E2A1F3DE /* Yarms.app */,
 				765C6D79099091D3D70AB646 /* YarmsShare.appex */,
 				DCBEA501EFE8ADC10141A648 /* YarmsTests.xctest */,
+				170C66FD7CB525F54CF98A71 /* YarmsUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -159,6 +179,7 @@
 				42915CF203358AF0D74CEB5F /* YarmsTests */,
 				7870FD7918629A61C10F7C3E /* YarmsCore */,
 				94A17E7F809E437E00822044 /* Assets */,
+				7F2E002C94362B8A9639B735 /* YarmsUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -198,6 +219,15 @@
 			);
 			name = YarmsCore;
 			path = YarmsCore;
+			sourceTree = "<group>";
+		};
+		7F2E002C94362B8A9639B735 /* YarmsUITests */ = {
+			isa = PBXGroup;
+			children = (
+				00808A21AB8758FF3C27E155 /* YarmsUITests.swift */,
+			);
+			name = YarmsUITests;
+			path = YarmsUITests;
 			sourceTree = "<group>";
 		};
 		94A17E7F809E437E00822044 /* Assets */ = {
@@ -268,6 +298,24 @@
 			productReference = 765C6D79099091D3D70AB646 /* YarmsShare.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		9C707994998BDBEDDAB09047 /* YarmsUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7C922A4E12CBFF63E2BE669B /* Build configuration list for PBXNativeTarget "YarmsUITests" */;
+			buildPhases = (
+				8AF903688A2E28BC096D5498 /* Sources */,
+				9B4E7059292D24F12AAFB9DB /* Frameworks */,
+				848A6C63A303F4406A9D0D97 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				86F831CBA91A2DD5B5C13650 /* PBXTargetDependency */,
+			);
+			name = YarmsUITests;
+			productName = YarmsUITests;
+			productReference = 170C66FD7CB525F54CF98A71 /* YarmsUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		AEC32027E5244E2F6140A4F7 /* Yarms */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = B5D7FD1D99D23AC08E28DA9A /* Build configuration list for PBXNativeTarget "Yarms" */;
@@ -314,6 +362,9 @@
 				LastSwiftUpdateCheck = 1240;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
+					9C707994998BDBEDDAB09047 = {
+						TestTargetID = AEC32027E5244E2F6140A4F7;
+					};
 				};
 			};
 			buildConfigurationList = A88762B5DB531480D721A6D2 /* Build configuration list for PBXProject "Yarms" */;
@@ -332,6 +383,7 @@
 				AEC32027E5244E2F6140A4F7 /* Yarms */,
 				779D7B2F47A30530600BCFC2 /* YarmsShare */,
 				EBE382A7D9B881E44F94C088 /* YarmsTests */,
+				9C707994998BDBEDDAB09047 /* YarmsUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -359,6 +411,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		848A6C63A303F4406A9D0D97 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -370,6 +429,14 @@
 				AA74075084B8A1C4835C18D5 /* SharedInbox.swift in Sources */,
 				89DFAFDB0188800B6B5D2CEE /* TikTokLink.swift in Sources */,
 				67E0CF9816995152C213115F /* KeychainInbox.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8AF903688A2E28BC096D5498 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6B4CA170728BC85B0A5B4A6F /* YarmsUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -427,6 +494,12 @@
 			target = AEC32027E5244E2F6140A4F7 /* Yarms */;
 			targetProxy = AF921FCA61A7BC8613AC4175 /* PBXContainerItemProxy */;
 		};
+		86F831CBA91A2DD5B5C13650 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Yarms;
+			target = AEC32027E5244E2F6140A4F7 /* Yarms */;
+			targetProxy = A4D5B1477AF3ACD18EABFCFB /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -454,6 +527,21 @@
 				YARMS_KEYCHAIN_GROUP = "$(AppIdentifierPrefix)com.joshuawyadao.yarms.shared";
 			};
 			name = Release;
+		};
+		35EE895082A3B91899AB6E38 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Yarms;
+			};
+			name = Debug;
 		};
 		3821D46BF91E1D6F7B02DF49 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -538,6 +626,22 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
+		};
+		6178601FDF0BFD185E3976AF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.joshuawyadao.yarms.uitests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = Yarms;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
 		};
 		8A977A67586F781CFFDF8256 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -694,6 +798,15 @@
 			buildConfigurations = (
 				E28DBBEAF06ACE5A197AF3BD /* Release */,
 				8A977A67586F781CFFDF8256 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7C922A4E12CBFF63E2BE669B /* Build configuration list for PBXNativeTarget "YarmsUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6178601FDF0BFD185E3976AF /* Release */,
+				35EE895082A3B91899AB6E38 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
