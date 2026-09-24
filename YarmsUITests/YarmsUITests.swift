@@ -47,19 +47,24 @@ final class YarmsUITests: XCTestCase {
         editor.typeText(note)
         app.buttons["Save notes"].tap()
 
-        app.navigationBars.buttons["Yarms"].tap()
-        row.tap()
+        app.terminate()
+        app.launch()
+        let reopenedRow = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(reopenedRow.waitForExistence(timeout: 10), "The saved workout should survive app relaunch")
+        reopenedRow.tap()
         XCTAssertTrue(fallback.waitForExistence(timeout: 5), "Reopening should display the workout screen")
         app.swipeUp()
         app.swipeUp()
-        if !editor.exists {
+        let reopenedEditor = app.textViews["Workout notes"]
+        if !reopenedEditor.exists {
             let notesButton = app.buttons["Notes (optional)"]
             XCTAssertTrue(notesButton.waitForExistence(timeout: 5), "Reopening should keep Notes available")
             notesButton.tap()
         }
-        XCTAssertTrue(editor.waitForExistence(timeout: 5), "Opening Notes again should reveal its editor")
-        XCTAssertTrue((editor.value as? String)?.contains(note) == true,
-                      "A saved note should remain after leaving and reopening the workout")
+        XCTAssertTrue(reopenedEditor.waitForExistence(timeout: 5), "Opening Notes again should reveal its editor")
+        let reopenedValue = reopenedEditor.value as? String
+        XCTAssertTrue(reopenedValue?.contains(note) == true,
+                      "A saved note should survive app relaunch; observed \(String(describing: reopenedValue))")
     }
 
     @MainActor
