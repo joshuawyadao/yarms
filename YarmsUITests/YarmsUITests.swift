@@ -50,6 +50,8 @@ final class YarmsUITests: XCTestCase {
         app.navigationBars.buttons["Yarms"].tap()
         row.tap()
         XCTAssertTrue(fallback.waitForExistence(timeout: 5), "Reopening should display the workout screen")
+        app.swipeUp()
+        app.swipeUp()
         if !editor.exists {
             let notesButton = app.buttons["Notes (optional)"]
             XCTAssertTrue(notesButton.waitForExistence(timeout: 5), "Reopening should keep Notes available")

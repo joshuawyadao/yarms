@@ -25,7 +25,8 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 - [x] Remove the transient save-confirmation assertion that fails on iOS 18.5 while retaining the reopen-and-read persistence assertion. The next CI run exposed a stale library row when reopening on that OS.
 - [x] Refresh the parent library after a successful note save so navigation reuses the persisted workout. The local full simulator suite, repository checks, and signed build pass; CI still needs to validate the older iOS behavior.
 - [x] On iOS 18.5, the reopened detail still hides its editor. Make the UI test open Notes explicitly on return, then verify the saved text to distinguish a collapsed DisclosureGroup from a failed write. The focused local test passes.
-- [ ] Wait for CI Verify and fresh Codex review of the disclosure diagnostic, then repair any confirmed persistence or navigation issue.
+- [x] Scroll to Notes after reopening before checking whether its editor is present; older iOS may omit offscreen TextEditor elements from the accessibility tree. The focused local UI test passes and the saved-text assertion remains.
+- [ ] Wait for CI Verify and fresh Codex review of the scroll fix, then address any remaining confirmed failure.
 
 ## PR #6 second review
 - [x] Launch each UI test with a unique temporary workout store and disable normal Keychain inbox import for that launch; invalid test-store arguments must never fall back to the normal library.
