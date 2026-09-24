@@ -86,6 +86,23 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testFolderOnlyLibraryAllowsBackupExport() throws {
+        let app = isolatedApp()
+        app.launch()
+        app.buttons["newFolderButton"].tap()
+        let editor = app.alerts["New folder"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "An empty library should allow a folder")
+        editor.textFields["Folder name"].tap()
+        editor.textFields["Folder name"].typeText("Yoga")
+        editor.buttons["Create"].tap()
+
+        app.buttons["Backup and restore"].tap()
+        let export = app.buttons["Export backup"]
+        XCTAssertTrue(export.waitForExistence(timeout: 5), "Backup should remain visible")
+        XCTAssertTrue(export.isEnabled, "A folder-only library should be exportable")
+    }
+
+    @MainActor
     func testPasteStaysAvailableWhenSearchHasNoMatches() throws {
         let app = isolatedApp()
         _ = pasteUniqueWorkout(into: app)
@@ -100,6 +117,42 @@ final class YarmsUITests: XCTestCase {
         let paste = app.buttons["noMatchesPasteLinkButton"]
         XCTAssertTrue(paste.waitForExistence(timeout: 5), "Paste should remain in the zero-result state")
         XCTAssertTrue(paste.isEnabled, "A zero-result search should still offer Paste")
+    }
+
+    @MainActor
+    func testCreateFolderAndMoveSavedWorkout() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "The shared link should appear before filing")
+
+        app.buttons["newFolderButton"].tap()
+        let editor = app.alerts["New folder"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "New folder should open a name editor")
+        let name = editor.textFields["Folder name"]
+        name.tap()
+        name.typeText("Leg day")
+        editor.buttons["Create"].tap()
+        XCTAssertTrue(app.staticTexts["This folder is empty"].waitForExistence(timeout: 5),
+                      "A newly created folder should start empty")
+
+        app.buttons["folder-all"].tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "The unfiled workout should remain in All")
+        row.swipeLeft()
+        app.buttons["Move"].tap()
+        let destination = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "moveToFolder-")
+        ).firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 5), "Move should list the new folder")
+        XCTAssertTrue(destination.label.contains("Leg day"), "The destination should have the entered name")
+        destination.tap()
+
+        let filedChip = app.buttons["Leg day, 1 workouts"]
+        XCTAssertTrue(filedChip.waitForExistence(timeout: 5), "The folder count should update after moving")
+        filedChip.tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "The folder should show its filed workout")
+        app.buttons["folder-unfiled"].tap()
+        XCTAssertFalse(row.exists, "The moved workout should leave Unfiled")
     }
 
     @MainActor

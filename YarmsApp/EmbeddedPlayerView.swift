@@ -8,18 +8,25 @@ struct EmbeddedPlayerView: View {
     @StateObject private var player = TikTokPlayerController()
     @State private var notesOpen: Bool
     @State private var noteText: String
+    @State private var selectedFolderID: UUID?
     @State private var noteSaved = false
     @State private var message: String?
     @FocusState private var notesFocused: Bool
 
     let workout: Workout
+    let folders: [WorkoutFolder]
     let onNotesSaved: () -> Void
+    let onFolderChanged: (UUID?) -> Bool
 
-    init(workout: Workout, onNotesSaved: @escaping () -> Void) {
+    init(workout: Workout, folders: [WorkoutFolder], onNotesSaved: @escaping () -> Void,
+         onFolderChanged: @escaping (UUID?) -> Bool) {
         self.workout = workout
+        self.folders = folders
         self.onNotesSaved = onNotesSaved
+        self.onFolderChanged = onFolderChanged
         _notesOpen = State(initialValue: workout.notes != nil)
         _noteText = State(initialValue: workout.notes ?? "")
+        _selectedFolderID = State(initialValue: workout.folderID)
     }
 
     var body: some View {
@@ -54,6 +61,11 @@ struct EmbeddedPlayerView: View {
                         )
                         .frame(maxWidth: .infinity)
                     }
+
+                    Label(selectedFolderName, systemImage: "folder")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Folder: \(selectedFolderName)")
 
                     DisclosureGroup(isExpanded: $notesOpen) {
                         TextEditor(text: $noteText)
@@ -105,6 +117,22 @@ struct EmbeddedPlayerView: View {
         .navigationTitle(workout.title ?? "Workout")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Unfiled", systemImage: selectedFolderID == nil ? "checkmark" : "tray") {
+                        selectFolder(nil)
+                    }
+                    ForEach(folders) { folder in
+                        Button(folder.name,
+                               systemImage: selectedFolderID == folder.id ? "checkmark" : "folder") {
+                            selectFolder(folder.id)
+                        }
+                    }
+                } label: {
+                    Label("Move to folder", systemImage: "folder")
+                }
+                .accessibilityIdentifier("workoutFolderMenu")
+            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { notesFocused = false }
@@ -118,6 +146,14 @@ struct EmbeddedPlayerView: View {
         } message: {
             Text(message ?? "")
         }
+    }
+
+    private var selectedFolderName: String {
+        folders.first(where: { $0.id == selectedFolderID })?.name ?? "Unfiled"
+    }
+
+    private func selectFolder(_ id: UUID?) {
+        if onFolderChanged(id) { selectedFolderID = id }
     }
 
     private var playbackControls: some View {

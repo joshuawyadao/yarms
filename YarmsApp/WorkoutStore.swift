@@ -7,11 +7,15 @@ struct WorkoutStore {
 
     enum StoreError: Error {
         case unsupportedVersion
+        case invalidFolderName
+        case duplicateFolderName
+        case invalidFolderReference
     }
 
     private struct LibraryFile: Codable {
         let schemaVersion: Int
         var workouts: [Workout]
+        var folders: [WorkoutFolder]?
     }
 
     private let fileURL: URL
@@ -36,11 +40,71 @@ struct WorkoutStore {
     func load() throws -> [Workout] {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return [] }
-        let data = try Data(contentsOf: fileURL)
-        let library = try JSONDecoder().decode(LibraryFile.self, from: data)
-        guard library.schemaVersion == 1 else { throw StoreError.unsupportedVersion }
-        return library.workouts.sorted { $0.savedAt > $1.savedAt }
+        return try readLibrary().workouts.sorted { $0.savedAt > $1.savedAt }
+    }
+
+    func loadFolders() throws -> [WorkoutFolder] {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        return try readLibrary().folders ?? []
+    }
+
+    @discardableResult
+    func createFolder(named name: String) throws -> WorkoutFolder {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        let normalized = try Self.normalizedFolderName(name)
+        var library = try readLibrary()
+        guard !(library.folders ?? []).contains(where: { Self.sameFolderName($0.name, normalized) }) else {
+            throw StoreError.duplicateFolderName
+        }
+        let folder = WorkoutFolder(id: UUID(), name: normalized)
+        library.folders = (library.folders ?? []) + [folder]
+        try save(library)
+        return folder
+    }
+
+    @discardableResult
+    func renameFolder(_ id: UUID, to name: String) throws -> Bool {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        var library = try readLibrary()
+        guard let index = library.folders?.firstIndex(where: { $0.id == id }) else { return false }
+        let normalized = try Self.normalizedFolderName(name)
+        guard !(library.folders ?? []).contains(where: {
+            $0.id != id && Self.sameFolderName($0.name, normalized)
+        }) else { throw StoreError.duplicateFolderName }
+        library.folders?[index].name = normalized
+        try save(library)
+        return true
+    }
+
+    @discardableResult
+    func deleteFolder(_ id: UUID) throws -> Bool {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        var library = try readLibrary()
+        guard library.folders?.contains(where: { $0.id == id }) == true else { return false }
+        library.folders?.removeAll { $0.id == id }
+        for index in library.workouts.indices where library.workouts[index].folderID == id {
+            library.workouts[index].folderID = nil
+        }
+        try save(library)
+        return true
+    }
+
+    @discardableResult
+    func moveWorkout(_ workoutID: UUID, to folderID: UUID?) throws -> Bool {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        var library = try readLibrary()
+        if let folderID, library.folders?.contains(where: { $0.id == folderID }) != true {
+            throw StoreError.invalidFolderReference
+        }
+        guard let index = library.workouts.firstIndex(where: { $0.id == workoutID }) else { return false }
+        library.workouts[index].folderID = folderID
+        try save(library)
+        return true
     }
 
     @discardableResult
@@ -127,6 +191,7 @@ struct WorkoutStore {
             if keeper.title == nil { keeper.title = match.title }
             if keeper.creator == nil { keeper.creator = match.creator }
             if keeper.thumbnailURL == nil { keeper.thumbnailURL = match.thumbnailURL }
+            if keeper.folderID == nil { keeper.folderID = match.folderID }
         }
         keeper.notes = notes.isEmpty ? nil : notes.joined(separator: "\n\n")
         aliases.remove(keeper.sourceLink)
@@ -158,7 +223,8 @@ struct WorkoutStore {
     func exportBackup() throws -> Data {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
-        return try WorkoutBackup(workouts: load()).encode()
+        let library = try readLibrary()
+        return try WorkoutBackup(workouts: library.workouts, folders: library.folders ?? []).encode()
     }
 
     func restoreBackup(_ backup: WorkoutBackup) throws -> BackupRestoreResult {
@@ -166,27 +232,102 @@ struct WorkoutStore {
         defer { Self.accessLock.unlock() }
         // Revalidate even when the caller constructed an archive without decoding JSON.
         let validated = try WorkoutBackup.decode(backup.encode())
-        let current = try load()
+        var library = try readLibrary()
+        let current = library.workouts.sorted { $0.savedAt > $1.savedAt }
+        var folders = library.folders ?? []
+        var folderIDs: [UUID: UUID] = [:]
+        var existingFolderIDsByName: [String: UUID] = [:]
+        var usedFolderIDs = Set<UUID>()
+        for folder in folders {
+            let key = Self.folderNameKey(folder.name)
+            if existingFolderIDsByName[key] == nil { existingFolderIDsByName[key] = folder.id }
+            usedFolderIDs.insert(folder.id)
+        }
+        for incoming in validated.folders {
+            let key = Self.folderNameKey(incoming.name)
+            if let existingID = existingFolderIDsByName[key] {
+                folderIDs[incoming.id] = existingID
+            } else {
+                var id = incoming.id
+                while usedFolderIDs.contains(id) { id = UUID() }
+                folders.append(WorkoutFolder(id: id, name: incoming.name))
+                folderIDs[incoming.id] = id
+                existingFolderIDsByName[key] = id
+                usedFolderIDs.insert(id)
+            }
+        }
         var index = BackupMergeIndex(current)
         let ordered = validated.workouts.sorted {
             $0.savedAt == $1.savedAt
                 ? $0.id.uuidString < $1.id.uuidString
                 : $0.savedAt < $1.savedAt
         }
-        for incoming in ordered {
+        for var incoming in ordered {
+            if let folderID = incoming.folderID { incoming.folderID = folderIDs[folderID] }
             try index.absorb(incoming)
         }
         let merged = index.workouts
-        if merged != current { try save(merged) }
+        if merged != current || folders != (library.folders ?? []) {
+            library.workouts = merged
+            library.folders = folders
+            try save(library)
+        }
         return index.result
     }
 
     private func save(_ workouts: [Workout]) throws {
+        var library = try readLibrary()
+        library.workouts = workouts
+        try save(library)
+    }
+
+    private func readLibrary() throws -> LibraryFile {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return LibraryFile(schemaVersion: 2, workouts: [], folders: [])
+        }
+        let data = try Data(contentsOf: fileURL)
+        let library = try JSONDecoder().decode(LibraryFile.self, from: data)
+        guard library.schemaVersion == 1 || library.schemaVersion == 2 else {
+            throw StoreError.unsupportedVersion
+        }
+        // Folder data written by an early build used schema 1. Upgrade it on
+        // read so an older app cannot later rewrite the file and drop folders.
+        if library.schemaVersion == 1,
+           (library.folders?.isEmpty == false || library.workouts.contains(where: { $0.folderID != nil })) {
+            let migrated = LibraryFile(schemaVersion: 2, workouts: library.workouts,
+                                       folders: library.folders ?? [])
+            try save(migrated)
+            return migrated
+        }
+        return library
+    }
+
+    private func save(_ library: LibraryFile) throws {
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
-        let data = try JSONEncoder().encode(LibraryFile(schemaVersion: 1, workouts: workouts))
+        let data = try JSONEncoder().encode(LibraryFile(
+            schemaVersion: 2, workouts: library.workouts, folders: library.folders ?? []
+        ))
         try data.write(to: fileURL, options: .atomic)
+    }
+
+    static func normalizedFolderName(_ name: String) throws -> String {
+        let normalized = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty, normalized.count <= 80,
+              !normalized.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+            throw StoreError.invalidFolderName
+        }
+        return normalized
+    }
+
+    static func folderNameKey(_ name: String) -> String {
+        let locale = Locale(identifier: "en_US_POSIX")
+        return name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: locale)
+    }
+
+    private static func sameFolderName(_ left: String, _ right: String) -> Bool {
+        folderNameKey(left) == folderNameKey(right)
     }
 }
 
@@ -322,6 +463,7 @@ private struct BackupMergeIndex {
         if merged.title == nil { merged.title = incoming.title }
         if merged.creator == nil { merged.creator = incoming.creator }
         if merged.thumbnailURL == nil { merged.thumbnailURL = incoming.thumbnailURL }
+        if merged.folderID == nil { merged.folderID = incoming.folderID }
         merged.notes = mergeNotes(current.notes, incoming.notes)
         return merged
     }
