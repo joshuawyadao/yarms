@@ -1,21 +1,18 @@
 # Plan
 
-Make TikTok Share → Save to Yarms work directly after installation, with no Shortcut creation. Restore a Share extension that uses a small shared Keychain queue for links, while the app keeps its workout library and notes in its own container; a Personal Team signing spike confirmed both targets can carry the same Keychain group.
+Keep the full-width TikTok video while reducing Yarms's four custom playback buttons to compact 44-point targets. Make Open in TikTok fill the content width, then add repeatable UI automation for the core save-and-follow-along flow on an isolated iPhone simulator.
 
 ## Scope
-- In: direct Share Sheet target for TikTok URL or text, durable Keychain handoff, import into the app-local library, optional compatibility with existing Shortcut captures, focused tests, updated setup and architecture docs, signed-device validation, and PR review.
-- Out: App Groups, app accounts, TikTok downloads, cloud storage, and automatic installation on another person's phone.
+- In: workout-screen layout, accessibility needed for reliable UI automation, an XCUITest target and CI wiring, automated paste/search/notes/backup entry checks, signed-device build, and architecture/progress documentation.
+- Out: TikTok downloading, changing the official embed's own controls, an app account, changes to workout or backup file formats, and a test that depends on a particular live TikTok post remaining online.
 
 ## Action items
-- [x] Add a bounded Keychain pending-link store with one shared access group and safe save, load, and remove behavior; keep the existing file inbox for current captures.
-- [x] Restore a Share extension that accepts TikTok URL or text and reports success only after the Keychain write succeeds.
-- [x] Import pending links from both stores into the local library without duplicates or data loss after an interrupted import.
-- [x] Replace the Shortcut-first onboarding with direct Share Sheet guidance in the app, README, architecture, roadmap, and device checklist; keep optional Shortcuts compatibility clear.
-- [x] Add focused tests for Keychain handoff, invalid input, and dual-inbox import; run repository verification, the full simulator suite, and a Personal Team signed iPhone build and tests.
-- [ ] Enlarge the portrait player to the workout screen width and increase the custom playback control targets after the first live iPhone check; verify with a signed device build and user-assisted playback. This is a visual/device interaction change, so existing player bridge tests remain the automated coverage and a live screen check supplies the missing layout evidence.
-- [x] Remove orphaned Xcode source build entries when the project generator prunes deleted Swift references, and make repository verification catch a source entry without a file reference. The check first failed on Codex's reported entry, then passed after regeneration; a second generation made no changes and the signed device build passed.
-- [ ] Install on the iPhone and verify direct TikTok sharing, library, player, notes, paste, and backup with user-assisted taps.
-- [ ] Push the branch, re-run Codex and Brooks reviews and required CI checks on the new head, resolve actionable feedback, then merge only after the live flow passes.
+- [ ] Reduce Yarms's custom play/pause/seek/replay row to compact, accessible targets while preserving the full-width portrait video; make Open in TikTok a full-width action.
+- [ ] Add an XCUITest target and stable app-flow tests for paste-link saving, searching, opening a workout, saving and reopening notes, and exposing backup export/restore actions. Use an isolated simulator and a deterministic TikTok-shaped link rather than depending on live network content.
+- [ ] Add automated Files export/restore interaction if the system picker can be driven reliably; otherwise retain the existing backup archive tests and document the device-only gap.
+- [ ] Run the focused UI tests, full simulator suite, repository verification, and signed iPhone build; inspect screenshots or UI hierarchy for the control and button layout. Avoid overwriting the user's library during automation.
+- [ ] Update Architecture and MVP Progress with the layout, test coverage, results, and any live TikTok or Files behavior automation could not prove.
+- [ ] Commit and push the branch, then prepare a reviewed, green PR in keeping with the project's milestone workflow.
 
 ## Open questions
-- None. The user prefers direct Share Sheet capture; the Personal Team signing spike succeeded with a shared Keychain entitlement.
+- None. The existing saved workout is useful for a device smoke check; deterministic simulator fixtures are better for repeatable tests.
