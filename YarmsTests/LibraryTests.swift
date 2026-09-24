@@ -244,6 +244,25 @@ final class LibraryTests: XCTestCase {
         ), selected, "Opening the library normally should keep its selected folder")
     }
 
+    func testFolderCountsIncludeAllUnfiledAndNamedFolders() throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let legDay = UUID()
+        let cardio = UUID()
+        var workouts = (0..<4).map { _ in
+            Workout(id: UUID(), sourceLink: link, savedAt: Date())
+        }
+        workouts[1].folderID = legDay
+        workouts[2].folderID = legDay
+        workouts[3].folderID = cardio
+
+        let counts = LibraryShellView.FolderCounts(workouts: workouts)
+        XCTAssertEqual(counts.count(for: .all), 4, "All should count every saved workout")
+        XCTAssertEqual(counts.count(for: .unfiled), 1, "Unfiled should count unassigned workouts")
+        XCTAssertEqual(counts.count(for: .folder(legDay)), 2, "A named folder should count its members")
+        XCTAssertEqual(counts.count(for: .folder(cardio)), 1, "Each named folder should have its own count")
+        XCTAssertEqual(counts.count(for: .folder(UUID())), 0, "An empty folder should show zero")
+    }
+
     func testCoalescingKeepsEarliestNoteAndAppendsDistinctLaterNotes() throws {
         let (store, _, container) = makeStore()
         defer { try? FileManager.default.removeItem(at: container) }

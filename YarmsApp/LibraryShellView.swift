@@ -24,6 +24,35 @@ struct LibraryShellView: View {
         }
     }
 
+    struct FolderCounts {
+        let total: Int
+        let unfiled: Int
+        let byID: [UUID: Int]
+
+        init(workouts: [Workout]) {
+            total = workouts.count
+            var unfiled = 0
+            var byID: [UUID: Int] = [:]
+            for workout in workouts {
+                if let folderID = workout.folderID {
+                    byID[folderID, default: 0] += 1
+                } else {
+                    unfiled += 1
+                }
+            }
+            self.unfiled = unfiled
+            self.byID = byID
+        }
+
+        func count(for selection: FolderSelection) -> Int {
+            switch selection {
+            case .all: return total
+            case .unfiled: return unfiled
+            case .folder(let id): return byID[id] ?? 0
+            }
+        }
+    }
+
     @Environment(\.scenePhase) private var scenePhase
     @State private var workouts: [Workout] = []
     @State private var folders: [WorkoutFolder] = []
@@ -224,13 +253,16 @@ struct LibraryShellView: View {
     }
 
     private var folderBar: some View {
-        HStack(spacing: 8) {
+        let counts = FolderCounts(workouts: workouts)
+        return HStack(spacing: 8) {
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    folderChip("All", selection: .all, identifier: "folder-all")
-                    folderChip("Unfiled", selection: .unfiled, identifier: "folder-unfiled")
+                    folderChip("All", count: counts.total, selection: .all, identifier: "folder-all")
+                    folderChip("Unfiled", count: counts.unfiled,
+                               selection: .unfiled, identifier: "folder-unfiled")
                     ForEach(folders) { folder in
-                        folderChip(folder.name, selection: .folder(folder.id),
+                        folderChip(folder.name, count: counts.byID[folder.id] ?? 0,
+                                   selection: .folder(folder.id),
                                    identifier: "folder-\(folder.id.uuidString)")
                             .contextMenu {
                                 Button("Rename folder", systemImage: "pencil") {
@@ -258,9 +290,8 @@ struct LibraryShellView: View {
         .padding(.vertical, 8)
     }
 
-    private func folderChip(_ title: String, selection: FolderSelection,
+    private func folderChip(_ title: String, count: Int, selection: FolderSelection,
                             identifier: String) -> some View {
-        let count = workouts.filter { selection.includes($0) }.count
         return Button { selectedFolder = selection } label: {
             HStack(spacing: 5) {
                 Text(title).lineLimit(1)
