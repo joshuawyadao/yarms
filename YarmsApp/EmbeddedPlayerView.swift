@@ -2,6 +2,8 @@ import SwiftUI
 import WebKit
 
 struct EmbeddedPlayerView: View {
+    private static let maximumContentWidth: CGFloat = 600
+
     @Environment(\.openURL) private var openURL
     @StateObject private var player = TikTokPlayerController()
     @State private var notesOpen: Bool
@@ -23,10 +25,9 @@ struct EmbeddedPlayerView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     if let playerURL = workout.playbackLink.playerURL,
                        let html = TikTokPlayerHTML.document(for: playerURL) {
-                        let playerHeight = min((geometry.size.width - 32) * 16 / 9,
-                                               geometry.size.height * 0.62)
+                        let playerWidth = max(0, min(geometry.size.width, Self.maximumContentWidth) - 32)
                         TikTokWebPlayer(html: html, controller: player)
-                            .frame(width: playerHeight * 9 / 16, height: playerHeight)
+                            .frame(width: playerWidth, height: playerWidth * 16 / 9)
                             .frame(maxWidth: .infinity)
                             .background(.black)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -81,7 +82,7 @@ struct EmbeddedPlayerView: View {
                     }
                 }
                 .padding()
-                .frame(maxWidth: 600)
+                .frame(maxWidth: Self.maximumContentWidth)
                 .frame(maxWidth: .infinity)
             }
         }
@@ -99,10 +100,11 @@ struct EmbeddedPlayerView: View {
 
     private var playbackControls: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 28) {
+            HStack(spacing: 10) {
                 Button { player.seek(by: -10) } label: {
                     Image(systemName: "gobackward.10")
-                        .font(.title2)
+                        .font(.title)
+                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel("Back 10 seconds")
 
@@ -110,19 +112,22 @@ struct EmbeddedPlayerView: View {
                     player.send(player.isPlaying ? .pause : .play)
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.title2)
+                        .font(.title)
+                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
 
                 Button { player.seek(by: 10) } label: {
                     Image(systemName: "goforward.10")
-                        .font(.title2)
+                        .font(.title)
+                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel("Forward 10 seconds")
 
                 Button { player.send(.seekTo(0)) } label: {
                     Image(systemName: "arrow.counterclockwise")
-                        .font(.title2)
+                        .font(.title)
+                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel("Replay from start")
             }
