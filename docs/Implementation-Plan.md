@@ -17,7 +17,11 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 ## PR #6 feedback
 - [x] Keep Paste available when a nonempty library has zero search matches. Reuse one system PasteButton implementation across empty, filtered, and populated library states.
 - [x] Add a UI regression test for the zero-match search state, run the focused and complete simulator suite plus repository checks, and update the review ledger.
-- [ ] Save and push the fix, acknowledge the addressed Codex comment, and wait for a fresh review and required checks on the new head.
+- [x] Save and push the fix, acknowledge the addressed Codex comment, and request a fresh review. Required checks remain in progress.
+
+## CI diagnosis
+- [x] Record an Xcode result bundle during CI Verify and print the failure summary when simulator tests fail. A superseded macOS 15 run reported a UI test failure after nearly ten minutes without its assertion details in the quiet log.
+- [ ] Use the next CI result to repair any iOS 18.5 UI test failure, rerun local validation, and wait for green checks and fresh review.
 
 ## Open questions
 - None. The existing saved workout is useful for a device smoke check; deterministic simulator fixtures are better for repeatable tests.
