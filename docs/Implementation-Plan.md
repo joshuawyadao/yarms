@@ -17,9 +17,12 @@ Add named folders so saved workouts can be organized without changing Share Shee
 - [x] Address Codex review: count workouts by folder in one pass before rendering folder chips, with focused count tests.
 - [x] Address final Codex review: export folder-aware backups as schema 2 so older apps reject them, continue importing schema 1 backups, and test both compatibility directions.
 - [x] Address local-library downgrade risk: write schema 2 libraries, read legacy schema 1 libraries, and prove folder data cannot be silently rewritten by an older build.
-- [ ] Run focused and full iPhone simulator tests, an iPhone target build, repository checks, and a folder UI screenshot; commit, push, review, and merge the folder PR after green gates. Signed build currently needs Xcode account credentials refreshed; the unsigned iPhone target build passes.
-- [ ] Start a fresh UI branch from updated main; restyle the library and workout screens around the approved icon palette while keeping video prominent, controls usable, and folders easy to scan.
-- [ ] Validate accessibility, screenshots, UI flows, build, and tests; update docs, commit, push, review, and merge the UI PR after green gates.
+- [x] Run focused and full iPhone simulator tests, an iPhone target build, repository checks, and a folder UI screenshot; commit, push, review, and merge the folder PR after green gates. PR #8 merged at `e3a2045`. A signed local build still needs refreshed Xcode account credentials; CI Verify built and tested the app successfully.
+- [x] Start a fresh UI branch from updated `main` at `e3a2045`.
+- [ ] Apply an accessible palette derived from the approved icon, with light and dark colors; simplify the library save action, folder navigation, workout cards, and empty states.
+- [ ] Restyle the workout screen while preserving full-width portrait playback, 44-point controls, optional notes, folder movement, and the full-width Open in TikTok fallback.
+- [ ] Add or update UI assertions for the new library hierarchy and player accessibility, keeping isolated fabricated TikTok links; update README, architecture, and progress docs.
+- [ ] Validate screenshots, the full simulator suite, an iPhone target build, and repository checks; commit and push the UI branch, complete Codex and Brooks reviews and CI, then merge the green PR.
 
 ## Open questions
 - None. Working defaults are one folder per workout and the approved icon palette; these can be adjusted if the owner steers the design.
