@@ -48,6 +48,22 @@ jobs:
             xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE"
           else
             test_status=$?
-            xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE" || true
+            SUMMARY_PATH="$RUNNER_TEMP/YarmsCI-summary.json"
+            if xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE" > "$SUMMARY_PATH"; then
+              cat "$SUMMARY_PATH"
+              python3 - "$RESULT_BUNDLE" "$SUMMARY_PATH" <<'PY'
+          import json
+          import subprocess
+          import sys
+
+          with open(sys.argv[2]) as summary_file:
+              failures = json.load(summary_file).get("testFailures", [])
+          for failure in failures:
+              test_id = failure.get("testIdentifierString")
+              if test_id:
+                  subprocess.run(["xcrun", "xcresulttool", "get", "test-results", "test-details",
+                                  "--path", sys.argv[1], "--test-id", test_id], check=False)
+          PY
+            fi
             exit "$test_status"
           fi
