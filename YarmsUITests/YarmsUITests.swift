@@ -45,6 +45,12 @@ final class YarmsUITests: XCTestCase {
         let note = "UI test: three rounds"
         editor.tap()
         editor.typeText(note)
+        let typedValue = editor.value as? String
+        XCTAssertTrue(typedValue?.contains(note) == true,
+                      "Typing should update the notes editor; observed \(String(describing: typedValue))")
+        let done = app.buttons["Done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5), "Notes should offer a keyboard Done control")
+        done.tap()
         app.buttons["Save notes"].tap()
 
         app.terminate()

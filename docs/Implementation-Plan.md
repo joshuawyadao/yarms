@@ -27,7 +27,9 @@ Keep the full-width TikTok video while reducing Yarms's four custom playback but
 - [x] On iOS 18.5, the reopened detail still hides its editor. Make the UI test open Notes explicitly on return, then verify the saved text to distinguish a collapsed DisclosureGroup from a failed write. The focused local test passes.
 - [x] Scroll to Notes after reopening before checking whether its editor is present; older iOS may omit offscreen TextEditor elements from the accessibility tree. The focused local UI test passes and the saved-text assertion remains.
 - [x] Restart Yarms after saving a note and verify the persisted text in a newly loaded library record. Include the observed text on failure; the focused local UI test passes.
-- [ ] Wait for the iOS 18.5 CI result and fresh Codex review, then repair any confirmed save failure.
+- [x] Add a Done control for the notes keyboard and verify the editor contains typed text before saving; dismiss the keyboard, save, and read back the note after relaunch. The local full suite and signed iPhone build pass.
+- [ ] Verify that the same note flow passes on iOS 18.5 CI.
+- [ ] Wait for the fresh CI and Codex review gates before merging.
 
 ## PR #6 second review
 - [x] Launch each UI test with a unique temporary workout store and disable normal Keychain inbox import for that launch; invalid test-store arguments must never fall back to the normal library.

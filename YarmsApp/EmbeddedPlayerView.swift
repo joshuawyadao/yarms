@@ -10,6 +10,7 @@ struct EmbeddedPlayerView: View {
     @State private var noteText: String
     @State private var noteSaved = false
     @State private var message: String?
+    @FocusState private var notesFocused: Bool
 
     let workout: Workout
     let onNotesSaved: () -> Void
@@ -58,6 +59,7 @@ struct EmbeddedPlayerView: View {
                         TextEditor(text: $noteText)
                             .frame(minHeight: 110)
                             .accessibilityLabel("Workout notes")
+                            .focused($notesFocused)
                             .overlay {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(.quaternary)
@@ -102,6 +104,12 @@ struct EmbeddedPlayerView: View {
         }
         .navigationTitle(workout.title ?? "Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { notesFocused = false }
+            }
+        }
         .alert("Could not save notes", isPresented: Binding(
             get: { message != nil },
             set: { if !$0 { message = nil } }
