@@ -10,16 +10,18 @@ struct WorkoutBackup {
     private struct Archive: Codable {
         let schemaVersion: Int
         let workouts: [Workout]
+        let folders: [WorkoutFolder]?
     }
 
     static let maximumBytes = 10 * 1_024 * 1_024
     let workouts: [Workout]
+    let folders: [WorkoutFolder]
 
-    init(workouts: [Workout]) throws {
-        try self.init(workouts: workouts, importing: false)
+    init(workouts: [Workout], folders: [WorkoutFolder] = []) throws {
+        try self.init(workouts: workouts, folders: folders, importing: false)
     }
 
-    private init(workouts: [Workout], importing: Bool) throws {
+    private init(workouts: [Workout], folders: [WorkoutFolder], importing: Bool) throws {
         let normalized = workouts.map { workout in
             var copy = workout
             copy.title = Self.nonblank(copy.title)
@@ -38,8 +40,17 @@ struct WorkoutBackup {
             }
             return copy
         }
-        try Self.validate(normalized)
+        let normalizedFolders: [WorkoutFolder]
+        do {
+            normalizedFolders = try folders.map { folder in
+                WorkoutFolder(id: folder.id, name: try WorkoutStore.normalizedFolderName(folder.name))
+            }
+        } catch {
+            throw BackupError.invalidArchive
+        }
+        try Self.validate(normalized, folders: normalizedFolders)
         self.workouts = normalized
+        self.folders = normalizedFolders
     }
 
     static func load(from url: URL) throws -> WorkoutBackup {
@@ -69,7 +80,7 @@ struct WorkoutBackup {
             throw BackupError.invalidArchive
         }
         guard archive.schemaVersion == 1 else { throw BackupError.unsupportedVersion }
-        return try WorkoutBackup(workouts: archive.workouts, importing: true)
+        return try WorkoutBackup(workouts: archive.workouts, folders: archive.folders ?? [], importing: true)
     }
 
     func encode() throws -> Data {
@@ -77,14 +88,23 @@ struct WorkoutBackup {
         encoder.outputFormatting = [.sortedKeys]
         // Local libraries can grow beyond the defensive import limit through
         // notes and later saves. An export must still include every record.
-        return try encoder.encode(Archive(schemaVersion: 1, workouts: workouts))
+        return try encoder.encode(Archive(schemaVersion: 1, workouts: workouts, folders: folders))
     }
 
-    private static func validate(_ workouts: [Workout]) throws {
+    private static func validate(_ workouts: [Workout], folders: [WorkoutFolder]) throws {
+        var folderIDs = Set<UUID>()
+        var folderNames = Set<String>()
+        for folder in folders {
+            let normalized = folder.name.folding(options: [.caseInsensitive, .diacriticInsensitive],
+                                                 locale: Locale(identifier: "en_US_POSIX"))
+            guard folderIDs.insert(folder.id).inserted,
+                  folderNames.insert(normalized).inserted else { throw BackupError.invalidArchive }
+        }
         var identifiers = Set<UUID>()
         for workout in workouts {
             guard identifiers.insert(workout.id).inserted,
                   workout.savedAt.timeIntervalSince1970.isFinite,
+                  workout.folderID.map({ folderIDs.contains($0) }) ?? true,
                   isAuthentic(workout.sourceLink) else { throw BackupError.invalidArchive }
             if let resolvedLink = workout.resolvedLink {
                 guard isAuthentic(resolvedLink), resolvedLink.videoID != nil,

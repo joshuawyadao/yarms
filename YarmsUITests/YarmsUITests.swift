@@ -103,6 +103,42 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testCreateFolderAndMoveSavedWorkout() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "The shared link should appear before filing")
+
+        app.buttons["newFolderButton"].tap()
+        let editor = app.alerts["New folder"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "New folder should open a name editor")
+        let name = editor.textFields["Folder name"]
+        name.tap()
+        name.typeText("Leg day")
+        editor.buttons["Create"].tap()
+        XCTAssertTrue(app.staticTexts["This folder is empty"].waitForExistence(timeout: 5),
+                      "A newly created folder should start empty")
+
+        app.buttons["folder-all"].tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "The unfiled workout should remain in All")
+        row.swipeLeft()
+        app.buttons["Move"].tap()
+        let destination = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "moveToFolder-")
+        ).firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 5), "Move should list the new folder")
+        XCTAssertTrue(destination.label.contains("Leg day"), "The destination should have the entered name")
+        destination.tap()
+
+        let filedChip = app.buttons["Leg day, 1 workouts"]
+        XCTAssertTrue(filedChip.waitForExistence(timeout: 5), "The folder count should update after moving")
+        filedChip.tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "The folder should show its filed workout")
+        app.buttons["folder-unfiled"].tap()
+        XCTAssertFalse(row.exists, "The moved workout should leave Unfiled")
+    }
+
+    @MainActor
     private func isolatedApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]

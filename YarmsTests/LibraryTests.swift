@@ -186,6 +186,46 @@ final class LibraryTests: XCTestCase {
         let loaded = try XCTUnwrap(store.load().onlyElement)
         XCTAssertEqual(loaded.id, workout.id)
         XCTAssertNil(loaded.notes)
+        XCTAssertNil(loaded.folderID)
+        XCTAssertTrue(try store.loadFolders().isEmpty)
+    }
+
+    func testFolderCRUDAndMovePreserveWorkouts() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let entry = try inbox.save(link)
+        try store.importPending()
+
+        let folder = try store.createFolder(named: "  Strength  ")
+        XCTAssertEqual(folder.name, "Strength")
+        XCTAssertEqual(try store.loadFolders(), [folder])
+        XCTAssertTrue(try store.moveWorkout(entry.id, to: folder.id))
+        XCTAssertEqual(try store.load().first?.folderID, folder.id)
+        XCTAssertTrue(try store.renameFolder(folder.id, to: "Leg Day"))
+        XCTAssertEqual(try store.loadFolders().first?.name, "Leg Day")
+        XCTAssertTrue(try store.deleteFolder(folder.id))
+        XCTAssertTrue(try store.loadFolders().isEmpty)
+        XCTAssertEqual(try store.load().count, 1)
+        XCTAssertNil(try store.load().first?.folderID)
+        XCTAssertFalse(try store.deleteFolder(folder.id))
+    }
+
+    func testFolderNamesAndReferencesAreValidated() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let entry = try inbox.save(link)
+        try store.importPending()
+        XCTAssertThrowsError(try store.createFolder(named: "  "))
+        XCTAssertThrowsError(try store.createFolder(named: String(repeating: "x", count: 81)))
+        let folder = try store.createFolder(named: "Cardio")
+        XCTAssertThrowsError(try store.createFolder(named: "cárdio"))
+        XCTAssertThrowsError(try store.moveWorkout(entry.id, to: UUID()))
+        XCTAssertNil(try store.load().first?.folderID)
+        XCTAssertTrue(try store.moveWorkout(entry.id, to: folder.id))
+        XCTAssertTrue(try store.moveWorkout(entry.id, to: nil))
+        XCTAssertNil(try store.load().first?.folderID)
     }
 
     func testCoalescingKeepsEarliestNoteAndAppendsDistinctLaterNotes() throws {

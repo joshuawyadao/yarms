@@ -16,9 +16,10 @@ final class BackupTests: XCTestCase {
         return Workout(id: UUID(), sourceLink: link, savedAt: Date(timeIntervalSince1970: 1234))
     }
 
-    private func writeLibrary(_ workouts: [Workout], into directory: URL) throws {
+    private func writeLibrary(_ workouts: [Workout], into directory: URL,
+                              folders: [WorkoutFolder]? = nil) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let library = TestBackupLibrary(schemaVersion: 1, workouts: workouts)
+        let library = TestBackupLibrary(schemaVersion: 1, workouts: workouts, folders: folders)
         try JSONEncoder().encode(library).write(to: directory.appendingPathComponent("Library.json"))
     }
 
@@ -40,6 +41,103 @@ final class BackupTests: XCTestCase {
         imported.thumbnailURL = nil // Re-enriched after import, never loaded from archive URLs.
         XCTAssertEqual(decoded.workouts, [imported])
         XCTAssertEqual(try WorkoutBackup.decode(decoded.encode()).workouts, [imported])
+        XCTAssertTrue(decoded.folders.isEmpty)
+    }
+
+    func testFolderBackupRoundTripAndLegacyArchiveDecode() throws {
+        let folder = WorkoutFolder(id: UUID(), name: "Strength")
+        var workout = try makeWorkout()
+        workout.folderID = folder.id
+        let backup = try WorkoutBackup(workouts: [workout], folders: [folder])
+        let decoded = try WorkoutBackup.decode(backup.encode())
+        XCTAssertEqual(decoded.folders, [folder])
+        XCTAssertEqual(decoded.workouts.first?.folderID, folder.id)
+
+        let legacy = try JSONEncoder().encode(TestBackupLibrary(schemaVersion: 1, workouts: [
+            try makeWorkout("456")
+        ]))
+        let legacyDecoded = try WorkoutBackup.decode(legacy)
+        XCTAssertTrue(legacyDecoded.folders.isEmpty)
+        XCTAssertNil(legacyDecoded.workouts.first?.folderID)
+    }
+
+    func testStoreExportAndRestoreKeepFolderMembership() throws {
+        let (source, sourceDirectory) = makeStore()
+        let (destination, destinationDirectory) = makeStore()
+        defer {
+            try? FileManager.default.removeItem(at: sourceDirectory)
+            try? FileManager.default.removeItem(at: destinationDirectory)
+        }
+        let folder = try source.createFolder(named: "Mobility")
+        var workout = try makeWorkout()
+        workout.folderID = folder.id
+        try writeLibrary([workout], into: sourceDirectory, folders: [folder])
+
+        let backup = try WorkoutBackup.decode(source.exportBackup())
+        XCTAssertEqual(backup.folders, [folder])
+        XCTAssertEqual(try destination.restoreBackup(backup), BackupRestoreResult(added: 1, updated: 0))
+        XCTAssertEqual(try destination.loadFolders(), [folder])
+        XCTAssertEqual(try destination.load().first?.folderID, folder.id)
+    }
+
+    func testFolderBackupRejectsInvalidReferencesAndDuplicateNames() throws {
+        var workout = try makeWorkout()
+        workout.folderID = UUID()
+        XCTAssertThrowsError(try WorkoutBackup(workouts: [workout])) { error in
+            XCTAssertEqual(error as? WorkoutBackup.BackupError, .invalidArchive)
+        }
+        let folders = [WorkoutFolder(id: UUID(), name: "Cardio"),
+                       WorkoutFolder(id: UUID(), name: "cárdio")]
+        XCTAssertThrowsError(try WorkoutBackup(workouts: [], folders: folders)) { error in
+            XCTAssertEqual(error as? WorkoutBackup.BackupError, .invalidArchive)
+        }
+    }
+
+    func testFolderRestoreMapsNamesAndIDConflictsIdempotently() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let local = try store.createFolder(named: "Strength")
+        let collided = try store.createFolder(named: "Cardio")
+        let incomingStrength = WorkoutFolder(id: UUID(), name: "strength")
+        let incomingNew = WorkoutFolder(id: collided.id, name: "Yoga")
+        var first = try makeWorkout("123")
+        first.folderID = incomingStrength.id
+        var second = try makeWorkout("456")
+        second.folderID = incomingNew.id
+        let backup = try WorkoutBackup(workouts: [first, second], folders: [incomingStrength, incomingNew])
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 2, updated: 0))
+        let folders = try store.loadFolders()
+        XCTAssertEqual(folders.count, 3)
+        let yoga = try XCTUnwrap(folders.first { $0.name == "Yoga" })
+        XCTAssertNotEqual(yoga.id, collided.id)
+        XCTAssertEqual(try store.load().first { $0.id == first.id }?.folderID, local.id)
+        XCTAssertEqual(try store.load().first { $0.id == second.id }?.folderID, yoga.id)
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+        XCTAssertEqual(try store.loadFolders(), folders)
+    }
+
+    func testRestorePreservesExistingFolderAndFillsUnfiledDuplicate() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let local = try store.createFolder(named: "Strength")
+        let importedFolder = WorkoutFolder(id: UUID(), name: "Cardio")
+        var current = try makeWorkout("123")
+        current.folderID = local.id
+        try writeLibrary([current], into: directory, folders: [local])
+        var incoming = current
+        incoming.folderID = importedFolder.id
+        let backup = try WorkoutBackup(workouts: [incoming], folders: [importedFolder])
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+        XCTAssertEqual(try store.load().first?.folderID, local.id)
+        XCTAssertEqual(try store.loadFolders().count, 2)
+
+        current.folderID = nil
+        try writeLibrary([current], into: directory, folders: [local])
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 1))
+        XCTAssertEqual(try store.load().first?.folderID, importedFolder.id)
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
     }
 
     func testDecoderRejectsInvalidAndUnsupportedArchives() throws {
@@ -440,4 +538,5 @@ final class BackupTests: XCTestCase {
 private struct TestBackupLibrary: Encodable {
     let schemaVersion: Int
     let workouts: [Workout]
+    var folders: [WorkoutFolder]? = nil
 }

@@ -7,9 +7,12 @@
 | 3. Player and notes | Merged into `main` at `b47b658` | `feat/workout-player-notes` | [#3](https://github.com/joshuawyadao/yarms/pull/3) | Final Codex review complete; CI Verify and Repository Verify passed |
 | 4. Backup and polish | Merged into `main` at `265e3c8` | `feat/backup-polish` | [#4](https://github.com/joshuawyadao/yarms/pull/4) | Codex review, Brooks review, and required checks cleared before merge; final `main` build and 53 tests passed |
 | 5. Free Personal Team sharing | Merged into `main` at `a7c83a4` | `codex/free-shortcut-sharing` | [#5](https://github.com/joshuawyadao/yarms/pull/5) | Direct TikTok sharing and inline playback worked on iPhone 18 Pro Max; required review and checks passed before merge. |
-| 6. Compact player controls and UI automation | PR review in progress | `codex/compact-player-ui-tests` | [#6](https://github.com/joshuawyadao/yarms/pull/6) | Full-width video, 44-point controls, and a bottom-anchored TikTok fallback pass on a clean iPhone 18 Pro Max simulator. The isolated UI-test revision passes 59 unit tests and 3 UI tests (2 opt-in skips), repository verification, and a signed generic iPhone build. Fresh Codex review and CI Verify are pending. |
+| 6. Compact player controls and UI automation | Merged into `main` at `c5041d5` | `codex/compact-player-ui-tests` | [#6](https://github.com/joshuawyadao/yarms/pull/6) | Codex and Brooks reviews completed; CI Verify and Repository Verify passed. |
+| 7. Lowercase app title | Merged into `main` at `ea4fdd9` | — | [#7](https://github.com/joshuawyadao/yarms/pull/7) | App and Share Sheet titles use lowercase `yarms`. |
+| 8. Workout folders | In development | `codex/workout-folders` | — | Storage, backup, and UI flow are being validated before PR review. |
+| 9. Library and workout UI refresh | Planned after folders | — | — | Start from updated `main` after the folder PR merges. |
 
-The four original MVP milestones and free Personal Team sharing follow-up are merged. The current follow-up addresses physical-iPhone layout feedback and repeatable UI automation. The review ledger below records historical App Group validation from the original implementation; [Shortcut-Sharing.md](Shortcut-Sharing.md) describes the current direct Share Sheet flow.
+The four original MVP milestones and the free Personal Team sharing, player controls, and lowercase title follow-ups are merged. The current work adds folder organization, followed by a visual refresh. The review ledger below records historical App Group validation from the original implementation; [Shortcut-Sharing.md](Shortcut-Sharing.md) describes the current direct Share Sheet flow.
 
 ## Review ledger
 

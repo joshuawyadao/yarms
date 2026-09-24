@@ -9,6 +9,7 @@ struct Workout: Codable, Identifiable, Equatable {
     var creator: String? = nil
     var thumbnailURL: URL? = nil
     var notes: String? = nil
+    var folderID: UUID? = nil
     // Other source URLs locally confirmed to identify this same video.
     // Optional so libraries written before backup support still decode.
     var sourceAliases: [TikTokLink]? = nil
@@ -22,4 +23,9 @@ struct Workout: Codable, Identifiable, Equatable {
             .compactMap { $0 } + (sourceAliases?.map { $0.url.absoluteString } ?? [])
         return searchable.contains { $0.localizedStandardContains(term) }
     }
+}
+
+struct WorkoutFolder: Codable, Identifiable, Equatable {
+    let id: UUID
+    var name: String
 }
