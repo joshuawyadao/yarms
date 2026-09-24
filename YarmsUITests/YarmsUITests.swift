@@ -86,6 +86,23 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testFolderOnlyLibraryAllowsBackupExport() throws {
+        let app = isolatedApp()
+        app.launch()
+        app.buttons["newFolderButton"].tap()
+        let editor = app.alerts["New folder"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5), "An empty library should allow a folder")
+        editor.textFields["Folder name"].tap()
+        editor.textFields["Folder name"].typeText("Yoga")
+        editor.buttons["Create"].tap()
+
+        app.buttons["Backup and restore"].tap()
+        let export = app.buttons["Export backup"]
+        XCTAssertTrue(export.waitForExistence(timeout: 5), "Backup should remain visible")
+        XCTAssertTrue(export.isEnabled, "A folder-only library should be exportable")
+    }
+
+    @MainActor
     func testPasteStaysAvailableWhenSearchHasNoMatches() throws {
         let app = isolatedApp()
         _ = pasteUniqueWorkout(into: app)

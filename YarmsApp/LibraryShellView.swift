@@ -82,7 +82,7 @@ struct LibraryShellView: View {
                 .accessibilityIdentifier("folderActionsButton")
                 Menu {
                     Button("Export backup", systemImage: "square.and.arrow.up", action: exportBackup)
-                        .disabled(workouts.isEmpty)
+                        .disabled(workouts.isEmpty && folders.isEmpty)
                     Button("Restore backup", systemImage: "square.and.arrow.down") {
                         showingImporter = true
                     }
