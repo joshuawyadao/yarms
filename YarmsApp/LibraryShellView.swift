@@ -30,27 +30,40 @@ struct LibraryShellView: View {
                             systemImage: "figure.strengthtraining.traditional",
                             description: Text("Share a TikTok workout to Yarms, or paste its link here.")
                         )
-                        Button("Paste a TikTok link", systemImage: "doc.on.clipboard", action: pasteLink)
-                        .buttonStyle(.borderedProminent)
+                        pasteButton(identifier: "emptyPasteLinkButton")
+                            .tint(.purple)
                         Button("Restore a backup", systemImage: "square.and.arrow.down") {
                             showingImporter = true
                         }
                         .buttonStyle(.bordered)
                     }
                 } else if visibleWorkouts.isEmpty {
-                    ContentUnavailableView(
-                        "No matching workouts",
-                        systemImage: "magnifyingglass",
-                        description: Text("Try a different title, creator, or link.")
-                    )
+                    VStack(spacing: 16) {
+                        ContentUnavailableView(
+                            "No matching workouts",
+                            systemImage: "magnifyingglass",
+                            description: Text("Try a different title, creator, or link.")
+                        )
+                        pasteButton(identifier: "noMatchesPasteLinkButton")
+                            .tint(.purple)
+                    }
                 } else {
                     List {
+                        HStack {
+                            pasteButton(identifier: "libraryPasteLinkButton")
+                            Text("a TikTok link")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                         ForEach(visibleWorkouts) { workout in
                             NavigationLink {
-                                EmbeddedPlayerView(workout: workout)
+                                EmbeddedPlayerView(workout: workout) {
+                                    _ = refresh()
+                                }
                             } label: {
                                 WorkoutRow(workout: workout)
                             }
+                            .accessibilityIdentifier("workout-\(workout.sourceLink.videoID ?? workout.id.uuidString)")
                         }
                         .onDelete(perform: delete)
                     }
@@ -59,7 +72,6 @@ struct LibraryShellView: View {
             .navigationTitle("Yarms")
             .searchable(text: $searchText, prompt: "Search workouts")
             .toolbar {
-                Button("Paste link", systemImage: "doc.on.clipboard", action: pasteLink)
                 Menu {
                     Button("Export backup", systemImage: "square.and.arrow.up", action: exportBackup)
                         .disabled(workouts.isEmpty)
@@ -114,8 +126,15 @@ struct LibraryShellView: View {
         }
     }
 
-    private func pasteLink() {
-        guard let text = UIPasteboard.general.string,
+    private func pasteButton(identifier: String) -> some View {
+        PasteButton(payloadType: String.self) { strings in
+            pasteLink(strings.first)
+        }
+        .accessibilityIdentifier(identifier)
+    }
+
+    private func pasteLink(_ pastedText: String?) {
+        guard let text = pastedText,
               let link = TikTokLink(text: text) else {
             showMessage("Could not update workouts", "Copy a TikTok video link, then try again.")
             return

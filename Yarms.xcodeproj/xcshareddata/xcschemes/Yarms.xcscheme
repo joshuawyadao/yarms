@@ -38,6 +38,16 @@
                ReferencedContainer = "container:Yarms.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "9C707994998BDBEDDAB09047"
+               BuildableName = "YarmsUITests.xctest"
+               BlueprintName = "YarmsUITests"
+               ReferencedContainer = "container:Yarms.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

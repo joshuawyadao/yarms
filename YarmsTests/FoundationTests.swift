@@ -51,4 +51,27 @@ final class FoundationTests: XCTestCase {
         try Data("broken".utf8).write(to: directory.appendingPathComponent("damaged.json"))
         XCTAssertEqual(try inbox.load().map(\.link), [link])
     }
+
+    func testUITestStoreUsesUniqueTemporaryContainerAndRejectsInvalidIdentifier() {
+        let support = URL(fileURLWithPath: "/support")
+        let temporary = URL(fileURLWithPath: "/temporary")
+        let identifier = UUID()
+        let testArguments = ["Yarms", SharedInbox.uiTestStoreArgument, identifier.uuidString]
+
+        XCTAssertEqual(
+            SharedInbox.container(arguments: testArguments, applicationSupport: support, temporaryDirectory: temporary),
+            temporary.appendingPathComponent("YarmsUITests/\(identifier.uuidString)", isDirectory: true),
+            "A valid UI-test ID should choose its own temporary container"
+        )
+        XCTAssertNil(SharedInbox.container(
+            arguments: ["Yarms", SharedInbox.uiTestStoreArgument, "invalid"],
+            applicationSupport: support,
+            temporaryDirectory: temporary
+        ), "An invalid UI-test ID must not fall back to the normal library")
+        XCTAssertEqual(
+            SharedInbox.container(arguments: ["Yarms"], applicationSupport: support, temporaryDirectory: temporary),
+            support.appendingPathComponent("Yarms", isDirectory: true),
+            "A normal launch should keep the regular Application Support library"
+        )
+    }
 }

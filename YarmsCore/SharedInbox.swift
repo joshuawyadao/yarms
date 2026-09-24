@@ -12,9 +12,29 @@ protocol PendingLinkInbox {
 }
 
 struct SharedInbox: PendingLinkInbox {
+    static let uiTestStoreArgument = "-YarmsUITestStoreID"
+
+    static var isUITestStoreRequested: Bool {
+        ProcessInfo.processInfo.arguments.contains(uiTestStoreArgument)
+    }
+
     static var liveContainer: URL? {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first?.appendingPathComponent("Yarms", isDirectory: true)
+        container(
+            arguments: ProcessInfo.processInfo.arguments,
+            applicationSupport: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
+            temporaryDirectory: FileManager.default.temporaryDirectory
+        )
+    }
+
+    static func container(arguments: [String], applicationSupport: URL?, temporaryDirectory: URL) -> URL? {
+        if let index = arguments.firstIndex(of: uiTestStoreArgument) {
+            guard arguments.indices.contains(index + 1),
+                  let identifier = UUID(uuidString: arguments[index + 1]) else { return nil }
+            return temporaryDirectory
+                .appendingPathComponent("YarmsUITests", isDirectory: true)
+                .appendingPathComponent(identifier.uuidString, isDirectory: true)
+        }
+        return applicationSupport?.appendingPathComponent("Yarms", isDirectory: true)
     }
 
     private let directory: URL

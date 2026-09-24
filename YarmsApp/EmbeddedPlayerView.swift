@@ -10,11 +10,14 @@ struct EmbeddedPlayerView: View {
     @State private var noteText: String
     @State private var noteSaved = false
     @State private var message: String?
+    @FocusState private var notesFocused: Bool
 
     let workout: Workout
+    let onNotesSaved: () -> Void
 
-    init(workout: Workout) {
+    init(workout: Workout, onNotesSaved: @escaping () -> Void) {
         self.workout = workout
+        self.onNotesSaved = onNotesSaved
         _notesOpen = State(initialValue: workout.notes != nil)
         _noteText = State(initialValue: workout.notes ?? "")
     }
@@ -43,7 +46,6 @@ struct EmbeddedPlayerView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        playbackControls
                     } else {
                         ContentUnavailableView(
                             "Player unavailable",
@@ -53,15 +55,11 @@ struct EmbeddedPlayerView: View {
                         .frame(maxWidth: .infinity)
                     }
 
-                    Button("Open in TikTok", systemImage: "arrow.up.right.square") {
-                        openURL(workout.playbackLink.url)
-                    }
-                    .buttonStyle(.borderedProminent)
-
                     DisclosureGroup(isExpanded: $notesOpen) {
                         TextEditor(text: $noteText)
                             .frame(minHeight: 110)
                             .accessibilityLabel("Workout notes")
+                            .focused($notesFocused)
                             .overlay {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(.quaternary)
@@ -86,8 +84,32 @@ struct EmbeddedPlayerView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 8) {
+                if workout.playbackLink.playerURL != nil {
+                    playbackControls
+                }
+                Button {
+                    openURL(workout.playbackLink.url)
+                } label: {
+                    Label("Open in TikTok", systemImage: "arrow.up.right.square")
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("openInTikTokButton")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(.regularMaterial)
+        }
         .navigationTitle(workout.title ?? "Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { notesFocused = false }
+            }
+        }
         .alert("Could not save notes", isPresented: Binding(
             get: { message != nil },
             set: { if !$0 { message = nil } }
@@ -100,11 +122,9 @@ struct EmbeddedPlayerView: View {
 
     private var playbackControls: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 Button { player.seek(by: -10) } label: {
                     Image(systemName: "gobackward.10")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel("Back 10 seconds")
 
@@ -112,27 +132,22 @@ struct EmbeddedPlayerView: View {
                     player.send(player.isPlaying ? .pause : .play)
                 } label: {
                     Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
 
                 Button { player.seek(by: 10) } label: {
                     Image(systemName: "goforward.10")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel("Forward 10 seconds")
 
                 Button { player.send(.seekTo(0)) } label: {
                     Image(systemName: "arrow.counterclockwise")
-                        .font(.title)
-                        .frame(maxWidth: .infinity, minHeight: 56)
                 }
                 .accessibilityLabel("Replay from start")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(CompactPlaybackButtonStyle())
             .disabled(!player.isReady || player.hasError)
+            .opacity(!player.isReady || player.hasError ? 0.45 : 1)
             .frame(maxWidth: .infinity)
 
             if player.duration > 0 {
@@ -157,12 +172,23 @@ struct EmbeddedPlayerView: View {
         do {
             if try store.updateNotes(noteText, for: workout.id) {
                 noteSaved = true
+                onNotesSaved()
             } else {
                 message = "This workout changed while you were editing. Reopen it and try again."
             }
         } catch {
             message = "Your notes could not be saved. Try again."
         }
+    }
+}
+
+private struct CompactPlaybackButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.title3)
+            .frame(width: 44, height: 44)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 

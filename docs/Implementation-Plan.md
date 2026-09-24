@@ -1,21 +1,40 @@
 # Plan
 
-Make TikTok Share → Save to Yarms work directly after installation, with no Shortcut creation. Restore a Share extension that uses a small shared Keychain queue for links, while the app keeps its workout library and notes in its own container; a Personal Team signing spike confirmed both targets can carry the same Keychain group.
+Keep the full-width TikTok video while reducing Yarms's four custom playback buttons to compact 44-point targets. Make Open in TikTok fill the content width, then add repeatable UI automation for the core save-and-follow-along flow on an isolated iPhone simulator.
 
 ## Scope
-- In: direct Share Sheet target for TikTok URL or text, durable Keychain handoff, import into the app-local library, optional compatibility with existing Shortcut captures, focused tests, updated setup and architecture docs, signed-device validation, and PR review.
-- Out: App Groups, app accounts, TikTok downloads, cloud storage, and automatic installation on another person's phone.
+- In: workout-screen layout, accessibility needed for reliable UI automation, an XCUITest target and CI wiring, automated paste/search/notes/backup entry checks, signed-device build, and architecture/progress documentation.
+- Out: TikTok downloading, changing the official embed's own controls, an app account, changes to workout or backup file formats, and a test that depends on a particular live TikTok post remaining online.
 
 ## Action items
-- [x] Add a bounded Keychain pending-link store with one shared access group and safe save, load, and remove behavior; keep the existing file inbox for current captures.
-- [x] Restore a Share extension that accepts TikTok URL or text and reports success only after the Keychain write succeeds.
-- [x] Import pending links from both stores into the local library without duplicates or data loss after an interrupted import.
-- [x] Replace the Shortcut-first onboarding with direct Share Sheet guidance in the app, README, architecture, roadmap, and device checklist; keep optional Shortcuts compatibility clear.
-- [x] Add focused tests for Keychain handoff, invalid input, and dual-inbox import; run repository verification, the full simulator suite, and a Personal Team signed iPhone build and tests.
-- [ ] Enlarge the portrait player to the workout screen width and increase the custom playback control targets after the first live iPhone check; verify with a signed device build and user-assisted playback. This is a visual/device interaction change, so existing player bridge tests remain the automated coverage and a live screen check supplies the missing layout evidence.
-- [x] Remove orphaned Xcode source build entries when the project generator prunes deleted Swift references, and make repository verification catch a source entry without a file reference. The check first failed on Codex's reported entry, then passed after regeneration; a second generation made no changes and the signed device build passed.
-- [ ] Install on the iPhone and verify direct TikTok sharing, library, player, notes, paste, and backup with user-assisted taps.
-- [ ] Push the branch, re-run Codex and Brooks reviews and required CI checks on the new head, resolve actionable feedback, then merge only after the live flow passes.
+- [x] Reduce Yarms's custom play/pause/seek/replay row to compact, accessible targets while preserving the full-width portrait video; make Open in TikTok a full-width action.
+- [x] Add an XCUITest target and stable app-flow tests for paste-link saving, searching, opening a workout, saving and reopening notes, and exposing backup export/restore actions. Use an isolated simulator and a deterministic TikTok-shaped link rather than depending on live network content.
+- [x] Keep Files export/restore archive behavior covered by existing unit tests; document the system picker and live TikTok flows as device-only gaps. The UI test checks that both backup actions are present.
+- [x] Run the focused UI tests, full simulator suite, repository verification, and signed generic iPhone build; inspect screenshots or UI hierarchy for the control and button layout. Avoid overwriting the user's library during automation.
+- [x] Update Architecture and MVP Progress with the layout, test coverage, results, and any live TikTok or Files behavior automation could not prove.
+- [x] Commit and push the branch, then open PR #6 for the project's milestone workflow. Review and CI gates remain in progress.
+
+## PR #6 feedback
+- [x] Keep Paste available when a nonempty library has zero search matches. Reuse one system PasteButton implementation across empty, filtered, and populated library states.
+- [x] Add a UI regression test for the zero-match search state, run the focused and complete simulator suite plus repository checks, and update the review ledger.
+- [x] Save and push the fix, acknowledge the addressed Codex comment, and request a fresh review. Required checks remain in progress.
+
+## CI diagnosis
+- [x] Record an Xcode result bundle during CI Verify and print the failure summary when simulator tests fail. A superseded macOS 15 run reported a UI test failure after nearly ten minutes without its assertion details in the quiet log.
+- [x] Print the failing test's detailed Xcode result. It still omitted the assertion line, so label each assertion in the failing UI flow and print its recent XCTest activities on the next CI failure.
+- [x] Remove the transient save-confirmation assertion that fails on iOS 18.5 while retaining the reopen-and-read persistence assertion. The next CI run exposed a stale library row when reopening on that OS.
+- [x] Refresh the parent library after a successful note save so navigation reuses the persisted workout. The local full simulator suite, repository checks, and signed build pass; CI still needs to validate the older iOS behavior.
+- [x] On iOS 18.5, the reopened detail still hides its editor. Make the UI test open Notes explicitly on return, then verify the saved text to distinguish a collapsed DisclosureGroup from a failed write. The focused local test passes.
+- [x] Scroll to Notes after reopening before checking whether its editor is present; older iOS may omit offscreen TextEditor elements from the accessibility tree. The focused local UI test passes and the saved-text assertion remains.
+- [x] Restart Yarms after saving a note and verify the persisted text in a newly loaded library record. Include the observed text on failure; the focused local UI test passes.
+- [x] Add a Done control for the notes keyboard and verify the editor contains typed text before saving; dismiss the keyboard, save, and read back the note after relaunch. The local full suite and signed iPhone build pass.
+- [x] Verify that the same note flow passes on iOS 18.5 CI. At `8a0c9b0`, CI Verify passed all 60 runnable tests with 2 expected opt-in skips.
+- [x] Check fresh Codex review and mergeability for `8a0c9b0`: no new findings, both checks green, no conflicts.
+- [ ] Recheck CI, Codex review, and mergeability on the final documentation commit before merging PR #6.
+
+## PR #6 second review
+- [x] Launch each UI test with a unique temporary workout store and disable normal Keychain inbox import for that launch; invalid test-store arguments must never fall back to the normal library.
+- [x] Verify the store-routing contract and rerun UI, unit, repository, signed-build, review, and CI gates on `8a0c9b0`. Local and remote tests, review, and build pass.
 
 ## Open questions
-- None. The user prefers direct Share Sheet capture; the Personal Team signing spike succeeded with a shared Keychain entitlement.
+- None. The existing saved workout is useful for a device smoke check; deterministic simulator fixtures are better for repeatable tests.

@@ -32,6 +32,7 @@ required = (
     "YarmsShare/Info.plist",
     "YarmsApp/Yarms.entitlements",
     "YarmsShare/Yarms.entitlements",
+    "YarmsUITests/YarmsUITests.swift",
 )
 errors = [f"Missing {name}" for name in required if not (root / name).is_file()]
 
@@ -42,12 +43,18 @@ if scheme_path.is_file():
         runnable = scheme.find(f"./{action}/BuildableProductRunnable/BuildableReference")
         if runnable is None or runnable.get("BlueprintName") != "Yarms":
             errors.append(f"{action} must run the Yarms app")
+    test_names = {reference.get("BlueprintName") for reference in
+                  scheme.findall("./TestAction/Testables/TestableReference/BuildableReference")}
+    if not {"YarmsTests", "YarmsUITests"}.issubset(test_names):
+        errors.append("The shared scheme must run unit and UI tests")
 
 project_file = root / "Yarms.xcodeproj/project.pbxproj"
 if project_file.is_file():
     project_text = project_file.read_text(encoding="utf-8")
     if "YarmsShare" not in project_text or "CODE_SIGN_ENTITLEMENTS" not in project_text:
         errors.append("The direct Share Sheet build must include the signed YarmsShare target")
+    if "YarmsUITests" not in project_text or "TEST_TARGET_NAME = Yarms;" not in project_text:
+        errors.append("The Xcode project must include a UI test target for Yarms")
     build_files = re.findall(r"\bisa = PBXBuildFile;([^}]*)\};", project_text)
     if not build_files or any("fileRef =" not in entry and "productRef =" not in entry
                               for entry in build_files):
