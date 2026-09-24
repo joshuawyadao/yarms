@@ -8,6 +8,7 @@ cd "$PROJECT_ROOT"
 
 PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
 from pathlib import Path
+import plistlib
 import re
 import subprocess
 import sys
@@ -28,6 +29,9 @@ required = (
     ".github/pull_request_template.md",
     ".github/workflows/ci.yml",
     "Yarms.xcodeproj/xcshareddata/xcschemes/Yarms.xcscheme",
+    "YarmsShare/Info.plist",
+    "YarmsApp/Yarms.entitlements",
+    "YarmsShare/Yarms.entitlements",
 )
 errors = [f"Missing {name}" for name in required if not (root / name).is_file()]
 
@@ -42,8 +46,27 @@ if scheme_path.is_file():
 project_file = root / "Yarms.xcodeproj/project.pbxproj"
 if project_file.is_file():
     project_text = project_file.read_text(encoding="utf-8")
-    if "YarmsShare" in project_text or "CODE_SIGN_ENTITLEMENTS" in project_text:
-        errors.append("The free Personal Team build must not require a share extension or App Group entitlement")
+    if "YarmsShare" not in project_text or "CODE_SIGN_ENTITLEMENTS" not in project_text:
+        errors.append("The direct Share Sheet build must include the signed YarmsShare target")
+
+for name in ("YarmsApp", "YarmsShare"):
+    entitlement_path = root / name / "Yarms.entitlements"
+    if entitlement_path.is_file():
+        with entitlement_path.open("rb") as stream:
+            entitlements = plistlib.load(stream)
+        if "com.apple.security.application-groups" in entitlements:
+            errors.append(f"{name} must not require App Groups for a Personal Team build")
+        if entitlements.get("keychain-access-groups") != ["$(YARMS_KEYCHAIN_GROUP)"]:
+            errors.append(f"{name} must use the shared Keychain group")
+
+extension_info_path = root / "YarmsShare/Info.plist"
+if extension_info_path.is_file():
+    with extension_info_path.open("rb") as stream:
+        extension_info = plistlib.load(stream)
+    for key, value in {"CFBundleShortVersionString": "$(MARKETING_VERSION)",
+                       "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)"}.items():
+        if extension_info.get(key) != value:
+            errors.append(f"Extension {key} must inherit {value}")
 
 files = subprocess.check_output(
     ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"]

@@ -1,13 +1,7 @@
-# Save TikTok workouts from the share sheet
+# Save TikTok workouts from the Share Sheet
 
-Yarms uses a personal Shortcut so it can be installed with a free Apple Personal Team. If this replaces an earlier signed Yarms build with saved workouts, [export and restore a backup](Storage-Migration.md) during the upgrade. Set up **Save to Yarms** once on each iPhone. Afterward, sharing a TikTok link does not require copying it, opening Yarms, or typing.
+After Yarms is installed, no Shortcut setup is needed. In TikTok, open a workout video, tap **Share**, and choose **Save to Yarms**. If it is not visible, open **More** in the iPhone share sheet and enable or select Save to Yarms. Yarms accepts a TikTok video URL or text containing one and confirms the save; an invalid link shows an error.
 
-1. Install and open Yarms once. In the **Shortcuts** app, create a new shortcut named **Save to Yarms**.
-2. In the shortcut's Details, turn on **Show in Share Sheet** and allow **URLs** and **Text** as input types.
-3. Add the Yarms action **Save TikTok Workout**. Set its **Shared TikTok Link** field to **Shortcut Input**.
-4. Save the shortcut. In TikTok, open a workout video, tap **Share**, and select **Save to Yarms**. You may need **More** to find it initially.
-5. Reopen Yarms to see the saved workout. The action saves the link first; Yarms fetches available title, creator, and thumbnail when it opens.
+The Share extension saves only a small link record to a shared, on-device Keychain queue. Open Yarms later to add that record to the app-local library and fetch available title, creator, and thumbnail. Yarms does not need to open during the share, and it does not download the video. The app's **Paste link** action remains available. An existing personal Shortcut using Yarms's **Save TikTok Workout** action also continues to work, but it is optional.
 
-TikTok may supply a URL or text around the URL. Yarms scans the shared text for a valid TikTok video link and reports an error if none is present. The app's **Paste link** action remains available. Apple documents [running a Shortcut from another app's share sheet](https://support.apple.com/guide/shortcuts/understanding-input-types-apd7644168e1/ios).
-
-Free Personal Team builds have short-lived provisioning profiles and need periodic rebuilds in Xcode. Apple currently documents a seven-day profile lifetime and a limit of three devices and three apps per device for personal teams; each person using Yarms needs the app installed on their own iPhone. See [Apple's account overview](https://developer.apple.com/help/account/basics/about-your-developer-account).
+The Share extension and app need the same free Personal Team signature. Each iPhone, including a partner's, needs Yarms installed from Xcode; this is not an App Store or TestFlight distribution. Apple documents a seven-day lifetime for Personal Team provisioning profiles, so the app must be rebuilt and reinstalled periodically. See [Apple's account overview](https://developer.apple.com/help/account/basics/about-your-developer-account) and [Share extension documentation](https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/Share.html).

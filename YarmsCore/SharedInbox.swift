@@ -6,7 +6,12 @@ struct PendingLink: Codable, Identifiable {
     let savedAt: Date
 }
 
-struct SharedInbox {
+protocol PendingLinkInbox {
+    func load() throws -> [PendingLink]
+    func remove(_ id: UUID) throws
+}
+
+struct SharedInbox: PendingLinkInbox {
     static var liveContainer: URL? {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)
             .first?.appendingPathComponent("Yarms", isDirectory: true)

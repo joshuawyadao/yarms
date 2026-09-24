@@ -15,7 +15,6 @@ struct LibraryShellView: View {
     @State private var showingImporter = false
     @State private var pendingBackup: WorkoutBackup?
     @State private var confirmingRestore = false
-    @State private var showingShortcutHelp = false
 
     private var visibleWorkouts: [Workout] {
         workouts.filter { $0.matches(searchText) }
@@ -29,11 +28,9 @@ struct LibraryShellView: View {
                         ContentUnavailableView(
                             "No workouts yet",
                             systemImage: "figure.strengthtraining.traditional",
-                            description: Text("Use your Save to Yarms Shortcut from TikTok, or paste its link here.")
+                            description: Text("Share a TikTok workout to Yarms, or paste its link here.")
                         )
-                        Button("Set up TikTok sharing", systemImage: "square.and.arrow.up") {
-                            showingShortcutHelp = true
-                        }
+                        Button("Paste a TikTok link", systemImage: "doc.on.clipboard", action: pasteLink)
                         .buttonStyle(.borderedProminent)
                         Button("Restore a backup", systemImage: "square.and.arrow.down") {
                             showingImporter = true
@@ -63,9 +60,6 @@ struct LibraryShellView: View {
             .searchable(text: $searchText, prompt: "Search workouts")
             .toolbar {
                 Button("Paste link", systemImage: "doc.on.clipboard", action: pasteLink)
-                Button("Sharing setup", systemImage: "questionmark.circle") {
-                    showingShortcutHelp = true
-                }
                 Menu {
                     Button("Export backup", systemImage: "square.and.arrow.up", action: exportBackup)
                         .disabled(workouts.isEmpty)
@@ -112,9 +106,6 @@ struct LibraryShellView: View {
             }
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
                 importBackup(result)
-            }
-            .sheet(isPresented: $showingShortcutHelp) {
-                ShortcutsSetupView()
             }
             .onAppear { refresh() }
             .onChange(of: scenePhase) { _, phase in

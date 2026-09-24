@@ -28,4 +28,25 @@ final class ShortcutCaptureTests: XCTestCase {
         }
         XCTAssertTrue(try inbox.load().isEmpty)
     }
+
+    func testFileAndShareInboxesImportWithoutDuplicateWorkouts() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileInbox = SharedInbox(directory: directory.appendingPathComponent("FileInbox"))
+        let shareInbox = SharedInbox(directory: directory.appendingPathComponent("ShareInbox"))
+        let store = WorkoutStore(fileURL: directory.appendingPathComponent("Library.json"),
+                                 inbox: fileInbox, shareInbox: shareInbox)
+        let first = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let second = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/456"))
+        try fileInbox.save(first)
+        try shareInbox.save(first)
+        try shareInbox.save(second)
+
+        let imported = try store.importPending()
+
+        XCTAssertEqual(Set(imported.map(\.sourceLink)), Set([first, second]))
+        XCTAssertEqual(try store.importPending().count, 2)
+        XCTAssertTrue(try fileInbox.load().isEmpty)
+        XCTAssertTrue(try shareInbox.load().isEmpty)
+    }
 }

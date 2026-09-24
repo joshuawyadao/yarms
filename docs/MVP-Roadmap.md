@@ -9,4 +9,4 @@ Yarms keeps workout links and personal notes on the iPhone. It requires no app a
 
 Yarms does not download TikTok posts or bypass creator download settings. Playback depends on TikTok's official player and the post remaining available.
 
-The original share extension in milestone 1 required App Groups, which the owner's free Personal Team could not sign. A follow-up replaces it with a one-time [Shortcuts share-sheet setup](Shortcut-Sharing.md) and an app-local Save TikTok Workout action. The workout library, player, notes, paste fallback, and backup behavior remain in the app.
+The original share extension in milestone 1 required App Groups, which the owner's free Personal Team could not sign. A follow-up restores [direct Share Sheet saving](Shortcut-Sharing.md) with a small shared Keychain handoff instead of an App Group. The workout library, player, notes, paste fallback, and backup remain in the app's own container.
