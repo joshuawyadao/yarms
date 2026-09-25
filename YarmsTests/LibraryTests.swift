@@ -280,6 +280,30 @@ final class LibraryTests: XCTestCase {
         XCTAssertNil(afterReshare.first(where: { $0.id == sharedAgain.id })?.folderID)
     }
 
+    func testRemovingSelectionCoalescedDuringConfirmationReportsFailureThenAllowsRetry() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        var original = Workout(id: UUID(), sourceLink: canonical, savedAt: Date(timeIntervalSince1970: 100))
+        original.notes = "Three rounds"
+        let selected = Workout(id: UUID(), sourceLink: short, savedAt: Date(timeIntervalSince1970: 200))
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        try JSONEncoder().encode(TestLibraryFile(workouts: [original, selected]))
+            .write(to: container.appendingPathComponent("Library.json"))
+        XCTAssertEqual(try store.load().count, 2)
+
+        // The selected row's identity disappears while its delete confirmation is open.
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil), to: selected.id)
+
+        XCTAssertFalse(try store.remove(selected.id), "The caller must not dismiss or report deletion success")
+        let refreshed = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(refreshed.id, original.id)
+        XCTAssertEqual(refreshed.notes, "Three rounds")
+        XCTAssertTrue(try store.remove(refreshed.id), "Reselecting the surviving workout allows deletion")
+        XCTAssertTrue(try store.load().isEmpty)
+    }
+
     func testFolderNamesAndReferencesAreValidated() throws {
         let (store, inbox, container) = makeStore()
         defer { try? FileManager.default.removeItem(at: container) }

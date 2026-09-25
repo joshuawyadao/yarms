@@ -152,5 +152,27 @@
       "suggestion": 0
     },
     "scope": "PR #10 documentation-only UI milestone completion ledger and plan closeout"
+  },
+  {
+    "date": "2026-09-25",
+    "mode": "PR Review",
+    "score": 95,
+    "findings": {
+      "critical": 0,
+      "warning": 1,
+      "suggestion": 0
+    },
+    "scope": "PR #11 at 51fb92c; stale deletion after duplicate coalescing silently reported success"
+  },
+  {
+    "date": "2026-09-25",
+    "mode": "PR Review",
+    "score": 100,
+    "findings": {
+      "critical": 0,
+      "warning": 0,
+      "suggestion": 0
+    },
+    "scope": "PR #11 stale deletion fix re-review; false removal refreshes the library and gives reselection guidance; deterministic coalescing and retry regression"
   }
 ]

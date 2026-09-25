@@ -170,7 +170,7 @@ struct EmbeddedPlayerView: View {
                     dismiss()
                 } else {
                     messageTitle = "Could not delete workout"
-                    message = "The saved workout could not be removed. Try again."
+                    message = "The saved workout could not be removed. Return to the library, select it again, and retry."
                 }
             }
             Button("Cancel", role: .cancel) {}

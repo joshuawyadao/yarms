@@ -565,14 +565,19 @@ struct LibraryShellView: View {
         defer { workoutPendingDeletion = nil }
         guard let workout = workoutPendingDeletion else { return }
         if !removeWorkout(workout) {
-            showMessage("Could not delete workout", "The saved workout could not be removed. Try again.")
+            showMessage("Could not delete workout", "The saved workout could not be removed. Select it again from the library and retry.")
         }
     }
 
     private func removeWorkout(_ workout: Workout) -> Bool {
         guard let store = WorkoutStore.live() else { return false }
         do {
-            try store.remove(workout.id)
+            guard try store.remove(workout.id) else {
+                // Enrichment may have combined this selection with an older save.
+                workouts = try store.load()
+                enrichmentQueue.reset(with: workouts)
+                return false
+            }
             workouts.removeAll { $0.id == workout.id }
             enrichmentQueue.reset(with: workouts)
             return true
