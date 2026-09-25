@@ -64,6 +64,8 @@ struct LibraryShellView: View {
     @State private var folderPendingDeletion: WorkoutFolder?
     @State private var showingDeleteFolder = false
     @State private var movingWorkout: Workout?
+    @State private var workoutPendingDeletion: Workout?
+    @State private var showingDeleteWorkout = false
     @State private var enrichmentQueue = WorkoutEnrichmentQueue()
     @State private var message: String?
     @State private var messageTitle = "Could not update workouts"
@@ -170,6 +172,12 @@ struct LibraryShellView: View {
                 Button("Cancel", role: .cancel) { folderPendingDeletion = nil }
             } message: {
                 Text("Workouts in this folder will stay saved in Unfiled.")
+            }
+            .alert("Delete saved workout?", isPresented: $showingDeleteWorkout) {
+                Button("Delete workout", role: .destructive, action: deleteSelectedWorkout)
+                Button("Cancel", role: .cancel) { workoutPendingDeletion = nil }
+            } message: {
+                Text("The saved link and its notes will be removed from this iPhone. The TikTok post will not be affected.")
             }
             .sheet(item: $movingWorkout) { workout in
                 moveSheet(for: workout)
@@ -298,7 +306,8 @@ struct LibraryShellView: View {
                         workout: workout,
                         folders: folders,
                         onNotesSaved: { _ = refresh() },
-                        onFolderChanged: { destination in moveWorkout(workout, to: destination) }
+                        onFolderChanged: { destination in moveWorkout(workout, to: destination) },
+                        onDeleteWorkout: { removeWorkout(workout) }
                     )
                 } label: {
                     WorkoutRow(workout: workout, folderName: workout.folderID.flatMap { namesByID[$0] })
@@ -313,9 +322,13 @@ struct LibraryShellView: View {
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Move", systemImage: "folder") { movingWorkout = workout }
                         .tint(Color("YarmsAction"))
+                    Button("Delete", systemImage: "trash", role: .destructive) {
+                        workoutPendingDeletion = workout
+                        showingDeleteWorkout = true
+                    }
+                    .accessibilityIdentifier("deleteWorkoutSwipeButton")
                 }
             }
-            .onDelete(perform: delete)
         }
     }
 
@@ -548,14 +561,28 @@ struct LibraryShellView: View {
         scheduleEnrichment(using: store)
     }
 
-    private func delete(at offsets: IndexSet) {
-        guard let store = WorkoutStore.live() else { return }
-        let selected = offsets.map { visibleWorkouts[$0].id }
+    private func deleteSelectedWorkout() {
+        defer { workoutPendingDeletion = nil }
+        guard let workout = workoutPendingDeletion else { return }
+        if !removeWorkout(workout) {
+            showMessage("Could not delete workout", "The saved workout could not be removed. Select it again from the library and retry.")
+        }
+    }
+
+    private func removeWorkout(_ workout: Workout) -> Bool {
+        guard let store = WorkoutStore.live() else { return false }
         do {
-            for id in selected { try store.remove(id) }
-            workouts = try store.load()
+            guard try store.remove(workout.id) else {
+                // Enrichment may have combined this selection with an older save.
+                workouts = try store.load()
+                enrichmentQueue.reset(with: workouts)
+                return false
+            }
+            workouts.removeAll { $0.id == workout.id }
+            enrichmentQueue.reset(with: workouts)
+            return true
         } catch {
-            showMessage("Could not update workouts", "Yarms could not remove that workout.")
+            return false
         }
     }
 

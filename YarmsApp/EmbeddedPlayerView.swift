@@ -4,6 +4,7 @@ import WebKit
 struct EmbeddedPlayerView: View {
     private static let maximumContentWidth: CGFloat = 600
 
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @StateObject private var player = TikTokPlayerController()
     @State private var notesOpen: Bool
@@ -11,19 +12,23 @@ struct EmbeddedPlayerView: View {
     @State private var selectedFolderID: UUID?
     @State private var noteSaved = false
     @State private var message: String?
+    @State private var messageTitle = "Could not save notes"
+    @State private var showingDeleteWorkout = false
     @FocusState private var notesFocused: Bool
 
     let workout: Workout
     let folders: [WorkoutFolder]
     let onNotesSaved: () -> Void
     let onFolderChanged: (UUID?) -> Bool
+    let onDeleteWorkout: () -> Bool
 
     init(workout: Workout, folders: [WorkoutFolder], onNotesSaved: @escaping () -> Void,
-         onFolderChanged: @escaping (UUID?) -> Bool) {
+         onFolderChanged: @escaping (UUID?) -> Bool, onDeleteWorkout: @escaping () -> Bool) {
         self.workout = workout
         self.folders = folders
         self.onNotesSaved = onNotesSaved
         self.onFolderChanged = onFolderChanged
+        self.onDeleteWorkout = onDeleteWorkout
         _notesOpen = State(initialValue: workout.notes != nil)
         _noteText = State(initialValue: workout.notes ?? "")
         _selectedFolderID = State(initialValue: workout.folderID)
@@ -148,12 +153,31 @@ struct EmbeddedPlayerView: View {
                 }
                 .accessibilityIdentifier("workoutFolderMenu")
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Delete workout", systemImage: "trash", role: .destructive) {
+                    showingDeleteWorkout = true
+                }
+                .accessibilityIdentifier("deleteWorkoutDetailButton")
+            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
                 Button("Done") { notesFocused = false }
             }
         }
-        .alert("Could not save notes", isPresented: Binding(
+        .alert("Delete saved workout?", isPresented: $showingDeleteWorkout) {
+            Button("Delete workout", role: .destructive) {
+                if onDeleteWorkout() {
+                    dismiss()
+                } else {
+                    messageTitle = "Could not delete workout"
+                    message = "The saved workout could not be removed. Return to the library, select it again, and retry."
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The saved link and its notes will be removed from this iPhone. The TikTok post will not be affected.")
+        }
+        .alert(messageTitle, isPresented: Binding(
             get: { message != nil },
             set: { if !$0 { message = nil } }
         )) {
@@ -249,6 +273,7 @@ struct EmbeddedPlayerView: View {
     }
 
     private func saveNotes() {
+        messageTitle = "Could not save notes"
         guard let store = WorkoutStore.live() else {
             message = "Yarms could not access its saved workouts."
             return

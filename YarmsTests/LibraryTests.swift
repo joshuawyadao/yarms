@@ -249,6 +249,61 @@ final class LibraryTests: XCTestCase {
         XCTAssertFalse(try store.deleteFolder(folder.id))
     }
 
+    func testRemovingWorkoutDropsItsNotesAndAssignmentButKeepsOtherRecords() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let first = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let second = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/456"))
+        let removed = try inbox.save(first)
+        let kept = try inbox.save(second)
+        try store.importPending()
+        let folder = try store.createFolder(named: "Strength")
+        XCTAssertTrue(try store.moveWorkout(removed.id, to: folder.id))
+        XCTAssertTrue(try store.updateNotes("Three rounds", for: removed.id))
+
+        XCTAssertTrue(try store.remove(removed.id))
+        XCTAssertFalse(try store.remove(removed.id), "Removing a stale workout should not change the library")
+        XCTAssertEqual(try store.load().map(\.id), [kept.id])
+        XCTAssertEqual(try store.loadFolders(), [folder])
+        let counts = LibraryShellView.FolderCounts(workouts: try store.load())
+        XCTAssertEqual(counts.total, 1)
+        XCTAssertEqual(counts.unfiled, 1)
+        XCTAssertNil(counts.byID[folder.id])
+        let backup = try WorkoutBackup.decode(store.exportBackup())
+        XCTAssertEqual(backup.workouts.map(\.id), [kept.id],
+                       "A new backup should not reintroduce the deleted link or its notes")
+
+        let sharedAgain = try inbox.save(first)
+        let afterReshare = try store.importPending()
+        XCTAssertEqual(Set(afterReshare.map(\.id)), [kept.id, sharedAgain.id])
+        XCTAssertNil(afterReshare.first(where: { $0.id == sharedAgain.id })?.notes)
+        XCTAssertNil(afterReshare.first(where: { $0.id == sharedAgain.id })?.folderID)
+    }
+
+    func testRemovingSelectionCoalescedDuringConfirmationReportsFailureThenAllowsRetry() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        var original = Workout(id: UUID(), sourceLink: canonical, savedAt: Date(timeIntervalSince1970: 100))
+        original.notes = "Three rounds"
+        let selected = Workout(id: UUID(), sourceLink: short, savedAt: Date(timeIntervalSince1970: 200))
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        try JSONEncoder().encode(TestLibraryFile(workouts: [original, selected]))
+            .write(to: container.appendingPathComponent("Library.json"))
+        XCTAssertEqual(try store.load().count, 2)
+
+        // The selected row's identity disappears while its delete confirmation is open.
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil), to: selected.id)
+
+        XCTAssertFalse(try store.remove(selected.id), "The caller must not dismiss or report deletion success")
+        let refreshed = try XCTUnwrap(store.load().onlyElement)
+        XCTAssertEqual(refreshed.id, original.id)
+        XCTAssertEqual(refreshed.notes, "Three rounds")
+        XCTAssertTrue(try store.remove(refreshed.id), "Reselecting the surviving workout allows deletion")
+        XCTAssertTrue(try store.load().isEmpty)
+    }
+
     func testFolderNamesAndReferencesAreValidated() throws {
         let (store, inbox, container) = makeStore()
         defer { try? FileManager.default.removeItem(at: container) }
