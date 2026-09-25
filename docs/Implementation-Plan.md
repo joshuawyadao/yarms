@@ -17,3 +17,15 @@ Make removing a saved workout easy to find from both the library and the workout
 
 ## Open questions
 - None. Use confirmation before removal and keep the existing backup restore semantics.
+
+## PR #11 review follow-up
+
+Both Brooks and Codex review found that enrichment can coalesce the selected workout while a delete confirmation is open. Honor a missing-record removal result so the app never reports success or dismisses the workout without deleting it.
+
+- [ ] Refresh the library and report failure when `WorkoutStore.remove` returns false; give retry guidance from both delete entry points.
+- [ ] Add a deterministic `LibraryTests` regression for coalescing between selecting a workout and confirming deletion, then deleting the surviving record.
+- [ ] Document the stale-record behavior in `docs/Architecture.md` and record Brooks review findings.
+- [ ] Run focused library and deletion UI tests, repository verification, and await final-head CI and Codex re-review.
+- [ ] Save and push the reviewed fix on `codex/remove-saved-workout`.
+
+No open questions or schema changes. Existing README deletion instructions remain valid.
