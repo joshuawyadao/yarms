@@ -164,6 +164,53 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testDeleteFromLibraryRequiresConfirmation() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+
+        row.swipeLeft()
+        let delete = app.buttons["deleteWorkoutSwipeButton"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5), "A library row should expose Delete")
+        delete.tap()
+        let alert = app.alerts["Delete saved workout?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Cancel"].tap()
+        XCTAssertFalse(alert.exists, "Cancel should close the delete confirmation")
+        XCTAssertTrue(row.exists, "Cancel should keep the saved workout")
+
+        if !delete.exists { row.swipeLeft() }
+        delete.tap()
+        alert.buttons["Delete workout"].tap()
+        XCTAssertTrue(app.staticTexts["No workouts yet"].waitForExistence(timeout: 5))
+        XCTAssertFalse(row.exists, "Confirming should remove the library row")
+    }
+
+    @MainActor
+    func testDeleteFromWorkoutReturnsToLibrary() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let delete = app.buttons["deleteWorkoutDetailButton"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5), "The workout screen should expose Delete")
+        delete.tap()
+        let alert = app.alerts["Delete saved workout?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Delete workout"].tap()
+
+        XCTAssertTrue(app.staticTexts["No workouts yet"].waitForExistence(timeout: 5),
+                      "Deleting from the workout screen should return to the empty library")
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.staticTexts["No workouts yet"].waitForExistence(timeout: 10),
+                      "A deleted workout should stay gone after relaunch")
+    }
+
+    @MainActor
     private func isolatedApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]

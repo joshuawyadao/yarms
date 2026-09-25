@@ -249,6 +249,37 @@ final class LibraryTests: XCTestCase {
         XCTAssertFalse(try store.deleteFolder(folder.id))
     }
 
+    func testRemovingWorkoutDropsItsNotesAndAssignmentButKeepsOtherRecords() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let first = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let second = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/456"))
+        let removed = try inbox.save(first)
+        let kept = try inbox.save(second)
+        try store.importPending()
+        let folder = try store.createFolder(named: "Strength")
+        XCTAssertTrue(try store.moveWorkout(removed.id, to: folder.id))
+        XCTAssertTrue(try store.updateNotes("Three rounds", for: removed.id))
+
+        XCTAssertTrue(try store.remove(removed.id))
+        XCTAssertFalse(try store.remove(removed.id), "Removing a stale workout should not change the library")
+        XCTAssertEqual(try store.load().map(\.id), [kept.id])
+        XCTAssertEqual(try store.loadFolders(), [folder])
+        let counts = LibraryShellView.FolderCounts(workouts: try store.load())
+        XCTAssertEqual(counts.total, 1)
+        XCTAssertEqual(counts.unfiled, 1)
+        XCTAssertNil(counts.byID[folder.id])
+        let backup = try WorkoutBackup.decode(store.exportBackup())
+        XCTAssertEqual(backup.workouts.map(\.id), [kept.id],
+                       "A new backup should not reintroduce the deleted link or its notes")
+
+        let sharedAgain = try inbox.save(first)
+        let afterReshare = try store.importPending()
+        XCTAssertEqual(Set(afterReshare.map(\.id)), [kept.id, sharedAgain.id])
+        XCTAssertNil(afterReshare.first(where: { $0.id == sharedAgain.id })?.notes)
+        XCTAssertNil(afterReshare.first(where: { $0.id == sharedAgain.id })?.folderID)
+    }
+
     func testFolderNamesAndReferencesAreValidated() throws {
         let (store, inbox, container) = makeStore()
         defer { try? FileManager.default.removeItem(at: container) }

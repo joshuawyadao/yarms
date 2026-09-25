@@ -213,11 +213,15 @@ struct WorkoutStore {
         return true
     }
 
-    func remove(_ id: UUID) throws {
+    @discardableResult
+    func remove(_ id: UUID) throws -> Bool {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
-        let workouts = try load().filter { $0.id != id }
-        try save(workouts)
+        var library = try readLibrary()
+        guard library.workouts.contains(where: { $0.id == id }) else { return false }
+        library.workouts.removeAll { $0.id == id }
+        try save(library)
+        return true
     }
 
     func exportBackup() throws -> Data {
