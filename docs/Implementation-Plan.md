@@ -1,31 +1,20 @@
 # Plan
 
-Make removing a saved workout easy to find from both the library and the workout screen. Ask for confirmation before deleting the local link, its notes, and folder assignment, while keeping other workouts and folders intact.
+Create a feature branch and a first design-language proposal for yarms so future UI changes follow shared product principles, tokens, and component rules. Ground the proposal in the existing SwiftUI app and icon palette, and illustrate it with an interactive concept for discussion before adopting it in production screens.
 
 ## Scope
-- In: a confirmed delete action for saved workouts, persistent removal, focused tests, and current user and architecture documentation.
-- Out: deleting the TikTok post, downloading video files, bulk deletion, and changing backup restore behavior.
+- In: `codex/ui-design-system`, a proposed `docs/Design-Language.md`, documentation links, and a conversation-only visual concept using invented workout data.
+- Out: executable Swift changes, new dependencies, storage changes, a production component library, device installation, and opening or merging a pull request.
 
 ## Action items
-- [x] Confirm the existing `WorkoutStore.remove` behavior, library row actions, workout toolbar, and relevant docs and tests.
-- [x] Make removal report whether the workout existed and preserve unrelated library and folder data in `WorkoutStore`.
-- [x] Add confirmed Delete actions to the library row and workout screen, with clear copy and safe error handling.
-- [x] Extend `YarmsTests/LibraryTests.swift` and `YarmsUITests/YarmsUITests.swift` for persistence, cancellation, folder counts, and both delete entry points.
-- [x] Update `README.md` and `docs/Architecture.md` to describe local workout removal and its effect on notes and backups.
-- [x] Run focused and full simulator tests, an iPhone build, repository verification, and a signed install on the connected iPhone if available; review empty-library and stale-record behavior. The iOS 27 suite passed 73 unit cases (two expected skips) and seven UI cases; the signed build installed and launched on the iPhone.
-- [x] Commit the tested change and push `codex/remove-saved-workout` for review.
+- [x] Inspect README, Architecture, existing implementation history, color assets, library/player UI, and the current UI tests; create the branch from the current main commit `8068a1a`.
+- [ ] Record the proposed design language: product principles, color roles, native typography, spacing, shape, icons, motion, content, components, and screen states.
+- [ ] Define a SwiftUI adoption framework and a short decision checklist that preserve saving, folder organization, playback fallback, notes, and confirmed deletion.
+- [ ] Link the proposal from README and Architecture while clearly distinguishing proposed standards from implemented behavior.
+- [ ] Create an interactive conversation concept to explore appearance and component treatment using invented examples.
+- [ ] Verify local links and repository hygiene with `./scripts/verify-repository.sh`; check palette contrast, document/source consistency, and concept interactions. No app tests need changes or execution because executable app behavior is unchanged.
+- [ ] Review risks including large text, missing metadata, long folder names, dark mode, unavailable playback, and confirmation/error states; identify device checks for subsequent UI implementation.
+- [ ] Commit the documented foundation and push the feature branch using save-branch.
 
 ## Open questions
-- None. Use confirmation before removal and keep the existing backup restore semantics.
-
-## PR #11 review follow-up
-
-Both Brooks and Codex review found that enrichment can coalesce the selected workout while a delete confirmation is open. Honor a missing-record removal result so the app never reports success or dismisses the workout without deleting it.
-
-- [x] Refresh the library and report failure when `WorkoutStore.remove` returns false; give retry guidance from both delete entry points.
-- [x] Add a deterministic `LibraryTests` regression for coalescing between selecting a workout and confirming deletion, then deleting the surviving record.
-- [x] Document the stale-record behavior in `docs/Architecture.md` and record Brooks review findings.
-- [x] Run focused library and deletion UI tests (20 library and two UI tests passed) and repository verification. Brooks re-review is clear. Final-head CI and Codex re-review remain PR gates tracked in the review ledger.
-- [x] Save the reviewed fix for push on `codex/remove-saved-workout`.
-
-No open questions or schema changes. Existing README deletion instructions remain valid.
+- None blocking this proposal. Calm, focused, native iPhone styling with the existing icon palette is an editable starting assumption; visual preferences remain open for refinement, not production acceptance.
