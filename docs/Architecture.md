@@ -1,5 +1,7 @@
 # Architecture and verification
 
+For proposed UI standards and the future SwiftUI component adoption approach, see the [yarms design language](Design-Language.md). That document distinguishes proposed rules from current behavior; the architecture below describes the implemented app.
+
 ## Foundation and local library
 
 The SwiftUI app owns its library under its Application Support directory. Its [Share extension](Shortcut-Sharing.md) accepts TikTok URL or text input and writes one small pending-link record to a shared Keychain access group. Both targets use the same Keychain entitlement, which the owner's free Personal Team can sign; neither uses an App Group. The extension reports success only after the Keychain write succeeds. The existing Save TikTok Workout App Intent and system PasteButton write UUID JSON files into the app-local `Inbox` for optional Shortcut compatibility and paste fallback. PasteButton receives text from iOS without a separate paste permission prompt. On app launch or foreground, `WorkoutStore` imports both pending queues into versioned `Library.json` in the app container. It writes the library atomically before deleting each pending record. Replaying a pending record after a crash does not create a duplicate. If the library cannot be decoded, pending links remain queued for recovery. An invalid shared link leaves the queues unchanged.

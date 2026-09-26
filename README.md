@@ -19,6 +19,8 @@ The Backup menu exports a JSON copy of workout links, details, notes, and folder
 
 The library keeps the paste action above the folder filters and presents saved workouts as thumbnail cards with their folder names. The workout screen puts its title and folder above the portrait video, with compact playback controls and a full-width Open in TikTok action below. Light and dark colors draw from the approved yarms icon; the UI follows iOS text sizing and VoiceOver labels.
 
+The proposed [yarms design language](docs/Design-Language.md) defines shared principles, visual tokens, component behavior, and a decision checklist for future UI updates. It is a starting point for design review; its proposed layouts and shared components are not yet implemented.
+
 ## Privacy and security
 
 Do not commit TikTok account data, saved workout collections, personal health information, credentials, videos, or private screenshots. Use invented examples in issues, pull requests, and future tests. Report security concerns through the private process in [SECURITY.md](SECURITY.md).
