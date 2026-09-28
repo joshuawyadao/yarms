@@ -8,8 +8,8 @@ Address the remaining Codex findings on PR #12. Correct the documented precedenc
 
 ## Action items
 - [x] Inspect the two new Codex comments, backup size validation, current note helper, and restore-order test.
-- [ ] Commit this resolved plan as a local checkpoint on `codex/checkup-followups`.
-- [ ] Correct `docs/Architecture.md` to distinguish current-note precedence during restore from earliest-save precedence during enrichment; verify, commit, push, and acknowledge the P3 comment.
+- [x] Commit this resolved plan as a local checkpoint on `codex/checkup-followups` (`0c3bf57`).
+- [x] Correct `docs/Architecture.md` to distinguish current-note precedence during restore from earliest-save precedence during enrichment; verify, commit, push, and acknowledge the P3 comment.
 - [ ] Replace eager paragraph arrays with streaming ranges and occurrence counts in `WorkoutStore.swift`, retaining the tested note order and intentional repeats.
 - [ ] Exercise a large delimiter-heavy but valid backup alongside focused note tests, then run the restore benchmark, full simulator suite, simulator build, and repository verification.
 - [ ] Commit and push the P2 fix, acknowledge its Codex comment, and follow fresh review, CI, and mergeability to terminal state.
