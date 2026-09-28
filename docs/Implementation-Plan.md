@@ -1,31 +1,21 @@
 # Plan
 
-Make removing a saved workout easy to find from both the library and the workout screen. Ask for confirmation before deleting the local link, its notes, and folder assignment, while keeping other workouts and folders intact.
+Address the three project-checkup findings with focused correctness and test changes. Preserve the current UI, workout identity and ordering, folder assignments, alias trust, and backup compatibility while making note combination consistent and verifying real redirect and player behavior.
 
 ## Scope
-- In: a confirmed delete action for saved workouts, persistent removal, focused tests, and current user and architecture documentation.
-- Out: deleting the TikTok post, downloading video files, bulk deletion, and changing backup restore behavior.
+- In: shared distinct-note policy, restore-then-enrichment regressions, controlled redirect transport coverage with a negative control, deterministic player behavior tests, layout-warning investigation, architecture documentation, validation, commits, and branch push.
+- Out: broad library-presentation refactor, schema changes, new third-party services, UI redesign, PR creation, and physical-device/live TikTok claims without a fresh device check.
 
 ## Action items
-- [x] Confirm the existing `WorkoutStore.remove` behavior, library row actions, workout toolbar, and relevant docs and tests.
-- [x] Make removal report whether the workout existed and preserve unrelated library and folder data in `WorkoutStore`.
-- [x] Add confirmed Delete actions to the library row and workout screen, with clear copy and safe error handling.
-- [x] Extend `YarmsTests/LibraryTests.swift` and `YarmsUITests/YarmsUITests.swift` for persistence, cancellation, folder counts, and both delete entry points.
-- [x] Update `README.md` and `docs/Architecture.md` to describe local workout removal and its effect on notes and backups.
-- [x] Run focused and full simulator tests, an iPhone build, repository verification, and a signed install on the connected iPhone if available; review empty-library and stale-record behavior. The iOS 27 suite passed 73 unit cases (two expected skips) and seven UI cases; the signed build installed and launched on the iPhone.
-- [x] Commit the tested change and push `codex/remove-saved-workout` for review.
+- [x] Inspect the current baseline, `docs/Architecture.md`, existing store/backup/player/metadata tests, and the previous checkup evidence; baseline was clean detached `8068a1a`.
+- [ ] Confirm the target branch and commit this resolved plan as the first local checkpoint.
+- [ ] Add a failing store-level restore-then-enrich regression, unify distinct-note combination, and cover repeated imports, multi-paragraph notes, ordering, identity, folders, and aliases.
+- [ ] Add a controlled redirect transport test that exercises URLSession automatic redirect handling; prove it fails when delegate wiring is removed in an isolated negative-control build.
+- [ ] Add deterministic behavior tests for readiness, play/pause/end states, time/duration ordering, errors, command gating, and seek bounds through a production-used seam or controlled local WebKit harness.
+- [ ] Investigate the recorded invalid-frame warning in the player/notes UI journey; fix only an established in-scope cause, otherwise record the evidence and remaining uncertainty.
+- [ ] Update `docs/Architecture.md` for note semantics, test seams, and verification limits; retain existing README behavior unless the implementation requires clarification.
+- [ ] Run focused tests for each slice, the documented opt-in restore-scaling benchmark, the full simulator suite, simulator build, and repository verification; checkpoint coherent tested slices locally.
+- [ ] Audit the completed work against the objective, commit remaining changes and this plan, and push the confirmed branch.
 
 ## Open questions
-- None. Use confirmation before removal and keep the existing backup restore semantics.
-
-## PR #11 review follow-up
-
-Both Brooks and Codex review found that enrichment can coalesce the selected workout while a delete confirmation is open. Honor a missing-record removal result so the app never reports success or dismisses the workout without deleting it.
-
-- [x] Refresh the library and report failure when `WorkoutStore.remove` returns false; give retry guidance from both delete entry points.
-- [x] Add a deterministic `LibraryTests` regression for coalescing between selecting a workout and confirming deletion, then deleting the surviving record.
-- [x] Document the stale-record behavior in `docs/Architecture.md` and record Brooks review findings.
-- [x] Run focused library and deletion UI tests (20 library and two UI tests passed) and repository verification. Brooks re-review is clear. Final-head CI and Codex re-review remain PR gates tracked in the review ledger.
-- [x] Save the reviewed fix for push on `codex/remove-saved-workout`.
-
-No open questions or schema changes. Existing README deletion instructions remain valid.
+- None. The user approved `codex/checkup-followups` for implementation, commits, and push.
