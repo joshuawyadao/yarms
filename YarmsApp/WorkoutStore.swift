@@ -518,17 +518,29 @@ private func mergeDistinctNotes(_ existing: String?, _ incoming: String?) -> Str
     guard let incoming else { return existing }
     guard let existing else { return incoming }
     let separator = "\n\n"
-    var existingOccurrences: [String: Int] = [:]
-    for paragraph in existing.components(separatedBy: separator) {
+    var existingOccurrences: [Substring: Int] = [:]
+    forEachNoteParagraph(in: existing) { paragraph in
         existingOccurrences[paragraph, default: 0] += 1
     }
-    var additions: [String] = []
-    for paragraph in incoming.components(separatedBy: separator) {
+    var merged = existing
+    var appended = false
+    forEachNoteParagraph(in: incoming) { paragraph in
         if let count = existingOccurrences[paragraph], count > 0 {
             existingOccurrences[paragraph] = count - 1
         } else {
-            additions.append(paragraph)
+            merged.append(separator)
+            merged.append(contentsOf: paragraph)
+            appended = true
         }
     }
-    return additions.isEmpty ? existing : existing + separator + additions.joined(separator: separator)
+    return appended ? merged : existing
+}
+
+private func forEachNoteParagraph(in note: String, _ visit: (Substring) -> Void) {
+    var start = note.startIndex
+    while let separator = note.range(of: "\n\n", range: start..<note.endIndex) {
+        visit(note[start..<separator.lowerBound])
+        start = separator.upperBound
+    }
+    visit(note[start...])
 }
