@@ -178,14 +178,14 @@ struct WorkoutStore {
 
         // Keep the first save's identity, and fill its missing details from later saves.
         var keeper = matches[0]
-        var notes = [String]()
+        var notes: String?
         var aliases = Set(keeper.sourceAliases ?? [])
         for match in matches {
             aliases.insert(match.sourceLink)
             aliases.formUnion(match.sourceAliases ?? [])
             if let note = match.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !note.isEmpty, !notes.contains(note) {
-                notes.append(note)
+               !note.isEmpty {
+                notes = mergeDistinctNotes(notes, note)
             }
             if match.id == keeper.id { continue }
             if keeper.title == nil { keeper.title = match.title }
@@ -193,7 +193,7 @@ struct WorkoutStore {
             if keeper.thumbnailURL == nil { keeper.thumbnailURL = match.thumbnailURL }
             if keeper.folderID == nil { keeper.folderID = match.folderID }
         }
-        keeper.notes = notes.isEmpty ? nil : notes.joined(separator: "\n\n")
+        keeper.notes = notes
         aliases.remove(keeper.sourceLink)
         keeper.sourceAliases = aliases.isEmpty ? nil : aliases.sorted { $0.url.absoluteString < $1.url.absoluteString }
         workouts.removeAll { $0.playbackLink.videoID == videoID }
@@ -468,20 +468,8 @@ private struct BackupMergeIndex {
         if merged.creator == nil { merged.creator = incoming.creator }
         if merged.thumbnailURL == nil { merged.thumbnailURL = incoming.thumbnailURL }
         if merged.folderID == nil { merged.folderID = incoming.folderID }
-        merged.notes = mergeNotes(current.notes, incoming.notes)
+        merged.notes = mergeDistinctNotes(current.notes, incoming.notes)
         return merged
-    }
-
-    private static func mergeNotes(_ existing: String?, _ incoming: String?) -> String? {
-        guard let incoming else { return existing }
-        guard let existing else { return incoming }
-        let separator = "\n\n"
-        if existing == incoming || existing.hasPrefix(incoming + separator) ||
-            existing.hasSuffix(separator + incoming) ||
-            existing.contains(separator + incoming + separator) {
-            return existing
-        }
-        return existing + separator + incoming
     }
 
     private mutating func append(_ workout: Workout, trustAliases: Bool = false) {
@@ -521,4 +509,19 @@ private struct BackupMergeIndex {
         records[position] = nil
         sourceAliases.removeValue(forKey: position)
     }
+}
+
+// Restore and enrichment share the same rule: append an incoming note only
+// when its complete block is absent at paragraph boundaries. Keep existing
+// contents intact, including any intentional repeated paragraphs.
+private func mergeDistinctNotes(_ existing: String?, _ incoming: String?) -> String? {
+    guard let incoming else { return existing }
+    guard let existing else { return incoming }
+    let separator = "\n\n"
+    if existing == incoming || existing.hasPrefix(incoming + separator) ||
+        existing.hasSuffix(separator + incoming) ||
+        existing.contains(separator + incoming + separator) {
+        return existing
+    }
+    return existing + separator + incoming
 }

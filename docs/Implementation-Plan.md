@@ -8,8 +8,8 @@ Address the three project-checkup findings with focused correctness and test cha
 
 ## Action items
 - [x] Inspect the current baseline, `docs/Architecture.md`, existing store/backup/player/metadata tests, and the previous checkup evidence; baseline was clean detached `8068a1a`.
-- [ ] Confirm the target branch and commit this resolved plan as the first local checkpoint.
-- [ ] Add a failing store-level restore-then-enrich regression, unify distinct-note combination, and cover repeated imports, multi-paragraph notes, ordering, identity, folders, and aliases.
+- [x] Confirm the target branch and commit this resolved plan as the first local checkpoint (`e45b2ac` on `codex/checkup-followups`).
+- [x] Add a failing store-level restore-then-enrich regression, unify distinct-note combination, and cover repeated imports, multi-paragraph notes, ordering, identity, folders, and aliases.
 - [ ] Add a controlled redirect transport test that exercises URLSession automatic redirect handling; prove it fails when delegate wiring is removed in an isolated negative-control build.
 - [ ] Add deterministic behavior tests for readiness, play/pause/end states, time/duration ordering, errors, command gating, and seek bounds through a production-used seam or controlled local WebKit harness.
 - [ ] Investigate the recorded invalid-frame warning in the player/notes UI journey; fix only an established in-scope cause, otherwise record the evidence and remaining uncertainty.
@@ -19,3 +19,8 @@ Address the three project-checkup findings with focused correctness and test cha
 
 ## Open questions
 - None. The user approved `codex/checkup-followups` for implementation, commits, and push.
+
+## Validation evidence
+- Before the note fix, both new store tests failed with the expected duplicate-note assertions (five assertions total). The same simulator run passed the redirect test and all 11 player tests. An earlier test host exited before reporting a result; that interrupted run is not counted.
+- Read-only review of all four changed test files found no actionable issues.
+- After sharing the note policy, all 66 focused store, metadata, player, and notes UI tests passed on iPhone 18 Pro / iOS 27. The UI journey still reported the non-failing frame warning during note-editor focus.
