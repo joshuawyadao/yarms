@@ -400,6 +400,39 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(try reopened.load(), try store.load(), "The combined notes must be durable")
     }
 
+    func testRestoreThenEnrichOlderShortLinkKeepsDistinctNotesInSaveOrder() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/OlderAlias/"))
+        var earlier = Workout(id: UUID(), sourceLink: short,
+                              savedAt: Date(timeIntervalSince1970: 1_000))
+        earlier.notes = "Imported"
+        var later = Workout(id: UUID(), sourceLink: canonical,
+                            savedAt: Date(timeIntervalSince1970: 2_000))
+        later.notes = "Current"
+        try writeLibrary([later, earlier], into: directory)
+
+        var importedCanonical = Workout(id: UUID(), sourceLink: canonical,
+                                        savedAt: Date(timeIntervalSince1970: 3_000))
+        importedCanonical.notes = "Imported"
+        let backup = try WorkoutBackup(workouts: [importedCanonical])
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 1))
+        XCTAssertEqual(try store.load().first { $0.id == later.id }?.notes, "Current\n\nImported")
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil),
+                                  to: earlier.id)
+
+        let merged = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(try store.load().count, 1)
+        XCTAssertEqual(merged.id, earlier.id, "The first save remains the library identity")
+        XCTAssertEqual(merged.savedAt, earlier.savedAt)
+        XCTAssertEqual(merged.notes, "Imported\n\nCurrent",
+                       "The canonical note must not re-add the older short link's paragraph")
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+        XCTAssertEqual(try store.load().first?.notes, "Imported\n\nCurrent")
+    }
+
     func testResolvedShortLinkCoalescesCurrentVideosAndKeepsEarliestIdentity() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }

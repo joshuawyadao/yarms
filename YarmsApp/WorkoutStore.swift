@@ -511,17 +511,24 @@ private struct BackupMergeIndex {
     }
 }
 
-// Restore and enrichment share the same rule: append an incoming note only
-// when its complete block is absent at paragraph boundaries. Keep existing
-// contents intact, including any intentional repeated paragraphs.
+// Restore and enrichment share one paragraph-occurrence rule. Keep the first
+// note intact, then append only occurrences the later note contributes. Counts
+// preserve intentional repeats inside either note without re-adding overlap.
 private func mergeDistinctNotes(_ existing: String?, _ incoming: String?) -> String? {
     guard let incoming else { return existing }
     guard let existing else { return incoming }
     let separator = "\n\n"
-    if existing == incoming || existing.hasPrefix(incoming + separator) ||
-        existing.hasSuffix(separator + incoming) ||
-        existing.contains(separator + incoming + separator) {
-        return existing
+    var existingOccurrences: [String: Int] = [:]
+    for paragraph in existing.components(separatedBy: separator) {
+        existingOccurrences[paragraph, default: 0] += 1
     }
-    return existing + separator + incoming
+    var additions: [String] = []
+    for paragraph in incoming.components(separatedBy: separator) {
+        if let count = existingOccurrences[paragraph], count > 0 {
+            existingOccurrences[paragraph] = count - 1
+        } else {
+            additions.append(paragraph)
+        }
+    }
+    return additions.isEmpty ? existing : existing + separator + additions.joined(separator: separator)
 }

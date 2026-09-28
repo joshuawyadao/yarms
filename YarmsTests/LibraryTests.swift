@@ -386,7 +386,12 @@ final class LibraryTests: XCTestCase {
             ("Warm up\n\nStretch", "Warm up", "Warm up\n\nStretch"),
             ("Stretch gently", "Stretch", "Stretch gently\n\nStretch"),
             ("Repeat\n\nRepeat", "Repeat", "Repeat\n\nRepeat"),
-            ("Warm up", "Stretch\n\nHold 20 seconds", "Warm up\n\nStretch\n\nHold 20 seconds")
+            ("Warm up", "Stretch\n\nHold 20 seconds", "Warm up\n\nStretch\n\nHold 20 seconds"),
+            ("Imported", "Current\n\nImported", "Imported\n\nCurrent"),
+            ("Imported", "Current\n\nImported\n\nCool down", "Imported\n\nCurrent\n\nCool down"),
+            ("Warm up\n\nStretch", "Stretch\n\nCool down", "Warm up\n\nStretch\n\nCool down"),
+            ("Repeat", "Repeat\n\nRepeat", "Repeat\n\nRepeat"),
+            ("Warm up", "Repeat\n\nRepeat", "Warm up\n\nRepeat\n\nRepeat")
         ]
         for (existing, incoming, expected) in cases {
             let (store, _, container) = makeStore()

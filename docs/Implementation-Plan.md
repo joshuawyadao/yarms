@@ -8,12 +8,17 @@ Address the P2 note-ordering gap found on PR #12. Add a store-level restore-then
 
 ## Action items
 - [x] Inspect the Codex P2 example, the current shared note helper, backup and coalescing tests, and `docs/Architecture.md`.
-- [ ] Commit this resolved plan as a local safety checkpoint on `codex/checkup-followups`.
-- [ ] Add a failing restore-then-enrich test with an older short link, and paragraph-order cases that preserve intentional repeats and distinct partial text.
-- [ ] Update the shared note policy so prior paragraph occurrences are not appended again when they appear inside a later combined note.
-- [ ] Update `docs/Architecture.md` to match the actual note semantics and verification limits.
+- [x] Commit this resolved plan as a local safety checkpoint on `codex/checkup-followups` (`1915550`).
+- [x] Add a failing restore-then-enrich test with an older short link, and paragraph-order cases that preserve intentional repeats and distinct partial text.
+- [x] Update the shared note policy so prior paragraph occurrences are not appended again when they appear inside a later combined note.
+- [x] Update `docs/Architecture.md` to match the actual note semantics and verification limits.
 - [ ] Run targeted store tests, the opt-in restore scaling benchmark, the full simulator suite, unsigned simulator build, and repository verification.
 - [ ] Commit and push the fix, acknowledge the addressed Codex comment, then follow the refreshed PR checks and mergeability to terminal state.
 
 ## Open questions
 - None. The user requested the full PR review cycle; the P2 behavior and expected earliest-save ordering are clear.
+
+## Validation evidence
+- Before the fix, the new store-level regression and paragraph-order table failed with the exact `Imported\n\nCurrent\n\nImported` duplication reported by Codex (result: `/tmp/yarms-pr12-red.xcresult`).
+- After the fix, all 50 targeted backup, library, and opt-in scaling tests passed on iPhone 18 Pro / iOS 27 (`/tmp/yarms-pr12-targeted.xcresult`).
+- The full simulator suite is running at this checkpoint.
