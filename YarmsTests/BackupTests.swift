@@ -351,6 +351,88 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(try store.load().first?.notes, "Warm up\n\nStretch")
     }
 
+    func testRestoreThenShortLinkEnrichmentKeepsDistinctNotesAndLibraryIdentity() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let folder = try store.createFolder(named: "Strength")
+        var current = try makeWorkout("123")
+        current.notes = "Warm up"
+        current.folderID = folder.id
+        try writeLibrary([current], into: directory, folders: [folder])
+
+        let note = "Stretch\n\nHold 20 seconds"
+        var canonicalBackup = Workout(id: UUID(), sourceLink: current.sourceLink,
+                                      savedAt: Date(timeIntervalSince1970: 2_000))
+        canonicalBackup.notes = note
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/InventedAlias/"))
+        let untrustedAlias = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/UntrustedAlias/"))
+        var shortBackup = Workout(id: UUID(), sourceLink: short,
+                                  savedAt: Date(timeIntervalSince1970: 3_000))
+        shortBackup.notes = note
+        shortBackup.resolvedLink = current.sourceLink
+        shortBackup.sourceAliases = [untrustedAlias]
+        let backup = try WorkoutBackup(workouts: [canonicalBackup, shortBackup])
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 1, updated: 1))
+        let beforeEnrichment = try store.load()
+        XCTAssertEqual(beforeEnrichment.count, 2, "Imported short-link resolution must remain untrusted")
+        XCTAssertNil(beforeEnrichment.first { $0.id == shortBackup.id }?.resolvedLink)
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: current.sourceLink, metadata: nil),
+                                  to: shortBackup.id)
+
+        let expectedNotes = "Warm up\n\n" + note
+        let merged = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(try store.load().count, 1)
+        XCTAssertEqual(merged.notes, expectedNotes,
+                       "Resolving a restored short link must not append its notes a second time")
+        XCTAssertEqual(merged.id, current.id)
+        XCTAssertEqual(merged.savedAt, current.savedAt)
+        XCTAssertEqual(merged.folderID, folder.id)
+        XCTAssertEqual(try store.loadFolders(), [folder])
+        XCTAssertEqual(Set(merged.sourceAliases ?? []), [short],
+                       "Only the locally resolved source should become a trusted alias")
+
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+        XCTAssertEqual(try store.load().first?.notes, expectedNotes)
+        let reopened = WorkoutStore(fileURL: directory.appendingPathComponent("Library.json"),
+                                    inbox: SharedInbox(directory: directory.appendingPathComponent("Inbox")))
+        XCTAssertEqual(try reopened.load(), try store.load(), "The combined notes must be durable")
+    }
+
+    func testRestoreThenEnrichOlderShortLinkKeepsDistinctNotesInSaveOrder() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/OlderAlias/"))
+        var earlier = Workout(id: UUID(), sourceLink: short,
+                              savedAt: Date(timeIntervalSince1970: 1_000))
+        earlier.notes = "Imported"
+        var later = Workout(id: UUID(), sourceLink: canonical,
+                            savedAt: Date(timeIntervalSince1970: 2_000))
+        later.notes = "Current"
+        try writeLibrary([later, earlier], into: directory)
+
+        var importedCanonical = Workout(id: UUID(), sourceLink: canonical,
+                                        savedAt: Date(timeIntervalSince1970: 3_000))
+        importedCanonical.notes = "Imported"
+        let backup = try WorkoutBackup(workouts: [importedCanonical])
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 1))
+        XCTAssertEqual(try store.load().first { $0.id == later.id }?.notes, "Current\n\nImported")
+
+        try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil),
+                                  to: earlier.id)
+
+        let merged = try XCTUnwrap(store.load().first)
+        XCTAssertEqual(try store.load().count, 1)
+        XCTAssertEqual(merged.id, earlier.id, "The first save remains the library identity")
+        XCTAssertEqual(merged.savedAt, earlier.savedAt)
+        XCTAssertEqual(merged.notes, "Imported\n\nCurrent",
+                       "The canonical note must not re-add the older short link's paragraph")
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+        XCTAssertEqual(try store.load().first?.notes, "Imported\n\nCurrent")
+    }
+
     func testResolvedShortLinkCoalescesCurrentVideosAndKeepsEarliestIdentity() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }

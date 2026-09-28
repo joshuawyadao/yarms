@@ -1,31 +1,25 @@
 # Plan
 
-Make removing a saved workout easy to find from both the library and the workout screen. Ask for confirmation before deleting the local link, its notes, and folder assignment, while keeping other workouts and folders intact.
+Address the remaining Codex findings on PR #12. Correct the documented precedence of restored notes, then make paragraph merging stream through the existing and incoming strings so a valid near-10 MB backup cannot allocate millions of temporary components. The reverse-order note behavior and its validation remain recorded at commit `b7aba40`.
 
 ## Scope
-- In: a confirmed delete action for saved workouts, persistent removal, focused tests, and current user and architecture documentation.
-- Out: deleting the TikTok post, downloading video files, bulk deletion, and changing backup restore behavior.
+- In: `docs/Architecture.md`, the private shared note helper in `YarmsApp/WorkoutStore.swift`, focused edge-case validation, and the PR review/CI follow-up.
+- Out: backup schema or size-limit changes, UI changes, workout identity/folder/alias rules, and the deferred library-presentation refactor.
 
 ## Action items
-- [x] Confirm the existing `WorkoutStore.remove` behavior, library row actions, workout toolbar, and relevant docs and tests.
-- [x] Make removal report whether the workout existed and preserve unrelated library and folder data in `WorkoutStore`.
-- [x] Add confirmed Delete actions to the library row and workout screen, with clear copy and safe error handling.
-- [x] Extend `YarmsTests/LibraryTests.swift` and `YarmsUITests/YarmsUITests.swift` for persistence, cancellation, folder counts, and both delete entry points.
-- [x] Update `README.md` and `docs/Architecture.md` to describe local workout removal and its effect on notes and backups.
-- [x] Run focused and full simulator tests, an iPhone build, repository verification, and a signed install on the connected iPhone if available; review empty-library and stale-record behavior. The iOS 27 suite passed 73 unit cases (two expected skips) and seven UI cases; the signed build installed and launched on the iPhone.
-- [x] Commit the tested change and push `codex/remove-saved-workout` for review.
+- [x] Inspect the two new Codex comments, backup size validation, current note helper, and restore-order test.
+- [x] Commit this resolved plan as a local checkpoint on `codex/checkup-followups` (`0c3bf57`).
+- [x] Correct `docs/Architecture.md` to distinguish current-note precedence during restore from earliest-save precedence during enrichment; verify, commit, push, and acknowledge the P3 comment.
+- [x] Replace eager paragraph arrays with streaming ranges and occurrence counts in `WorkoutStore.swift`, retaining the tested note order and intentional repeats.
+- [x] Exercise a large delimiter-heavy but valid backup alongside focused note tests, then run the restore benchmark, full simulator suite, simulator build, and repository verification.
+- [x] Commit the validated P2 fix; use the PR review cycle to push it, acknowledge the comment, and follow fresh review, CI, and mergeability.
 
 ## Open questions
-- None. Use confirmation before removal and keep the existing backup restore semantics.
+- None. The two review findings are bounded and have explicit expected behavior.
 
-## PR #11 review follow-up
-
-Both Brooks and Codex review found that enrichment can coalesce the selected workout while a delete confirmation is open. Honor a missing-record removal result so the app never reports success or dismisses the workout without deleting it.
-
-- [x] Refresh the library and report failure when `WorkoutStore.remove` returns false; give retry guidance from both delete entry points.
-- [x] Add a deterministic `LibraryTests` regression for coalescing between selecting a workout and confirming deletion, then deleting the surviving record.
-- [x] Document the stale-record behavior in `docs/Architecture.md` and record Brooks review findings.
-- [x] Run focused library and deletion UI tests (20 library and two UI tests passed) and repository verification. Brooks re-review is clear. Final-head CI and Codex re-review remain PR gates tracked in the review ledger.
-- [x] Save the reviewed fix for push on `codex/remove-saved-workout`.
-
-No open questions or schema changes. Existing README deletion instructions remain valid.
+## Validation evidence
+- The P3 documentation correction was pushed in `5c3537e` and acknowledged on the Codex comment. No executable code changed in that slice.
+- A one-off harness restored a valid 9.2 MB backup with 2.3 million paragraph separators. The eager implementation peaked at 153.6 MB RSS; streaming peaked at 64.6 MB, preserved the expected note, and restored it in 0.70 seconds.
+- All 50 focused backup, library, and opt-in scaling tests passed on iPhone 18 Pro / iOS 27 (`/tmp/yarms-pr12-stream-targeted.xcresult`). The existing note regressions cover the unchanged semantics; the large-input probe checks allocation behavior without adding a slow routine test to the suite.
+- Full simulator suite with opt-in restore benchmark: 89 passed, one signed-device Keychain test skipped, zero failures; all seven UI journeys passed (`/tmp/yarms-pr12-stream-full.xcresult`). Benchmark medians were 0.034935875 and 0.142759416 seconds for 1,000 and 4,000 aliases (4.086×, below the 10× limit).
+- The unsigned generic iOS Simulator build, repository verification, and `git diff --check` passed. The known notes-focus frame warning remains non-failing.
