@@ -1,25 +1,18 @@
 # Plan
 
-Address the P2 note-ordering gap found on PR #12. Add a store-level restore-then-enrichment regression with the short link saved first, then make the shared note policy retain only distinct paragraph occurrences while preserving each saved note's intentional repeats. The original checkup implementation and validation remain recorded at commit `9c1f05c`.
+Address the remaining Codex findings on PR #12. Correct the documented precedence of restored notes, then make paragraph merging stream through the existing and incoming strings so a valid near-10 MB backup cannot allocate millions of temporary components. The reverse-order note behavior and its validation remain recorded at commit `b7aba40`.
 
 ## Scope
-- In: `WorkoutStore` note combination, focused store regressions, architecture note semantics, opt-in restore benchmark, simulator validation, and the Codex feedback acknowledgment.
-- Out: workout identity, folder and alias trust rules, UI changes, backup schema changes, and the deferred library-presentation refactor.
+- In: `docs/Architecture.md`, the private shared note helper in `YarmsApp/WorkoutStore.swift`, focused edge-case validation, and the PR review/CI follow-up.
+- Out: backup schema or size-limit changes, UI changes, workout identity/folder/alias rules, and the deferred library-presentation refactor.
 
 ## Action items
-- [x] Inspect the Codex P2 example, the current shared note helper, backup and coalescing tests, and `docs/Architecture.md`.
-- [x] Commit this resolved plan as a local safety checkpoint on `codex/checkup-followups` (`1915550`).
-- [x] Add a failing restore-then-enrich test with an older short link, and paragraph-order cases that preserve intentional repeats and distinct partial text.
-- [x] Update the shared note policy so prior paragraph occurrences are not appended again when they appear inside a later combined note.
-- [x] Update `docs/Architecture.md` to match the actual note semantics and verification limits.
-- [x] Run targeted store tests, the opt-in restore scaling benchmark, the full simulator suite, unsigned simulator build, and repository verification.
-- [x] Commit the validated fix; use the PR review cycle to push it, acknowledge the Codex comment, and follow refreshed checks and mergeability.
+- [x] Inspect the two new Codex comments, backup size validation, current note helper, and restore-order test.
+- [ ] Commit this resolved plan as a local checkpoint on `codex/checkup-followups`.
+- [ ] Correct `docs/Architecture.md` to distinguish current-note precedence during restore from earliest-save precedence during enrichment; verify, commit, push, and acknowledge the P3 comment.
+- [ ] Replace eager paragraph arrays with streaming ranges and occurrence counts in `WorkoutStore.swift`, retaining the tested note order and intentional repeats.
+- [ ] Exercise a large delimiter-heavy but valid backup alongside focused note tests, then run the restore benchmark, full simulator suite, simulator build, and repository verification.
+- [ ] Commit and push the P2 fix, acknowledge its Codex comment, and follow fresh review, CI, and mergeability to terminal state.
 
 ## Open questions
-- None. The user requested the full PR review cycle; the P2 behavior and expected earliest-save ordering are clear.
-
-## Validation evidence
-- Before the fix, the new store-level regression and paragraph-order table failed with the exact `Imported\n\nCurrent\n\nImported` duplication reported by Codex (result: `/tmp/yarms-pr12-red.xcresult`).
-- After the fix, all 50 targeted backup, library, and opt-in scaling tests passed on iPhone 18 Pro / iOS 27 (`/tmp/yarms-pr12-targeted.xcresult`).
-- Full simulator suite with the opt-in benchmark: 89 passed, one signed-device Keychain test skipped, zero failures; all seven UI journeys passed (`/tmp/yarms-pr12-full.xcresult`). Benchmark medians were 0.035767667 and 0.144025042 seconds for 1,000 and 4,000 aliases respectively (4.027×, below the 10× limit).
-- The unsigned generic iOS Simulator build, `./scripts/verify-repository.sh`, and `git diff --check` passed. Xcode delayed finalization while collecting optional simulator diagnostics; ending its `simctl diagnose` child after all tests passed allowed Xcode to write a successful result bundle.
+- None. The two review findings are bounded and have explicit expected behavior.
