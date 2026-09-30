@@ -1,25 +1,21 @@
 # Plan
 
-Address the remaining Codex findings on PR #12. Correct the documented precedence of restored notes, then make paragraph merging stream through the existing and incoming strings so a valid near-10 MB backup cannot allocate millions of temporary components. The reverse-order note behavior and its validation remain recorded at commit `b7aba40`.
+Make the whole Yarms repository easier to navigate, use, and maintain. Audit the latest source, tests, configuration, and existing docs, then publish focused guides and source-based diagrams with progressive commits on `feat/repository-documentation`.
 
 ## Scope
-- In: `docs/Architecture.md`, the private shared note helper in `YarmsApp/WorkoutStore.swift`, focused edge-case validation, and the PR review/CI follow-up.
-- Out: backup schema or size-limit changes, UI changes, workout identity/folder/alias rules, and the deferred library-presentation refactor.
+- In: README and contributor onboarding, a documentation index and repository map, user and troubleshooting guidance, development/testing instructions, architecture and storage/privacy references, asset guidance, and current progress records.
+- Out: application behavior changes, source-folder moves, new dependencies, invented screenshots, and claims that unperformed device checks passed.
 
 ## Action items
-- [x] Inspect the two new Codex comments, backup size validation, current note helper, and restore-order test.
-- [x] Commit this resolved plan as a local checkpoint on `codex/checkup-followups` (`0c3bf57`).
-- [x] Correct `docs/Architecture.md` to distinguish current-note precedence during restore from earliest-save precedence during enrichment; verify, commit, push, and acknowledge the P3 comment.
-- [x] Replace eager paragraph arrays with streaming ranges and occurrence counts in `WorkoutStore.swift`, retaining the tested note order and intentional repeats.
-- [x] Exercise a large delimiter-heavy but valid backup alongside focused note tests, then run the restore benchmark, full simulator suite, simulator build, and repository verification.
-- [x] Commit the validated P2 fix; use the PR review cycle to push it, acknowledge the comment, and follow fresh review, CI, and mergeability.
+- [x] Inspect the existing docs, source layout, tests, project generator, assets, and CI; start from current `origin/main` (`05d866a`, including PR #12).
+- [ ] Commit this resolved plan before documentation edits; preserve earlier implementation plans in Git history.
+- [ ] Delegate the independent developer, test, and repository-map guides with explicit file ownership; audit app, capture, storage, backup, and playback behavior in the parent task.
+- [ ] Add `docs/README.md`, shorten the root README into an entry point, and update `CONTRIBUTING.md` with usable navigation and maintenance expectations.
+- [ ] Add `docs/User-Guide.md`, `docs/Data-and-Privacy.md`, and `docs/Design-and-Assets.md`; restructure `docs/Architecture.md` with accessible Mermaid diagrams and textual explanations.
+- [ ] Add `docs/Development.md`, `docs/Testing.md`, and `docs/Repository-Map.md`; verify commands, file ownership, target wiring, test limitations, and all tracked-file coverage.
+- [ ] Refresh sharing, migration, roadmap, and progress documentation, keeping historical validation separate from current limitations; checkpoint each coherent slice.
+- [ ] Run repository verification, local link/anchor/image checks, diagram syntax/render checks, and a source-to-doc consistency review. No test files need changing because executable behavior is unchanged; use existing PR CI for build/unit/UI validation.
+- [ ] Push the feature branch, open a draft PR, request Codex review, run Brooks review, and follow checks and mergeability to a terminal result without merging.
 
 ## Open questions
-- None. The two review findings are bounded and have explicit expected behavior.
-
-## Validation evidence
-- The P3 documentation correction was pushed in `5c3537e` and acknowledged on the Codex comment. No executable code changed in that slice.
-- A one-off harness restored a valid 9.2 MB backup with 2.3 million paragraph separators. The eager implementation peaked at 153.6 MB RSS; streaming peaked at 64.6 MB, preserved the expected note, and restored it in 0.70 seconds.
-- All 50 focused backup, library, and opt-in scaling tests passed on iPhone 18 Pro / iOS 27 (`/tmp/yarms-pr12-stream-targeted.xcresult`). The existing note regressions cover the unchanged semantics; the large-input probe checks allocation behavior without adding a slow routine test to the suite.
-- Full simulator suite with opt-in restore benchmark: 89 passed, one signed-device Keychain test skipped, zero failures; all seven UI journeys passed (`/tmp/yarms-pr12-stream-full.xcresult`). Benchmark medians were 0.034935875 and 0.142759416 seconds for 1,000 and 4,000 aliases (4.086×, below the 10× limit).
-- The unsigned generic iOS Simulator build, repository verification, and `git diff --check` passed. The known notes-focus frame warning remains non-failing.
+- None. Keep the existing source structure and use focused documentation plus diagrams to improve readability.
