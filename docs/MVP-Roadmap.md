@@ -1,12 +1,29 @@
 # MVP roadmap
 
-Yarms keeps workout links and personal notes on the iPhone. It requires no app account. This roadmap is delivered through small reviewed PRs, each merged into `main` after review and green checks.
+[Documentation index](README.md) · [Current user guide](User-Guide.md) · [Merge and review history](MVP-Progress.md)
 
-1. **Foundation, share, and player validation:** SwiftUI app, approved icon, share extension, immediate local link inbox, paste fallback, official TikTok embedded player for canonical video links, and CI build/tests.
-2. **Saving and library:** Resolve short links, fetch oEmbed title/creator/thumbnail when available, keep a durable local collection, and search it. A metadata failure must not lose a saved link.
-3. **Workout player and notes:** Put the video first, add simple playback controls and optional local notes, and retain the Open in TikTok fallback.
-4. **Backup and polish:** Export and restore a user-owned backup, complete empty/error/accessibility states, and verify the final main build and tests.
+Yarms keeps workout links and personal notes on the iPhone without a Yarms account. The four original MVP milestones below are delivered; this page describes their scope, not a list of unfinished features.
 
-Yarms does not download TikTok posts or bypass creator download settings. Playback depends on TikTok's official player and the post remaining available.
+| Delivered milestone | Outcome |
+| --- | --- |
+| Foundation, share, and player validation | SwiftUI app, approved icon, Share extension, durable link capture, paste fallback, official player for canonical video links, and CI build/tests |
+| Saving and library | Short-link resolution, available oEmbed title/creator/thumbnail, durable local collection, and search; metadata failure preserves the link |
+| Workout player and notes | Video-focused screen, playback controls, optional saved notes, and Open in TikTok fallback |
+| Backup and polish | User-owned JSON export/restore, empty/error/accessibility states, and automated verification |
 
-The original share extension in milestone 1 required App Groups, which the owner's free Personal Team could not sign. A follow-up restores [direct Share Sheet saving](Shortcut-Sharing.md) with a small shared Keychain handoff instead of an App Group. The workout library, player, notes, paste fallback, and backup remain in the app's own container.
+## Delivered follow-ups
+
+- Direct Share Sheet saving with a shared Keychain handoff that supports the owner's free Personal Team build. This replaces the original App Group requirement; follow the [migration guide](Storage-Migration.md) for old libraries.
+- Compact player controls, simulator UI journeys, and lowercase `yarms`/`Save to yarms` display names.
+- Named folders, moving workouts, and schema 2 files to preserve organization across upgrades.
+- A refreshed library/workout layout with light/dark colors and large-text scrolling.
+- Confirmed deletion from the library and workout screen, including safe retry when a selected duplicate has been coalesced.
+- Note merging that preserves distinct paragraphs across repeated restore and short-link enrichment, plus stronger redirect and player-controller tests.
+
+See [MVP progress](MVP-Progress.md) for merged PRs and recorded checks. The [implementation plan](Implementation-Plan.md) tracks the active repository task; it is not the product roadmap.
+
+## Current boundaries
+
+Yarms has no App Store release, automatic cross-device sync, offline video library, or TikTok download bypass. Playback depends on TikTok's official player and the post remaining available. Restore has a 10 MB import limit even though larger libraries can be exported.
+
+Live Share Sheet, Files, playback, and accessibility checks remain part of [device verification](Testing.md#signed-iphone-checks). The iOS 27 notes-focus layout diagnostic is recorded in [Testing](Testing.md); its cause is not established. Future features should be proposed as focused issues using the [contribution process](../CONTRIBUTING.md).

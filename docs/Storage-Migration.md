@@ -1,5 +1,7 @@
 # Move workouts from an earlier Yarms build
 
+[Documentation index](README.md) · [Backup and restore](User-Guide.md#export-and-restore) · [Format compatibility](Data-and-Privacy.md#version-compatibility)
+
 The original signed Yarms build kept its library and pending links in an App Group container. The free Personal Team build uses Yarms's own Application Support container. It cannot read the old App Group after the upgrade because it no longer has that entitlement. **Export a backup before installing this build over an older one.** This applies to anyone who ran and saved workouts with the earlier signed app; a fresh installation can proceed normally.
 
 1. Open the earlier Yarms build while it is still installed and signed with the team that provided its App Group. Let it import any pending shared links into the library.
