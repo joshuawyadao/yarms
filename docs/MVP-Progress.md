@@ -1,5 +1,9 @@
 # MVP progress
 
+[Documentation index](README.md) · [Current behavior](User-Guide.md) · [Current verification guide](Testing.md)
+
+This is a historical delivery and review log. Read each review entry in sequence: later fixes and final results supersede earlier “pending” entries. Test counts and device observations belong to the recorded revision; they are not new validation of the current checkout.
+
 | Milestone | State | Branch | PR | Gates / next step |
 | --- | --- | --- | --- | --- |
 | 1. Foundation, share, player validation | Merged into `main` at `57e84c8` | `feat/foundation-share-player` | [#1](https://github.com/joshuawyadao/yarms/pull/1) | Codex review complete with no final findings; CI Verify and Repository Verify passed |
@@ -12,7 +16,10 @@
 | 8. Workout folders | Merged into `main` at `e3a2045` | `codex/workout-folders` | [#8](https://github.com/joshuawyadao/yarms/pull/8) | Brooks and five Codex findings were addressed; the final Codex review and both required checks passed before the squash merge. CI Verify built the app and passed the simulator suite. |
 | 9. Library and workout UI refresh | Merged into `main` at `02c102a` | `codex/ui-refresh` | [#9](https://github.com/joshuawyadao/yarms/pull/9) | Three Codex findings were fixed; final reviews, CI Verify, and Repository Verify passed. The merged main iPhone build and 72 unit plus 5 UI tests passed (2 opt-in skips). |
 
-The four original MVP milestones and the free Personal Team sharing, player controls, lowercase title, folders, and UI refresh follow-ups are merged. The review ledger below records historical App Group validation from the original implementation; [Shortcut-Sharing.md](Shortcut-Sharing.md) describes the current direct Share Sheet flow.
+| 10. Confirmed workout deletion | Merged into `main` at `8068a1a` | `codex/remove-saved-workout` | [#11](https://github.com/joshuawyadao/yarms/pull/11) | Both verification checks passed before merge; stale-selection deletion was addressed. |
+| 11. Restore notes and protocol checks | Merged into `main` at `05d866a` | `codex/checkup-followups` | [#12](https://github.com/joshuawyadao/yarms/pull/12) | Both verification checks passed before merge; note precedence, repeated restore, streaming paragraph merging, redirects, and player-controller checks are covered. |
+
+The four original MVP milestones and the free Personal Team sharing, player controls, lowercase title, folders, UI refresh, confirmed deletion, and restore-note follow-ups are merged. PR [#10](https://github.com/joshuawyadao/yarms/pull/10) recorded the UI milestone closeout. The review ledger below records historical App Group validation from the original implementation; [Shortcut-Sharing.md](Shortcut-Sharing.md) describes the current direct Share Sheet flow.
 
 ## Review ledger
 
@@ -66,3 +73,6 @@ The four original MVP milestones and the free Personal Team sharing, player cont
 - PR #9 dark-mode screenshot review found that using the light text accent as a filled-button background made white labels hard to read. A separate semantic action color now fills Paste, selected folders, swipe Move, and Open in TikTok; dark-mode simulator validation is pending.
 - PR #9 Codex review of `79edcd1` found three UI issues: low-contrast selected folders in dark mode, fixed save/folder content squeezing the library at large text sizes, and identical cards for videos without metadata. A contrasting action fill, one vertical library list, and a unique source-link fallback address them. The dark accessibility-large iPhone 18 Pro Max simulator passed 72 unit and 5 UI tests (2 opt-in skips), and screenshots show the library and full-width player. Final re-review and CI are pending.
 - PR #9 final reviews on `64f4492` completed without new findings after all three earlier comments were acknowledged. CI Verify and Repository Verify passed, GitHub reported the PR clean and mergeable, and it was squash-merged at `02c102a`. The merged main commit passed an unsigned iPhone build, repository verification, 72 unit tests, and 5 UI tests (2 opt-in skips). The new styling has not yet been installed on a physical iPhone because Xcode's Personal Team account token needs refreshing.
+
+- PR #11 merged at `8068a1a` after Repository Verify and CI Verify passed. Deletion now requires confirmation and handles a selection that enrichment coalesced before confirmation; the earlier plan and source history preserve the detailed checks.
+- PR #12 merged at `05d866a` after Repository Verify and CI Verify passed. Restore keeps current notes first; enrichment starts with the earliest saved note. Streaming paragraph merging avoids a large temporary array for delimiter-heavy notes, and redirect/player tests exercise transport/controller behavior. The known iOS 27 notes-focus frame diagnostic remains open in [Testing](Testing.md).

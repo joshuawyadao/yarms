@@ -1,5 +1,5 @@
 name: Bug report
-description: Report reproducible behavior in Yarms when app code exists.
+description: Report a reproducible problem with saving, organizing, or playing workouts.
 title: "[Bug]: "
 labels: [bug]
 body:
@@ -35,7 +35,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: Include app and iOS versions when applicable, without device identifiers.
+      description: Include the source commit or branch, iOS version, and simulator or physical iPhone. For build issues, include the Xcode version. Omit device identifiers.
   - type: textarea
     id: context
     attributes:

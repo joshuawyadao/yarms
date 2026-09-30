@@ -1,48 +1,51 @@
+<p><img src="Assets/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="96" height="96" alt="Yarms app icon"></p>
+
 # yarms
 
 [![Repository Verify](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml/badge.svg)](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Yarms is a personal iPhone app for saving TikTok workouts and following along with them in one organized place.
+Save TikTok workouts, organize them into folders, and follow along on your iPhone. Keep your own notes and export your library when you need a backup.
 
-> **Status:** The iPhone MVP is implemented across four milestones. There is no App Store release yet; installation requires building from source.
+> **Available from source:** The MVP is implemented for iOS 18 or later. There is no App Store or TestFlight release; install with Xcode using the [development guide](docs/Development.md).
 
-## Why this repository is public
+## Start here
 
-This repository makes the product direction and development reviewable. Plans and examples here do not imply that Yarms is affiliated with TikTok.
+| I want to… | Read |
+| --- | --- |
+| Save, organize, watch, or back up workouts | [User guide](docs/User-Guide.md) |
+| Install on an iPhone or run the simulator | [Development and setup](docs/Development.md) |
+| Find the right file to change | [Repository map](docs/Repository-Map.md) |
+| Understand how the app works | [Architecture and diagrams](docs/Architecture.md) |
+| Understand stored data and network access | [Data, backups, and privacy](docs/Data-and-Privacy.md) |
+| Browse all documentation | [Documentation index](docs/README.md) |
 
-## Intended experience
+## From TikTok to your library
 
-From TikTok, tap **Share → Save to yarms** to save a workout directly, or paste its link in the app. No Shortcut, app account, or typing is required. New links appear in **Unfiled**; create a named folder and move a workout from its library row or workout screen. Each workout belongs to one folder at a time, and deleting a folder keeps its workouts in Unfiled. Swipe a saved workout left or tap the trash button on its workout screen to delete it after confirmation. This removes its link and notes from this iPhone, while leaving the TikTok post and other workouts alone. The local library supports search by title, creator, or link within the selected folder or across All. Yarms requests available title, creator, and thumbnail from TikTok's oEmbed endpoint, and attempts to resolve short links for playback. The workout screen uses TikTok's official embedded player with play, pause, short seek, and replay controls. Optional notes stay with the workout on the iPhone. If a video cannot play in the embedded player, Open in TikTok remains available. See [sharing from TikTok](docs/Shortcut-Sharing.md) and the [MVP roadmap](docs/MVP-Roadmap.md).
+1. In TikTok, tap **Share → Save to yarms**. Open Yarms to import the saved link. You can also copy a video link and use **Paste** in Yarms.
+2. Find it in **Unfiled**, move it into a folder, or search by title, creator, or link.
+3. Open the workout to watch with TikTok's embedded player and save optional notes. **Open in TikTok** remains available if inline playback fails.
+4. Use **Backup → Export backup** to save links, notes, and folders to Files.
 
-The Backup menu exports a JSON copy of workout links, details, notes, and folders to a location you choose in Files. Restoring a backup adds missing workouts, maps folders by name, fills gaps in existing records, and appends distinct backed-up notes without erasing current notes. This version imports older backups, while older app builds reject new folder-aware backups so they cannot silently lose your organization. Import is limited to 10 MB; a larger local library can still be exported, and the app warns that this version cannot import the resulting file. Backup files include personal notes, so store them somewhere private. Yarms does not include or download video files in a backup.
+No Yarms account or Shortcut is required. Yarms saves links rather than video files; playback and metadata depend on TikTok and the post remaining available. Backups are unencrypted and include your notes. See the [user guide](docs/User-Guide.md) for restore limits, deletion behavior, and troubleshooting.
 
-The library keeps the paste action above the folder filters and presents saved workouts as thumbnail cards with their folder names. The workout screen puts its title and folder above the portrait video, with compact playback controls and a full-width Open in TikTok action below. Light and dark colors draw from the approved yarms icon; the UI follows iOS text sizing and VoiceOver labels.
+**Upgrading an old App Group build?** [Export and check your backup before installing](docs/Storage-Migration.md). The current build cannot read that old storage location directly.
 
-## Privacy and security
-
-Do not commit TikTok account data, saved workout collections, personal health information, credentials, videos, or private screenshots. Use invented examples in issues, pull requests, and future tests. Report security concerns through the private process in [SECURITY.md](SECURITY.md).
-
-GitHub secret scanning, push protection, Dependabot security updates, and private vulnerability reporting are enabled for this repository.
-
-## Contributing
-
-Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. The [issue forms](.github/ISSUE_TEMPLATE/) and [pull request template](.github/pull_request_template.md) ask for clear outcomes and privacy considerations.
-
-**Before upgrading an earlier signed Yarms build:** Export a backup from that build and keep the JSON file in Files. This free-team build uses a new app-local storage location and cannot read the old App Group library after installation. Follow the [upgrade and restore steps](docs/Storage-Migration.md) before replacing the old app.
-
-Open `Yarms.xcodeproj` with Xcode. The app targets iOS 18 or later and can be built for a personal iPhone with a free Apple Personal Team. Select your team in Signing & Capabilities; both the app and its Share extension use a shared Keychain access group and need no App Group entitlement. Each iPhone needs its own Xcode installation. Free Personal Team provisioning expires periodically, so Xcode may need to rebuild and reinstall the app. See [architecture and device checks](docs/Architecture.md).
-
-The local checks are:
+## Work on Yarms
 
 ```sh
+git clone https://github.com/joshuawyadao/yarms.git
+cd yarms
 ./scripts/verify-repository.sh
-xcodebuild -project Yarms.xcodeproj -scheme Yarms -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
-xcodebuild -project Yarms.xcodeproj -scheme Yarms -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO test
+open Yarms.xcodeproj
 ```
 
-Choose an available iPhone simulator for the test command. CI runs repository verification, simulator build, and unit tests.
+Select the **Yarms** scheme and an available iPhone simulator. For physical-device signing, project regeneration, and command-line builds, follow [Development](docs/Development.md). The [testing guide](docs/Testing.md) covers unit/UI tests, CI, and checks that need a signed iPhone.
 
-## License
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. Use invented examples; keep personal workout collections, health information, credentials, videos, and private screenshots out of this public repository. Report vulnerabilities through [SECURITY.md](SECURITY.md), and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-Yarms is released under the [MIT License](LICENSE). TikTok is a trademark of its respective owner; this project is independent and unaffiliated.
+## Project status and license
+
+The [roadmap](docs/MVP-Roadmap.md) explains the delivered scope; [MVP progress](docs/MVP-Progress.md) records merged work and historical validation. Current testing limitations are listed in [Testing](docs/Testing.md).
+
+Yarms is released under the [MIT License](LICENSE). This public repository makes its design and development reviewable. TikTok is a trademark of its respective owner; Yarms is independent and unaffiliated.
