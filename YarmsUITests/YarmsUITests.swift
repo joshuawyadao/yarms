@@ -176,15 +176,17 @@ final class YarmsUITests: XCTestCase {
         name.tap()
         name.typeText("Longer strength sessions")
         editor.buttons["Create"].tap()
+        XCTAssertTrue(app.staticTexts["This folder is empty"].waitForExistence(timeout: 5),
+                      "The test folder should be saved before relaunching with large text")
 
         app.terminate()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launch()
 
         let picker = app.buttons["folderPickerButton"]
+        scrollUntilHittable(picker, in: app)
         XCTAssertTrue(picker.waitForExistence(timeout: 10),
                       "Large text should offer a labeled folder picker")
-        scrollUntilHittable(picker, in: app)
         XCTAssertTrue(picker.isHittable, "The folder picker should remain reachable at large text")
         picker.tap()
         XCTAssertTrue(app.staticTexts["Choose folder"].waitForExistence(timeout: 5),
@@ -213,8 +215,8 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5), "Selecting All should restore the saved workout")
 
         let search = app.searchFields.firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 5))
         scrollUntilHittable(search, in: app, towardTop: true)
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
         XCTAssertTrue(search.isHittable)
         search.tap()
         search.typeText("no-workout-matches-this-search")
@@ -222,11 +224,13 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(submitSearch.waitForExistence(timeout: 5),
                       "The search keyboard should offer a way to dismiss it")
         submitSearch.tap()
-        XCTAssertTrue(app.staticTexts["No matching workouts"].waitForExistence(timeout: 5))
+        let noMatches = app.staticTexts["No matching workouts"]
+        scrollUntilHittable(noMatches, in: app)
+        XCTAssertTrue(noMatches.waitForExistence(timeout: 5))
         let paste = app.buttons["noMatchesPasteLinkButton"]
+        scrollUntilHittable(paste, in: app, towardTop: true)
         XCTAssertTrue(paste.waitForExistence(timeout: 5),
                       "A zero-result search should still expose Paste at large text")
-        scrollUntilHittable(paste, in: app, towardTop: true)
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "Large text library with zero results and Paste action"
@@ -292,7 +296,9 @@ final class YarmsUITests: XCTestCase {
     @MainActor
     private func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication,
                                     towardTop: Bool = false) {
-        for _ in 0..<4 where !element.isHittable {
+        // A List row can be absent from the accessibility tree until scrolled into view.
+        for _ in 0..<4 {
+            if element.exists && element.isHittable { return }
             if towardTop { app.swipeDown() } else { app.swipeUp() }
         }
     }
