@@ -87,6 +87,25 @@ final class MetadataTests: XCTestCase {
         XCTAssertEqual(requestedHosts, ["vm.tiktok.com", "www.tiktok.com"])
     }
 
+    func testURLSessionDoesNotAutomaticallyFollowExternalRedirect() async throws {
+        let short = try XCTUnwrap(TikTokLink(text: "https://vm.tiktok.com/ZMshort/"))
+        let transport = RedirectTransport()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RedirectingURLProtocol.self]
+        RedirectingURLProtocol.transport = transport
+        defer { RedirectingURLProtocol.transport = nil }
+
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let result = await TikTokMetadataClient(session: session).enrich(short)
+
+        XCTAssertNil(result.resolvedLink)
+        XCTAssertNil(result.metadata)
+        XCTAssertEqual(transport.redirectCount, 1, "The fixture must exercise URLSession's redirect callback")
+        XCTAssertEqual(transport.requestedHosts, ["vm.tiktok.com", "www.tiktok.com"],
+                       "URLSession must not request the redirect destination before its host is validated")
+    }
+
     func testUnavailableHEADCanStillGetShortLinkOEmbedWithoutPlaybackURL() async throws {
         let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
         MockURLProtocol.handler = { request in
@@ -110,6 +129,59 @@ final class MetadataTests: XCTestCase {
         configuration.protocolClasses = [MockURLProtocol.self]
         return TikTokMetadataClient(session: URLSession(configuration: configuration))
     }
+}
+
+private final class RedirectTransport {
+    private let lock = NSLock()
+    private var hosts = [String]()
+    private var redirects = 0
+
+    var requestedHosts: [String] { lock.withLock { hosts } }
+    var redirectCount: Int { lock.withLock { redirects } }
+
+    func record(_ request: URLRequest) {
+        lock.withLock { hosts.append(request.url?.host ?? "<missing host>") }
+    }
+
+    func recordRedirect() {
+        lock.withLock { redirects += 1 }
+    }
+}
+
+private final class RedirectingURLProtocol: URLProtocol {
+    static var transport: RedirectTransport?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url, let transport = Self.transport else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        transport.record(request)
+
+        if url.host == "vm.tiktok.com" {
+            let destination = URL(string: "https://example.com/steal")!
+            let response = HTTPURLResponse(url: url, statusCode: 302, httpVersion: "HTTP/1.1",
+                                           headerFields: ["Location": destination.absoluteString])!
+            transport.recordRedirect()
+            // Supplying the original response lets async URLSession.data finish
+            // with the 302 when its task delegate declines the redirect.
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, wasRedirectedTo: URLRequest(url: destination),
+                                redirectResponse: response)
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
+
+        let response = HTTPURLResponse(url: url, statusCode: 503, httpVersion: "HTTP/1.1",
+                                       headerFields: [:])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }
 
 private final class MockURLProtocol: URLProtocol {

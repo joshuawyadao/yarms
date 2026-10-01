@@ -1,39 +1,122 @@
-# Architecture and verification
+# Architecture
 
-The [yarms design language](Design-Language.md) defines the shared UI standards and component ownership. `YarmsTheme.swift` centralizes semantic colors, spacing, radii, action styles, and content widths; `YarmsUIComponents.swift` supplies folder badges/filters, adaptive workout-card content, and empty states. Screen views retain their existing persistence, navigation, and playback responsibilities.
+[Documentation index](README.md) · [Repository map](Repository-Map.md) · [Data and privacy](Data-and-Privacy.md) · [Testing](Testing.md)
 
-## Foundation and local library
+Yarms is a SwiftUI iPhone app with a UIKit Share extension. The app owns a JSON library; the extension hands off small link records through Keychain. There is no Yarms backend, account service, or video download pipeline.
 
-The SwiftUI app owns its library under its Application Support directory. Its [Share extension](Shortcut-Sharing.md) accepts TikTok URL or text input and writes one small pending-link record to a shared Keychain access group. Both targets use the same Keychain entitlement, which the owner's free Personal Team can sign; neither uses an App Group. The extension shows a native activity indicator and a wrapping Dynamic Type “Saving to yarms…” status on a system background. It reports success only after the Keychain write succeeds. The existing Save TikTok Workout App Intent and system PasteButton write UUID JSON files into the app-local `Inbox` for optional Shortcut compatibility and paste fallback. PasteButton receives text from iOS without a separate paste permission prompt. On app launch or foreground, `WorkoutStore` imports both pending queues into versioned `Library.json` in the app container. It writes the library atomically before deleting each pending record. Replaying a pending record after a crash does not create a duplicate. If the library cannot be decoded, pending links remain queued for recovery. An invalid shared link leaves the queues unchanged.
+## Components and boundaries
 
-`TikTokLink` scans shared text for an HTTPS TikTok URL, including when another URL appears first. It accepts video URLs from the documented TikTok hosts and TikTok's `vm`/`vt` short-link hosts, then strips query and fragment data. Only a canonical numeric video ID builds a player URL. The app tries to resolve short links with bounded HEAD redirects, checking each redirect against the accepted TikTok URL set before following it. If resolution fails, the original link remains saved and Open in TikTok stays available. When multiple saved URLs resolve to the same video ID, the library keeps the earliest save and fills in its missing metadata and folder assignment when that survivor is Unfiled. Metadata that returns after a duplicate record was removed is applied to the surviving record by video ID. The app requests title, creator, and thumbnail through TikTok's [oEmbed endpoint](https://developers.tiktok.com/docs/en/embed-videos). Metadata or network failure does not remove the workout. Search reads the on-device library. The embedded video uses TikTok's [official player URL](https://developers.tiktok.com/docs/en/embed-player) in `WKWebView`. No video bytes are persisted.
-
-The local library writes schema 2 to mark folder-aware data. This app reads older schema 1 libraries, and immediately upgrades any early schema 1 file that already carries folders; older app builds reject schema 2 rather than silently rewriting away folder organization. It stores named folders and an optional folder ID on each workout. Existing libraries without folders decode as Unfiled. Folder names are trimmed, limited to 80 characters, and unique without case or accent distinctions. New shares remain Unfiled until moved. Deleting a folder clears its workouts' assignments without removing any workout. Deleting a saved workout requires confirmation from the library row or workout screen and removes that workout's local record, including its notes and folder assignment; other workouts and folder records remain. If enrichment combines the selected record with an earlier save while confirmation is open, removal reports failure, refreshes the library, and asks the user to select the surviving workout again; the workout screen stays open. A later share or an older backup can add the link again. The library filters by All, Unfiled, or a selected folder before applying search.
-
-`scripts/generate-project.rb` updates the checked-in Xcode project using the `xcodeproj` Ruby gem. Target settings live in the Xcode project. The app icon is a 1024-pixel package of the owner's approved PNG. The installed app's display name and library title are `yarms`; the Share extension appears as `Save to yarms`. The app and Share extension share a Keychain access group; no App Group entitlement is required. CI's unsigned tests validate parser and store behavior with temporary directories. A signed iPhone test checks actual Keychain writes and reads, and a live Share Sheet check validates cross-process capture.
-
-The library view shows one system PasteButton above the folder filters in empty, populated, and no-match states. The populated welcome invites choosing a workout to try or saving another for later; the empty welcome explains capture. Welcome text and introductory instructions disappear while a search query is active. The save action, welcome text, folder section, and workout rows share one vertical list capped at a 600-point content width so large accessibility text cannot squeeze the workouts offscreen. At accessibility text sizes, cards stack their thumbnail and content. Folder browsing uses a full-height native picker sheet at accessibility text sizes, above six named folders, or when a name exceeds 24 characters; otherwise horizontal chips display counts, a checkmark, and the selected accessibility trait. The picker wraps names and exposes the same selection/count semantics. Saved workout cards show the title, creator when available, and folder; when TikTok metadata has no title, a shortened source link distinguishes the saved videos. Folder counts and card names are indexed before rendering rows. Semantic cool-pink colors (`YarmsCanvas`, `YarmsSurface`, `YarmsSoft`, and `YarmsBloom`) include light/dark and increased-contrast asset variants. The app follows the system appearance without a forced color scheme. `YarmsAction` provides a filled-button and selected-chip color with readable white labels in both appearances, while the lighter dark-mode accent colors text and icons.
-
-## Workout screen
-
-The workout screen shows the title, creator when available, and folder above TikTok's official iframe player, and keeps a compact control row and full-width Open in TikTok action anchored at the bottom of the screen. The portrait player fills the available content width on iPhone; the four custom play, pause, seek, and replay buttons use 44-point targets so they do not compete with the video. A local HTML host relays TikTok's documented [player messages](https://developers.tiktok.com/docs/en/embed-player) through a WebKit message handler. It accepts player events only from TikTok's HTTPS origin and the host's main frame, and tolerates duration arriving in either the ready or current-time event. TikTok's own player controls remain enabled. An unavailable post still offers the external fallback. Creator and folder metadata wrap and stack when needed; Unfiled consistently uses a tray symbol. Notes actions stack at accessibility text sizes. Optional notes are stored in the same on-device workout record; the notes editor has a keyboard Done control and an explicit Save action, and opens automatically when a note exists. A successful save refreshes the parent library so reopening the workout sees the persisted note on older iOS versions as well.
-
-## User-owned backup
-
-The library exports a schema 2 JSON backup through the system Files exporter. Older schema 1 backups remain importable; earlier app builds reject schema 2 rather than silently dropping folders. It contains workout IDs, TikTok links, available metadata, save times, optional notes, and folders, but no video bytes or account credentials. The user chooses the backup file's location. Import is capped at 10 MB to bound untrusted file reads, while export retains every local record even if the file exceeds that cap; the exporter warns when this version cannot restore its own large file. Import validates the version, folder references, names, and all TikTok links, normalizes blank optional text, then asks for confirmation. Older archives without folders still import. It discards imported thumbnail URLs, short-link resolutions, and source-alias claims: those values are refreshed through TikTok instead of being trusted from a selected file. Restore maps incoming folders to existing folders by normalized name, preserving current workout assignments and filling an empty assignment from the backup. It adds missing workouts and fills empty details in matching records; it retains current notes, appends distinct imported notes in save order, and coalesces records that are locally confirmed to resolve to the same video. Confirmed source aliases are persisted so later shares and restores still match the surviving record. Indexed workout and folder matching keeps large valid imports responsive, and metadata refresh runs at most three requests at a time. Re-importing the same file does not create duplicates. Backup data is unencrypted, so the app tells the user to keep exported files private.
-
-## Device checks before release
-
-Automated checks cover URL parsing, Keychain and file inbox import, metadata response handling, bounded redirects, player-message parsing, note persistence, backup validation and merge behavior, simulator build, and unit tests. The UI test target drives paste-link saving, search, the workout layout, notes, and backup actions on a simulator; it uses an invented TikTok-shaped link so the result does not depend on a live post. Every UI test launches with a unique `-YarmsUITestStoreID` and writes to a temporary library and inbox; it does not import the normal Keychain queue. A malformed test-store ID fails closed instead of selecting the normal library. On a Personal Team signed iPhone build, verify that TikTok Share → Save to yarms writes a link without opening Yarms, and that the app sees it when foregrounded; repeat with Safari and an invalid link. Confirm canonical posts play inline in the workout screen, the custom play/pause/seek/replay buttons control the official player, short links resolve when TikTok permits, unavailable/private posts show a usable Open in TikTok path, metadata and thumbnail load on network, and notes survive app relaunch. Export a backup to Files, import it on a second installation, and verify links, notes, and duplicate handling. TikTok's Share Sheet, oEmbed availability, redirect behavior, web playback, and Files interaction still need a device check because simulator tests cannot prove their behavior with a live TikTok post.
-
-## Restore scaling benchmark
-
-`BackupScalingBenchmarkTests` measures a fresh restore of 1,000 and 4,000 distinct TikTok URLs that refer to one video. It prepares archives before timing, takes five samples per size, and compares medians. The 4,000-link median must stay below 10 times the 1,000-link median; the generous ratio detects a major scaling regression while tolerating normal simulator timing variation. The benchmark is skipped in the regular test suite and CI Verify. Run it after changing backup validation or merge logic with an available iPhone simulator:
-
-```sh
-TEST_RUNNER_YARMS_RUN_BACKUP_BENCHMARK=1 xcodebuild \
-  -project Yarms.xcodeproj -scheme Yarms \
-  -destination 'platform=iOS Simulator,name=iPhone 17e' \
-  '-only-testing:YarmsTests/BackupScalingBenchmarkTests' \
-  CODE_SIGNING_ALLOWED=NO test
+```mermaid
+flowchart TD
+    Share["TikTok or Safari share sheet"] --> Extension["YarmsShare: validate shared URL or text"]
+    Extension --> Keychain["Shared Keychain: pending links"]
+    Paste["Yarms Paste button"] --> Inbox["App-local Inbox: pending JSON files"]
+    Intent["Optional Save TikTok Workout intent"] --> Inbox
+    Keychain --> Store["WorkoutStore: import and persist"]
+    Inbox --> Store
+    Store --> Library["Application Support / Yarms / Library.json"]
+    Library --> UI["LibraryShellView: folders and search"]
+    UI --> Queue["Enrichment queue: up to 3 active workouts"]
+    Queue --> TikTok["TikTok redirects and oEmbed"]
+    TikTok --> Store
+    UI --> Player["EmbeddedPlayerView and WKWebView"]
+    Player --> Embed["TikTok official player"]
 ```
+
+The diagram separates capture from enrichment: saving only needs a valid link and writable local storage. Metadata and playback happen later and can fail without removing the link. Thumbnails may be fetched from HTTPS URLs returned by oEmbed; the diagram groups those external services under TikTok. See [network boundaries](Data-and-Privacy.md#network-boundaries) for the precise scope.
+
+| Area | Responsibility |
+| --- | --- |
+| `YarmsCore/` | URL parsing and the two pending-link queues; compiled into both app and extension, not a separate framework |
+| `YarmsShare/` | Receive URL/text attachments, validate a link, enqueue it, then finish or show an error |
+| `YarmsApp/` | Library UI, capture intent, persistence/restore, enrichment scheduling, and player integration |
+| `YarmsTests/`, `YarmsUITests/` | Store and protocol checks, local WebKit controller tests, and simulator user journeys |
+
+The [repository map](Repository-Map.md) identifies every source file. Project settings, target membership, and generator behavior are covered in [Development](Development.md).
+
+## Capture and durable import
+
+1. `TikTokLink` scans URL candidates in shared text until it finds a supported TikTok video or short link. It requires HTTPS and an accepted host, rejects credentials and explicit ports, and removes query/fragment data.
+2. The Share extension stores a `PendingLink` in `KeychainInbox`. The app's Paste action and optional `SaveTikTokWorkoutIntent` use the file-backed `SharedInbox`.
+3. `LibraryShellView` refreshes on appearance and when the app becomes active. `WorkoutStore.importPending()` reads the file inbox, then the Keychain inbox.
+4. For each new record, the store saves the library atomically **before** acknowledging/removing the pending record. Already-known records can be acknowledged directly. An interrupted acknowledgement can be replayed without duplicating the workout.
+5. New shares are Unfiled. On foreground/paste, a new workout switches the folder selection to Unfiled; search text is retained, so a search can still hide it.
+
+The app and extension share a Keychain entitlement and signing team. They do not use an App Group. Only the app writes `Library.json`. A process-wide recursive lock serializes store read/modify/write operations; it is not an interprocess database lock. If the library cannot be decoded, import fails before queued entries are removed. Malformed file-inbox JSON is skipped and retained; a malformed Keychain payload makes that queue's load throw.
+
+## Enrichment and identity
+
+The queue selects workouts missing a title, thumbnail, or canonical video ID and keeps at most three enrichment tasks active. Creator absence alone does not trigger a retry. Refresh can queue incomplete records again; there is no persistent background retry service.
+
+`TikTokMetadataClient` tries at most five HEAD requests for a short link, with a 10-second per-request timeout. Automatic redirect following is disabled for these requests. Each next URL must pass `TikTokLink` validation before it is requested. A canonical numeric video ID enables the player; failed resolution leaves the original source link available.
+
+The client then requests TikTok's [oEmbed metadata](https://developers.tiktok.com/docs/en/embed-videos), even if short-link resolution failed. Available title, creator, and thumbnail fill missing fields; they do not overwrite existing values.
+
+When links resolve to the same video ID, the store keeps the earliest saved identity (UUID breaks equal-time ties). It fills missing details and an empty folder assignment from duplicates, combines notes, and records locally confirmed source aliases. A late enrichment response for a removed duplicate can find the survivor by video ID. Detailed matching and note precedence are in [Data and privacy](Data-and-Privacy.md#restore-and-duplicate-rules).
+
+## Library and workout presentation
+
+`LibraryShellView` owns selection, search, dialogs, backup pickers, and enrichment scheduling. All/Unfiled/folder filtering runs before `Workout.matches` searches title, creator, and source/resolved/alias links. Folder counts and ID-to-name lookup are prepared before rendering rows.
+
+The [design language](Design-Language.md) defines the UI rules. `YarmsTheme` owns adaptive color roles, spacing, radii, button styles, and target/content sizes; `YarmsUIComponents` supplies folder badges/filters, adaptive workout-card content, and empty states. Screen views retain persistence, navigation, and playback responsibilities. [Design and assets](Design-and-Assets.md) covers icon and asset maintenance.
+
+The welcome, native Paste control, folder section, and workout cards share one vertical list capped at 600 points. Welcome copy invites saving and trying workouts, and disappears during search. Paste remains available with an empty library or zero matches. At accessibility text sizes, cards stack their thumbnail and text; missing titles get a distinguishing source-link subtitle.
+
+Folder browsing uses a full-height native picker sheet at accessibility text sizes, above six named folders, or when a name exceeds 24 characters. Otherwise horizontal chips show counts and selected checkmarks. Both presentations expose selected accessibility traits. Cool-pink assets adapt to light/dark appearance and Increase Contrast.
+
+The workout screen places its title and folder above the portrait player. Compact playback controls and a full-width Open in TikTok fallback sit in a bottom safe-area tray; notes use scalable native editing with keyboard Done. The Share extension uses a native activity indicator and wrapping Dynamic Type status on a system background while the pending link is saved.
+
+`EmbeddedPlayerView` owns a snapshot of the selected workout and local note/folder editor state. Successful note saving refreshes the parent library so a later opening sees the saved value. Deletion only dismisses the workout screen after `WorkoutStore.remove` reports success. If enrichment removed that identity by coalescing it, the UI refreshes and asks the user to select the surviving workout again.
+
+## Player bridge
+
+```mermaid
+sequenceDiagram
+    participant UI as SwiftUI controls
+    participant Controller as TikTokPlayerController
+    participant Host as Local HTML in WKWebView
+    participant TikTok as TikTok iframe
+    TikTok-->>Host: ready, state, time, or error event
+    Host-->>Controller: origin-checked message envelope
+    Controller-->>UI: published playback state
+    UI->>Controller: play, pause, or seek
+    Controller->>Host: JavaScript command after readiness
+    Host->>TikTok: postMessage to TikTok origin
+```
+
+`TikTokPlayerHTML` builds a local host around the [official embed player](https://developers.tiktok.com/docs/en/embed-player), with TikTok's controls enabled. JavaScript accepts messages from `https://www.tiktok.com` with the player marker. Native parsing additionally requires the host's main frame, expected envelope/type, and finite nonnegative times. Commands target TikTok's origin; normal UI controls remain disabled until ready or after a reported player error.
+
+Duration may arrive in a ready or time event. Relative seeking is bounded at zero and at known duration. Replay seeks to zero. `WKWebView` enables inline media playback, and its handler is removed when dismantled. The always-available external link is the fallback for unavailable posts or unresolved short links. Yarms does not persist a video file, though WebKit and networking can use system-managed caches.
+
+## Backups and failure boundaries
+
+`WorkoutBackup` validates user-selected JSON, `WorkoutStore` performs the additive merge, and `WorkoutBackupDocument` supplies the Files exporter. UI confirmation occurs after the selected file passes validation. Restore writes the merged library atomically and then follows the normal refresh/enrichment path.
+
+See [Data and privacy](Data-and-Privacy.md) for the schema, size limits, sanitization, and restore diagram. See [Storage migration](Storage-Migration.md) before replacing an old App Group build.
+
+| Failure | Preserved behavior |
+| --- | --- |
+| Invalid shared link | No pending record is added |
+| Share Keychain write fails | Extension shows an error instead of reporting completion |
+| Library read/write fails | Error is surfaced; import does not acknowledge a new unsaved record |
+| Metadata, redirect, or thumbnail fails | Saved link remains; incomplete enrichment can retry on refresh |
+| Embedded player fails | Open in TikTok remains available; the post may also be unavailable there |
+| Backup validation or merge fails | Restore does not commit a partial merged library |
+| Selected record was coalesced during editing/deletion | UI reports failure and asks the user to reopen/reselect |
+
+## Verification and current limits
+
+[Testing](Testing.md) is the canonical guide for automated coverage, commands, benchmarks, and signed-device checks. Simulator tests exercise local protocol behavior; they do not prove TikTok's live availability or cross-process Share Sheet signing. The known iOS 27 notes-focus frame warning remains documented there and needs further investigation.
+
+## Vocabulary
+
+| Term | Meaning here |
+| --- | --- |
+| Workout | A saved TikTok link plus local details, notes, and optional folder; not a downloaded video |
+| Pending link / inbox | A durable capture waiting for the app to import it |
+| Canonical link | A supported video URL carrying a numeric video ID |
+| Enrichment | Resolving a short link and requesting available metadata |
+| Coalescing | Combining locally recognized duplicates into a surviving workout |
+| Source alias | Another URL locally confirmed to identify the same video |
+| Unfiled | A workout with no folder ID; not a stored folder record |
+| Restore | An additive validated merge, not a replacement of the current library |

@@ -184,7 +184,7 @@ If a new token or component is still necessary, document its purpose and where i
 - Check VoiceOver order, labels, selected/disabled state, full titles, and helpful feedback. Do not announce every playback-time update.
 - Exercise empty library, empty folder, zero matches, long/similar folder names, missing creator/title/image, unresolved link, unavailable video, write failure, and stale deletion.
 - Preserve current test contracts: distinguish metadata-free workouts, keep Paste accessible with zero matches, retain compact transport controls and the visible full-width fallback, persist notes, and confirm deletion.
-- Run repository checks and relevant unit/UI tests after executable changes. Verify live TikTok playback, the Share Sheet, and Files on a physical device as described in Architecture.
+- Run repository checks and relevant unit/UI tests after executable changes. Verify live TikTok playback, the Share Sheet, and Files on a physical device as described in [Testing](Testing.md).
 
 Apple's [Accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility) informs the platform checks. The acceptance criteria here are project requirements to verify during implementation, not a statement that the existing app or this proposal has passed an accessibility audit.
 
@@ -192,6 +192,6 @@ Apple's [Accessibility guidance](https://developer.apple.com/design/human-interf
 
 The September 25 concept established the initial purple palette and checked two white-on-Action contrast pairs. It did not validate native layout. The September 30 implementation adds native component previews and a UI regression for large-text folder selection and zero-result Paste access. Existing UI tests retain save, note persistence, folder movement, backup access, deletion confirmation, and compact player-control assertions.
 
-See [Implementation-Plan.md](Implementation-Plan.md) for this change's build/test results and remaining checks. Simulator checks do not establish live TikTok playback, cross-process sharing, physical-device comfort, or a full VoiceOver/accessibility audit.
+The UI adoption passed 80 tests with two expected skips before integration with newer main changes, plus three dark-mode UI checks. The pink refinement passed four focused folder/large-text executions across light and dark appearance. See [Testing](Testing.md) for repeatable checks and [Implementation-Plan.md](Implementation-Plan.md) for the active integration results. Simulator checks do not establish live TikTok playback, cross-process sharing, physical-device comfort, or a full VoiceOver/accessibility audit.
 
 The cool-pink refinement adds explicit increased-contrast assets and an invitation to choose a workout in the populated library. Contrast calculations use the current asset values, including pressed custom button treatments. The app icon remains the approved artwork.

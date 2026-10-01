@@ -380,6 +380,40 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(merged.notes, "Warm up\n\nAdd a stretch")
     }
 
+    func testCoalescingRecognizesExistingNoteBlocksWithoutRewritingTheirContents() throws {
+        let cases = [
+            ("Warm up\n\nStretch\n\nCool down", "Stretch", "Warm up\n\nStretch\n\nCool down"),
+            ("Warm up\n\nStretch", "Warm up", "Warm up\n\nStretch"),
+            ("Stretch gently", "Stretch", "Stretch gently\n\nStretch"),
+            ("Repeat\n\nRepeat", "Repeat", "Repeat\n\nRepeat"),
+            ("Warm up", "Stretch\n\nHold 20 seconds", "Warm up\n\nStretch\n\nHold 20 seconds"),
+            ("Imported", "Current\n\nImported", "Imported\n\nCurrent"),
+            ("Imported", "Current\n\nImported\n\nCool down", "Imported\n\nCurrent\n\nCool down"),
+            ("Warm up\n\nStretch", "Stretch\n\nCool down", "Warm up\n\nStretch\n\nCool down"),
+            ("Repeat", "Repeat\n\nRepeat", "Repeat\n\nRepeat"),
+            ("Warm up", "Repeat\n\nRepeat", "Warm up\n\nRepeat\n\nRepeat")
+        ]
+        for (existing, incoming, expected) in cases {
+            let (store, _, container) = makeStore()
+            defer { try? FileManager.default.removeItem(at: container) }
+            try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+            let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+            var first = Workout(id: UUID(), sourceLink: canonical,
+                                savedAt: Date(timeIntervalSince1970: 100))
+            first.notes = existing
+            var later = Workout(id: UUID(), sourceLink: canonical,
+                                savedAt: Date(timeIntervalSince1970: 200))
+            later.notes = incoming
+            try JSONEncoder().encode(TestLibraryFile(workouts: [later, first]))
+                .write(to: container.appendingPathComponent("Library.json"))
+
+            try store.applyEnrichment(TikTokEnrichment(resolvedLink: canonical, metadata: nil), to: later.id)
+
+            XCTAssertEqual(try store.load().onlyElement?.notes, expected,
+                           "Combining \(String(reflecting: existing)) with \(String(reflecting: incoming))")
+        }
+    }
+
     func testCoalescingFillsUnfiledSurvivorFromFiledDuplicate() throws {
         let (store, _, container) = makeStore()
         defer { try? FileManager.default.removeItem(at: container) }
