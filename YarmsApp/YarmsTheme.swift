@@ -1,3 +1,4 @@
+import Accessibility
 import SwiftUI
 
 /// Shared visual roles. Native controls keep their system metrics and behavior.
@@ -25,6 +26,16 @@ enum YarmsTheme {
 
     static let minimumTarget: CGFloat = 44
     static let maximumContentWidth: CGFloat = 600
+}
+
+/// Report completed save actions without moving focus or interrupting existing speech.
+enum YarmsAccessibility {
+    @MainActor
+    static func announceSaveResult(_ message: String) {
+        var announcement = AttributedString(message)
+        announcement.accessibilitySpeechAnnouncementPriority = .low
+        AccessibilityNotification.Announcement(announcement).post()
+    }
 }
 
 /// Brief, restrained motion for direct actions and local state changes.

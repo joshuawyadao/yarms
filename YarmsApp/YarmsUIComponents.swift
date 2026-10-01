@@ -178,7 +178,7 @@ struct YarmsSaveConfirmation: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .font(.subheadline)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.primary)
         // A reserved multiline message costs too much browsing space at large text sizes.
         .frame(height: message == nil && typeSize.isAccessibilitySize ? 0 : nil)
         .accessibilityElement(children: .combine)
@@ -234,7 +234,7 @@ struct WorkoutCompletionView: View {
 
                 Text("You showed up and moved today. Be proud of yourself!")
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }

@@ -7,8 +7,8 @@ Use this map to find an owner before editing. The [README](../README.md) is the 
 | File | Responsibility |
 | --- | --- |
 | [YarmsApp.swift](../YarmsApp/YarmsApp.swift) | SwiftUI app entry point and root library window. |
-| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Shared semantic color roles, spacing, radii, size limits, and action button styles. |
-| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | Folder badge/filter, workout card content, empty state, and component previews. |
+| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Shared semantic color roles, spacing, radii, size limits, motion/accessibility policy, low-priority save announcements, and action button styles. |
+| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | Folder badge/filter, workout card content, save confirmation, completion modal, empty state, and component previews. |
 | [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) | Library and folder screens; paste, search, row deletion, and backup presentation. |
 | [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout screen, portrait embedded player and controls, notes editor, and workout deletion. |
 | [TikTokPlayerBridge.swift](../YarmsApp/TikTokPlayerBridge.swift) | WebKit host, player messages, commands, and playback state. |

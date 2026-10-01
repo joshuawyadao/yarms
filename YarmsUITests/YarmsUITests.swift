@@ -60,6 +60,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(savedNote.waitForExistence(timeout: 5),
                       "Saving notes should show a persistent inline confirmation")
         XCTAssertEqual(savedNote.label, "Saved on this iPhone")
+        try assertFeedbackPassesContrastAudit(savedNote, message: "Saved on this iPhone", in: app)
         let savedNotesScreenshot = XCTAttachment(screenshot: app.screenshot())
         savedNotesScreenshot.name = "Notes with persistent save confirmation"
         savedNotesScreenshot.lifetime = .keepAlways
@@ -102,12 +103,12 @@ final class YarmsUITests: XCTestCase {
 
     @MainActor
     func testPasteConfirmationAndErrorState() throws {
-        exercisePasteConfirmation(reduceMotion: false)
+        try exercisePasteConfirmation(reduceMotion: false)
     }
 
     @MainActor
     func testPasteConfirmationAndErrorStateWithReduceMotion() throws {
-        exercisePasteConfirmation(reduceMotion: true)
+        try exercisePasteConfirmation(reduceMotion: true)
     }
 
     @MainActor
@@ -144,13 +145,17 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(title.waitForExistence(timeout: 5),
                       "Only an explicit Finish workout tap should open the completion sheet")
         XCTAssertEqual(title.label, "Good Job BUNS!")
+        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        let completionDone = app.buttons["workoutCompletionDoneButton"]
+        XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
+        assertCompletionCopyIsVisible(title: title, message: message, above: completionDone, in: app)
+        try app.performAccessibilityAudit(for: .contrast)
         let sheetScreenshot = XCTAttachment(screenshot: app.screenshot())
         sheetScreenshot.name = "BUNS workout completion"
         sheetScreenshot.lifetime = .keepAlways
         add(sheetScreenshot)
 
-        let completionDone = app.buttons["workoutCompletionDoneButton"]
-        XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
         XCTAssertTrue(completionDone.isHittable)
         completionDone.tap()
         XCTAssertFalse(title.exists, "Done should dismiss the completion sheet")
@@ -164,8 +169,11 @@ final class YarmsUITests: XCTestCase {
         finish.tap()
         XCTAssertTrue(title.waitForExistence(timeout: 5),
                       "A second explicit Finish workout tap should reopen the sheet")
-        completionDone.tap()
-        XCTAssertFalse(title.exists)
+        title.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.1,
+                   thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)))
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5),
+                      "The completion sheet should also support native swipe dismissal")
     }
 
     @MainActor
@@ -193,10 +201,14 @@ final class YarmsUITests: XCTestCase {
         XCTAssertEqual(title.label, "Good Job BUNS!")
         XCTAssertTrue(title.isHittable,
                       "The completion headline should remain visible at maximum text size")
+        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
         let completionDone = app.buttons["workoutCompletionDoneButton"]
         XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
         XCTAssertTrue(completionDone.isHittable,
                       "The sheet's Done action should remain reachable at maximum text size")
+        assertCompletionCopyIsVisible(title: title, message: message, above: completionDone, in: app)
+        try app.performAccessibilityAudit(for: .contrast)
         let sheetScreenshot = XCTAttachment(screenshot: app.screenshot())
         sheetScreenshot.name = "BUNS completion large text reduced motion"
         sheetScreenshot.lifetime = .keepAlways
@@ -441,7 +453,7 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
-    private func exercisePasteConfirmation(reduceMotion: Bool) {
+    private func exercisePasteConfirmation(reduceMotion: Bool) throws {
         let app = isolatedApp()
         if reduceMotion {
             app.launchArguments.append("-YarmsUITestReduceMotion")
@@ -460,6 +472,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(confirmation.waitForExistence(timeout: 10),
                       "A newly pasted workout should show an inline confirmation")
         XCTAssertEqual(confirmation.label, "Saved for your next move.")
+        try assertFeedbackPassesContrastAudit(confirmation, message: "Saved for your next move.", in: app)
         let savedScreenshot = XCTAttachment(screenshot: app.screenshot())
         savedScreenshot.name = reduceMotion ? "Saved workout with Reduce Motion" : "Saved workout confirmation"
         savedScreenshot.lifetime = .keepAlways
@@ -475,6 +488,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Already in your library."].waitForExistence(timeout: 5),
                       "Pasting the same video should explain that it is already saved")
         XCTAssertEqual(confirmation.label, "Already in your library.")
+        try assertFeedbackPassesContrastAudit(confirmation, message: "Already in your library.", in: app)
         XCTAssertEqual(row.count, 1, "Pasting the same video should not create another row")
         XCTAssertTrue(app.buttons["folder-all"].isSelected,
                       "A duplicate paste should keep All selected so the existing row stays visible")
@@ -500,6 +514,34 @@ final class YarmsUITests: XCTestCase {
                        "Loading an existing workout must not announce a new save")
         XCTAssertFalse(app.staticTexts["Already in your library."].exists,
                        "A prior duplicate message should not survive relaunch")
+    }
+
+    @MainActor
+    private func assertFeedbackPassesContrastAudit(_ feedback: XCUIElement, message: String,
+                                                   in app: XCUIApplication) throws {
+        XCTAssertTrue(feedback.exists && feedback.isHittable,
+                      "The save result must be visible before its contrast audit")
+        XCTAssertEqual(feedback.label, message)
+        let feedbackIdentifier = feedback.identifier
+        // Audit this save result only. Existing metadata on the surrounding screen has
+        // independent contrast findings; an unknown result without an element must fail.
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            guard let element = issue.element else { return false }
+            let isFeedback = element.label == message ||
+                (!feedbackIdentifier.isEmpty && element.identifier == feedbackIdentifier)
+            return !isFeedback
+        }
+    }
+
+    @MainActor
+    private func assertCompletionCopyIsVisible(title: XCUIElement, message: XCUIElement,
+                                               above done: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(app.frame.contains(title.frame), "The complete headline should be onscreen")
+        XCTAssertTrue(app.frame.contains(message.frame), "The complete supporting message should be onscreen")
+        XCTAssertLessThan(title.frame.maxY, done.frame.minY,
+                          "The headline should clear the fixed Done action")
+        XCTAssertLessThan(message.frame.maxY, done.frame.minY,
+                          "The supporting message should clear the fixed Done action")
     }
 
     @MainActor

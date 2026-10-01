@@ -338,7 +338,10 @@ struct EmbeddedPlayerView: View {
         do {
             if try store.updateNotes(noteText, for: workout.id) {
                 noteSaved = true
-                if !wasSaved { noteSaveEventID += 1 }
+                if !wasSaved {
+                    noteSaveEventID += 1
+                    YarmsAccessibility.announceSaveResult("Saved on this iPhone")
+                }
                 onNotesSaved()
             } else {
                 message = "This workout changed while you were editing. Reopen it and try again."

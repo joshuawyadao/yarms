@@ -35,6 +35,8 @@ The catalog JSON is the authority for color values; the [design language](Design
 
 Use semantic system fonts so Dynamic Type can scale. Keep visible text/VoiceOver meaning alongside symbols and colors. Verify light/dark/increased-contrast appearances, long titles/folder names, missing metadata, large text, keyboard focus, and scrolling using the [test/device checklist](Testing.md). Do not describe simulator layout assertions as a full accessibility audit.
 
+Save confirmations and the completion modal's supporting text use adaptive primary foreground for readable contrast on the pink canvas. Save-result announcements use low priority and originate in successful action handlers; they do not move VoiceOver focus or replay when a view redraws.
+
 ## Motion
 
 Shared controls use a small, brief press compression; folder selection, counts, folder badges, and arriving thumbnails have local transitions. Inline save confirmations retain their text after a one-shot pink bloom. Reduce Motion disables these custom animations while preserving static feedback. The [motion contract](Design-Language.md#icons-and-motion) defines timing, triggers, and exclusions; `YarmsMotion` and `YarmsSaveConfirmation` keep those choices consistent. The explicit Finish workout action opens a native sheet with one short smiling-heart/sparkle animation; Reduce Motion shows the same art statically. It requests a pause from a ready embedded player without automatically resuming after dismissal. Other navigation, playback controls, and the Share extension retain their native behavior and timing.

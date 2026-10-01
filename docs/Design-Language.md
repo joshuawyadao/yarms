@@ -32,6 +32,8 @@ Use a blue-based rose pink with a slight lilac influence. Keep peach, coral, and
 
 Keep the asset catalog as the color source of truth. The hex values below match its sRGB components; views should use the named assets instead of copying hex values. Primary and secondary text use adaptive system foreground styles.
 
+Use primary foreground for save-result text and the completion modal's supporting message. These results need to stay easy to read at ordinary text sizes; the system secondary gray did not meet the contrast target on the light pink canvas. Preserve hierarchy with font size and spacing rather than lowering the contrast of this feedback.
+
 | Role / existing asset | Light reference | Dark reference | Use |
 | --- | --- | --- | --- |
 | Canvas / `YarmsCanvas` | `#FFF7FC` | `#1C141B` | Main content background |
@@ -98,6 +100,8 @@ A successful new save shows an inline checkmark and one small pink bloom behind 
 
 Read the system Reduce Motion preference through `yarmsReduceMotion`. When enabled, custom scaling, bloom, count motion, and fades are disabled; words, checkmarks, selection, and pressed color feedback remain. Its internal override is for previews and isolated debug UI tests, and cannot turn off the real system preference. See Apple's [Reduce Motion environment documentation](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion).
 
+`YarmsAccessibility.announceSaveResult` posts a [low-priority accessibility announcement](https://developer.apple.com/documentation/accessibility/accessibilitynotification/announcement) for a completed save result, allowing existing speech to finish without moving focus. Screen action handlers call it after a successful new or duplicate paste, newly imported shares, or a successful notes save. An unchanged, already-confirmed notes save stays quiet. Opening existing records, scrolling, redraws, failed writes, and invalid input do not post success announcements; native error alerts retain their own accessibility behavior. Speech feedback remains available with Reduce Motion enabled.
+
 Keep animations local to controls and confirmation symbols. Search typing, full library result changes, background metadata text updates, playback time, navigation, keyboard movement, and the Share extension use their existing behavior. No looping decoration, bouncing cards, animated gradients, loading shimmer, sounds, haptics, added completion delays, or startup choreography. The completion modal is the explicit exception: a smiling pink heart makes one brief hop/pop with soft sparkles after the person taps Finish workout. It settles in under a second, never repeats while the modal is open, and becomes static with Reduce Motion. It never waits to enable dismissal.
 
 ## Component contracts
@@ -160,7 +164,7 @@ Use **Apple's native controls + yarms semantic tokens + shared content component
 
 | Source | Responsibility |
 | --- | --- |
-| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Adaptive color roles, spacing, radii, target/content sizes, motion timing, Reduce Motion policy, and action styles |
+| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Adaptive color roles, spacing, radii, target/content sizes, motion timing, Reduce Motion policy, low-priority save announcements, and action styles |
 | [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | `FolderBadge`, `FolderFilter`, `WorkoutCardContent`, `YarmsSaveConfirmation`, `WorkoutCompletionView`, `YarmsEmptyState`, and interactive/light/dark/large-text previews |
 | [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) | Save/search/folder composition, adaptive folder sheet, navigation, move/delete/backup operations |
 | [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout/player composition, explicit completion presentation, notes, compact transport controls, and bottom fallback |

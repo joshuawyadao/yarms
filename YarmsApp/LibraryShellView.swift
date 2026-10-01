@@ -656,6 +656,7 @@ struct LibraryShellView: View {
         saveConfirmation = text
         celebratesSave = celebrates
         saveEventID += 1
+        YarmsAccessibility.announceSaveResult(text)
     }
 
     private func scheduleEnrichment(using store: WorkoutStore) {
