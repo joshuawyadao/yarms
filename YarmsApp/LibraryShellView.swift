@@ -111,6 +111,7 @@ struct LibraryShellView: View {
                 libraryContent
             }
             .listStyle(.plain)
+            .scrollDismissesKeyboard(.interactively)
             .contentMargins(.horizontal, YarmsTheme.Spacing.lg, for: .scrollContent)
             .frame(maxWidth: YarmsTheme.maximumContentWidth)
             .frame(maxWidth: .infinity)
@@ -251,14 +252,16 @@ struct LibraryShellView: View {
 
     private var saveCard: some View {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.md) {
-            Text(workouts.isEmpty ? "Your next move starts here." : "Ready when you are.")
-                .font(.title2.bold())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            Text("Share a TikTok to yarms, or paste a link to keep it here.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if searchText.isEmpty {
+                Text(workouts.isEmpty ? "Your next move starts here." : "Ready when you are.")
+                    .font(.title2.bold())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Text("Share a TikTok to yarms, or paste a link to keep it here.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             let layout = typeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: YarmsTheme.Spacing.md))
                 : AnyLayout(HStackLayout(spacing: YarmsTheme.Spacing.md))
@@ -348,14 +351,15 @@ struct LibraryShellView: View {
     private var folderBar: some View {
         let counts = FolderCounts(workouts: workouts)
         return VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
-            ViewThatFits(in: .horizontal) {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
+                    Text("Folders").font(.headline).accessibilityAddTraits(.isHeader)
+                    newFolderButton
+                }
+            } else {
                 HStack {
                     Text("Folders").font(.headline).accessibilityAddTraits(.isHeader)
                     Spacer()
-                    newFolderButton
-                }
-                VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
-                    Text("Folders").font(.headline).accessibilityAddTraits(.isHeader)
                     newFolderButton
                 }
             }
@@ -703,7 +707,7 @@ struct LibraryShellView: View {
             if !refresh() {
                 workouts = (try? store.load()) ?? workouts
                 folders = (try? store.loadFolders()) ?? folders
-                showMessage("Backup restored", "The backup was restored, but Yarms could not refresh every pending link. Reopen the app to refresh the library.")
+                showMessage("Backup restored", "The backup was restored, but yarms could not refresh every pending link. Reopen the app to refresh the library.")
                 return
             }
             showMessage("Backup restored", "Added \(result.added) workouts; updated or combined \(result.updated) existing records.")

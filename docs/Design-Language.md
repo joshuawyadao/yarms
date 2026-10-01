@@ -82,7 +82,7 @@ These roles are implemented in `YarmsTheme`: `space.*` maps to `Spacing.*`, `rad
 
 Cards separate independent tappable workouts. Use spacing and headings to group related content rather than nesting cards. Default to flat surfaces without shadows. Use a system separator when an edge is necessary; low-contrast decorative borders cannot be the only cue that a control exists.
 
-The 44-point target is a yarms baseline for all custom controls. A compact glyph can sit inside that target. Prefer a minimum height over a fixed height for labeled actions, so larger text can wrap. Keep the library's save section, folders, and results in one vertical scrolling region. At accessibility text sizes, with more than six named folders, or when a folder name exceeds 24 characters, show the labeled folder picker. It opens a native sheet with wrapping names and explicit selection. Smaller collections use horizontal filter chips. Workout cards stack their thumbnail and text at accessibility sizes; the player stacks creator/folder metadata and note actions.
+The 44-point target is a yarms baseline for all custom controls. A compact glyph can sit inside that target. Prefer a minimum height over a fixed height for labeled actions, so larger text can wrap. Keep the library's save section, folders, and results in one vertical scrolling region. At accessibility text sizes, with more than six named folders, or when a folder name exceeds 24 characters, show the labeled folder picker. It opens a native sheet with wrapping names, counts, and explicit selection. Smaller collections use horizontal filter chips. At accessibility sizes, stack the folder heading and New folder action, and stack each workout card's thumbnail and text; the player stacks creator/folder metadata and note actions.
 
 ### Icons and motion
 
@@ -114,7 +114,7 @@ Do not visually elevate Open in TikTok above the video itself. Its prominent but
 
 ### Library
 
-Hierarchy: native `yarms` navigation and utility menus → search → save section → folder selection → workout results. Preserve native search placement where the OS manages it. Put backup and folder administration in predictable menus rather than adding competing hero actions.
+Hierarchy: native `yarms` navigation and utility menus → search → save section → folder selection → workout results. Preserve native search placement where the OS manages it. Put backup and folder administration in predictable menus rather than adding competing hero actions. Hide the welcome and introductory copy while a search query is active so search results and Paste remain easier to reach, especially at large text sizes.
 
 The populated library should be easy to scan without interpreting badges. Use consistent row anatomy. Thumbnails help recognition but must not be required to identify a workout. Preserve newly saved content visibility, including the current switch to Unfiled for new shares.
 

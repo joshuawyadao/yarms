@@ -195,9 +195,12 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(folder.waitForExistence(timeout: 5), "The named folder should be listed")
         XCTAssertTrue(folder.label.contains("0 workouts"), "An empty folder should announce its count")
         folder.tap()
-        XCTAssertTrue(app.staticTexts["This folder is empty"].waitForExistence(timeout: 5),
+        let emptyFolder = app.staticTexts["This folder is empty"]
+        scrollUntilHittable(emptyFolder, in: app)
+        XCTAssertTrue(emptyFolder.waitForExistence(timeout: 5),
                       "Selecting the empty folder should filter the library")
 
+        scrollUntilHittable(picker, in: app, towardTop: true)
         picker.tap()
         XCTAssertTrue(folder.waitForExistence(timeout: 5))
         XCTAssertTrue(folder.isSelected, "The picker should announce the selected folder")
@@ -205,9 +208,9 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(all.waitForExistence(timeout: 5))
         XCTAssertTrue(all.label.contains("1 workout"), "The All option should announce a singular count")
         all.tap()
-        XCTAssertTrue(app.descendants(matching: .any)
-            .matching(identifier: "workout-\(videoID)").firstMatch.waitForExistence(timeout: 5),
-            "Selecting All should restore the saved workout")
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        scrollUntilHittable(row, in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "Selecting All should restore the saved workout")
 
         let search = app.searchFields.firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 5))
@@ -215,17 +218,21 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(search.isHittable)
         search.tap()
         search.typeText("no-workout-matches-this-search")
+        let submitSearch = app.keyboards.buttons["Search"]
+        XCTAssertTrue(submitSearch.waitForExistence(timeout: 5),
+                      "The search keyboard should offer a way to dismiss it")
+        submitSearch.tap()
         XCTAssertTrue(app.staticTexts["No matching workouts"].waitForExistence(timeout: 5))
         let paste = app.buttons["noMatchesPasteLinkButton"]
         XCTAssertTrue(paste.waitForExistence(timeout: 5),
                       "A zero-result search should still expose Paste at large text")
         scrollUntilHittable(paste, in: app, towardTop: true)
-        XCTAssertTrue(paste.isHittable, "Paste should remain reachable at large text")
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "Large text library with zero results and Paste action"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+        XCTAssertTrue(paste.isHittable, "Paste should remain reachable at large text")
     }
 
     @MainActor

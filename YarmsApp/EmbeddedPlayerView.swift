@@ -213,15 +213,12 @@ struct EmbeddedPlayerView: View {
 
     private var workoutHeading: some View {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
-            Text("Workout")
-                .font(.headline)
-                .foregroundStyle(YarmsTheme.accent)
-                .accessibilityIdentifier("workoutHeading")
-
             Text(workout.title ?? "TikTok workout")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("workoutHeading")
 
             if typeSize.isAccessibilitySize {
                 metadataVertical
