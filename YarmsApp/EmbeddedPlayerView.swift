@@ -14,6 +14,7 @@ struct EmbeddedPlayerView: View {
     @State private var message: String?
     @State private var messageTitle = "Could not save notes"
     @State private var showingDeleteWorkout = false
+    @State private var showingWorkoutCompletion = false
     @FocusState private var notesFocused: Bool
 
     let workout: Workout
@@ -74,6 +75,17 @@ struct EmbeddedPlayerView: View {
                             message: "Open this workout in TikTok to watch it."
                         )
                     }
+
+                    Button {
+                        notesFocused = false
+                        player.send(.pause)
+                        showingWorkoutCompletion = true
+                    } label: {
+                        Label("Finish workout", systemImage: "checkmark.seal")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(YarmsSecondaryButtonStyle())
+                    .accessibilityIdentifier("finishWorkoutButton")
 
                     DisclosureGroup(isExpanded: $notesOpen) {
                         TextEditor(text: $noteText)
@@ -136,6 +148,12 @@ struct EmbeddedPlayerView: View {
         }
         .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingWorkoutCompletion) {
+            WorkoutCompletionView()
+                .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(YarmsTheme.canvas)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {

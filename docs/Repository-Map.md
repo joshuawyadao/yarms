@@ -43,7 +43,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [BackupImportSecurityTests.swift](../YarmsTests/BackupImportSecurityTests.swift) | Imported-claim trust boundaries. |
 | [BackupExportSizeTests.swift](../YarmsTests/BackupExportSizeTests.swift) | Large-library export. |
 | [BackupScalingBenchmarkTests.swift](../YarmsTests/BackupScalingBenchmarkTests.swift) | Opt-in restore scaling. |
-| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Ten simulator user flows, including save/error feedback with reduced motion, note persistence, accessibility-size folder selection, and Paste access. |
+| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Twelve simulator user flows, including completion-modal presentation/dismissal, save/error feedback with reduced motion, note persistence, accessibility-size folder selection, and Paste access. |
 
 ## Project, resources, and automation
 

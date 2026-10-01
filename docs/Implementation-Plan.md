@@ -8,13 +8,13 @@ Add a user-triggered workout-completion modal with the exact headline “Good Jo
 
 ## Action items
 - [x] Inspect workout/player controls, shared motion components, UI tests, design language, user guide, testing guide, and repository map.
-- [ ] Commit this resolved plan as a local checkpoint on the existing approved branch.
-- [ ] Add a scrollable native completion sheet with the exact headline, smiling pink heart, one short sparkle animation, and an immediately available Done action.
-- [ ] Add Finish workout to the workout screen; dismiss the keyboard and request player pause when opened, preserve unsaved notes, and avoid automatic presentation or resume.
-- [ ] Add UI coverage for explicit trigger, exact copy, dismissal/reopening, preservation of notes, and reduced motion with maximum text; capture synthetic modal screenshots.
-- [ ] Update Design-Language.md, Design-and-Assets.md, User-Guide.md, Testing.md, and Repository-Map.md to describe explicit completion celebrations and the absence of completion history.
-- [ ] Run repository checks, simulator build, focused UI tests, and the full scheme; inspect modal screenshots and record device-only verification limits.
-- [ ] Review changes, commit the validated implementation and docs, and push the existing branch.
+- [x] Commit this resolved plan as a local checkpoint on the existing approved branch.
+- [x] Add a scrollable native completion sheet with the exact headline, smiling pink heart, one short sparkle animation, and an immediately available Done action.
+- [x] Add Finish workout to the workout screen; dismiss the keyboard and request player pause when opened, preserve unsaved notes, and avoid automatic presentation or resume.
+- [x] Add UI coverage for explicit trigger, exact copy, dismissal/reopening, preservation of notes, and reduced motion with maximum text; capture synthetic modal screenshots.
+- [x] Update Design-Language.md, Design-and-Assets.md, User-Guide.md, Testing.md, and Repository-Map.md to describe explicit completion celebrations and the absence of completion history.
+- [x] Run repository checks, simulator build, focused UI tests, and the full scheme; inspect modal screenshots and record device-only verification limits.
+- [x] Review changes, commit the validated implementation and docs, and push the existing branch.
 
 ## Open questions
 - None. Completion is explicitly self-reported through Finish workout; video playback ending does not establish workout completion. The user’s request authorizes this dismissible celebration as an exception to the previous inline-only celebration guidance.

@@ -111,6 +111,103 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testWorkoutCompletionRequiresFinishAndPreservesDraftNotes() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let title = app.staticTexts["workoutCompletionTitle"]
+        XCTAssertTrue(app.staticTexts["workoutHeading"].waitForExistence(timeout: 5))
+        XCTAssertFalse(title.exists, "Opening a saved workout should not imply it was completed")
+
+        let notes = app.buttons["Notes (optional)"]
+        scrollUntilHittable(notes, in: app)
+        XCTAssertTrue(notes.isHittable, "Notes should be reachable below the player")
+        notes.tap()
+        let editor = app.textViews["Workout notes"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        let draft = "Unsaved completion draft"
+        editor.tap()
+        editor.typeText(draft)
+        XCTAssertTrue((editor.value as? String)?.contains(draft) == true)
+        let keyboardDone = app.buttons["Done"]
+        XCTAssertTrue(keyboardDone.waitForExistence(timeout: 5))
+        keyboardDone.tap()
+
+        let finish = app.buttons["finishWorkoutButton"]
+        scrollFinishAbovePlaybackTray(in: app)
+        XCTAssertTrue(finish.waitForExistence(timeout: 5), "Finish workout should be reachable above Notes")
+        XCTAssertTrue(finish.isHittable)
+        finish.tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 5),
+                      "Only an explicit Finish workout tap should open the completion sheet")
+        XCTAssertEqual(title.label, "Good Job BUNS!")
+        let sheetScreenshot = XCTAttachment(screenshot: app.screenshot())
+        sheetScreenshot.name = "BUNS workout completion"
+        sheetScreenshot.lifetime = .keepAlways
+        add(sheetScreenshot)
+
+        let completionDone = app.buttons["workoutCompletionDoneButton"]
+        XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
+        XCTAssertTrue(completionDone.isHittable)
+        completionDone.tap()
+        XCTAssertFalse(title.exists, "Done should dismiss the completion sheet")
+        XCTAssertTrue(app.staticTexts["workoutHeading"].exists,
+                      "Dismissing completion should keep the workout open")
+        scrollUntilHittable(editor, in: app)
+        XCTAssertTrue((editor.value as? String)?.contains(draft) == true,
+                      "The completion sheet should preserve unsaved notes in the editor")
+
+        scrollFinishAbovePlaybackTray(in: app)
+        finish.tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 5),
+                      "A second explicit Finish workout tap should reopen the sheet")
+        completionDone.tap()
+        XCTAssertFalse(title.exists)
+    }
+
+    @MainActor
+    func testWorkoutCompletionAtMaximumTextWithReduceMotion() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        app.terminate()
+        app.launchArguments += ["-YarmsUITestReduceMotion",
+                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        scrollUntilHittable(row, in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "The saved workout should load at maximum text size")
+        row.tap()
+        let title = app.staticTexts["workoutCompletionTitle"]
+        XCTAssertFalse(title.exists, "Loading a workout should not open completion")
+
+        let finish = app.buttons["finishWorkoutButton"]
+        scrollFinishAbovePlaybackTray(in: app)
+        XCTAssertTrue(finish.waitForExistence(timeout: 5))
+        XCTAssertTrue(finish.isHittable, "Finish workout should remain reachable at maximum text size")
+        finish.tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        XCTAssertEqual(title.label, "Good Job BUNS!")
+        XCTAssertTrue(title.isHittable,
+                      "The completion headline should remain visible at maximum text size")
+        let completionDone = app.buttons["workoutCompletionDoneButton"]
+        XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
+        XCTAssertTrue(completionDone.isHittable,
+                      "The sheet's Done action should remain reachable at maximum text size")
+        let sheetScreenshot = XCTAttachment(screenshot: app.screenshot())
+        sheetScreenshot.name = "BUNS completion large text reduced motion"
+        sheetScreenshot.lifetime = .keepAlways
+        add(sheetScreenshot)
+        completionDone.tap()
+        XCTAssertFalse(title.exists)
+        XCTAssertTrue(app.staticTexts["workoutHeading"].exists,
+                      "Dismissing completion should remain on the workout")
+    }
+
+    @MainActor
     func testBackupMenuShowsExportAndRestoreActions() throws {
         let app = isolatedApp()
         app.launch()
@@ -413,6 +510,21 @@ final class YarmsUITests: XCTestCase {
             if element.exists && element.isHittable { return }
             if towardTop { app.swipeDown() } else { app.swipeUp() }
         }
+    }
+
+    @MainActor
+    private func scrollFinishAbovePlaybackTray(in app: XCUIApplication) {
+        let finish = app.buttons["finishWorkoutButton"]
+        let playbackTray = app.buttons["Back 10 seconds"]
+        scrollUntilHittable(finish, in: app)
+        for _ in 0..<4 {
+            if finish.exists && playbackTray.exists &&
+               finish.frame.maxY < playbackTray.frame.minY - 8 { return }
+            app.swipeUp()
+        }
+        XCTAssertTrue(finish.exists && playbackTray.exists &&
+                      finish.frame.maxY < playbackTray.frame.minY - 8,
+                      "Finish workout should be fully above the fixed playback tray before tapping")
     }
 
     @MainActor

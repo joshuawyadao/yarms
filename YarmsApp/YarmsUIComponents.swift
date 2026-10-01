@@ -208,6 +208,160 @@ struct YarmsEmptyState: View {
     }
 }
 
+/// A self-reported workout finish deserves a brief, dismissible celebration.
+struct WorkoutCompletionView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.yarmsReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var hasAnimated = false
+    @State private var heartSettled = false
+    @State private var sparklesShown = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: YarmsTheme.Spacing.md) {
+                artwork
+                    .frame(height: typeSize.isAccessibilitySize ? 76 : 112)
+                    .accessibilityHidden(true)
+
+                Text("Good Job BUNS!")
+                    .font(.title.bold())
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("workoutCompletionTitle")
+
+                Text("You showed up and moved today. Be proud of yourself!")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, YarmsTheme.Spacing.xl)
+            .padding(.top, YarmsTheme.Spacing.lg)
+            .padding(.bottom, YarmsTheme.Spacing.xl)
+            .frame(maxWidth: YarmsTheme.maximumContentWidth)
+            .frame(maxWidth: .infinity)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                dismiss()
+            } label: {
+                Text("Done").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(YarmsActionButtonStyle())
+            .accessibilityIdentifier("workoutCompletionDoneButton")
+            .padding(.horizontal, YarmsTheme.Spacing.xl)
+            .padding(.vertical, YarmsTheme.Spacing.md)
+            .frame(maxWidth: YarmsTheme.maximumContentWidth)
+            .frame(maxWidth: .infinity)
+            .background(YarmsTheme.canvas)
+        }
+        .background(YarmsTheme.canvas)
+        .onAppear(perform: animateOnce)
+        .onDisappear {
+            // A fresh presentation starts from the resting entrance state.
+            hasAnimated = false
+            heartSettled = false
+            sparklesShown = false
+        }
+    }
+
+    private var artwork: some View {
+        let compact = typeSize.isAccessibilitySize
+        return ZStack {
+            Image(systemName: "sparkle")
+                .font(.system(size: compact ? 11 : 16, weight: .medium))
+                .offset(x: compact ? -39 : -60, y: compact ? -17 : -31)
+            Image(systemName: "sparkle")
+                .font(.system(size: compact ? 9 : 12, weight: .medium))
+                .offset(x: compact ? 43 : 64, y: compact ? -11 : -21)
+            Image(systemName: "sparkle")
+                .font(.system(size: compact ? 8 : 11, weight: .medium))
+                .offset(x: compact ? 34 : 51, y: compact ? 22 : 35)
+        }
+        .foregroundStyle(YarmsTheme.accent.opacity(0.65))
+        .scaleEffect(reduceMotion || sparklesShown ? 1 : 0.55)
+        .opacity(reduceMotion || sparklesShown ? 1 : 0)
+        .overlay {
+            SmilingHeart()
+                .frame(width: compact ? 62 : 94, height: compact ? 58 : 88)
+                .scaleEffect(reduceMotion || heartSettled ? 1 : 0.72)
+                .offset(y: reduceMotion || heartSettled ? 0 : 10)
+        }
+    }
+
+    private func animateOnce() {
+        guard !hasAnimated else { return }
+        hasAnimated = true
+        guard !reduceMotion else {
+            heartSettled = true
+            sparklesShown = true
+            return
+        }
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.64)) {
+            heartSettled = true
+        }
+        withAnimation(.easeOut(duration: 0.32).delay(0.14)) {
+            sparklesShown = true
+        }
+    }
+}
+
+private struct SmilingHeart: View {
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                HeartShape()
+                    .fill(Color("YarmsBloom"))
+                Circle()
+                    .fill(YarmsTheme.action)
+                    .frame(width: geometry.size.width * 0.07)
+                    .position(x: geometry.size.width * 0.39, y: geometry.size.height * 0.42)
+                Circle()
+                    .fill(YarmsTheme.action)
+                    .frame(width: geometry.size.width * 0.07)
+                    .position(x: geometry.size.width * 0.61, y: geometry.size.height * 0.42)
+                SmileShape()
+                    .stroke(YarmsTheme.action, style: StrokeStyle(lineWidth: geometry.size.width * 0.035,
+                                                                    lineCap: .round))
+            }
+        }
+    }
+}
+
+private struct HeartShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.width * 0.5, y: rect.height * 0.22))
+        path.addCurve(to: CGPoint(x: rect.width * 0.08, y: rect.height * 0.19),
+                      control1: CGPoint(x: rect.width * 0.34, y: rect.height * -0.03),
+                      control2: CGPoint(x: rect.width * 0.08, y: rect.height * 0.01))
+        path.addCurve(to: CGPoint(x: rect.width * 0.5, y: rect.height * 0.96),
+                      control1: CGPoint(x: rect.width * -0.02, y: rect.height * 0.48),
+                      control2: CGPoint(x: rect.width * 0.31, y: rect.height * 0.80))
+        path.addCurve(to: CGPoint(x: rect.width * 0.92, y: rect.height * 0.19),
+                      control1: CGPoint(x: rect.width * 0.69, y: rect.height * 0.80),
+                      control2: CGPoint(x: rect.width * 1.02, y: rect.height * 0.48))
+        path.addCurve(to: CGPoint(x: rect.width * 0.5, y: rect.height * 0.22),
+                      control1: CGPoint(x: rect.width * 0.92, y: rect.height * 0.01),
+                      control2: CGPoint(x: rect.width * 0.66, y: rect.height * -0.03))
+        path.closeSubpath()
+        return path
+    }
+}
+
+private struct SmileShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.width * 0.39, y: rect.height * 0.55))
+        path.addQuadCurve(to: CGPoint(x: rect.width * 0.61, y: rect.height * 0.55),
+                          control: CGPoint(x: rect.width * 0.5, y: rect.height * 0.67))
+        return path
+    }
+}
+
 #Preview("Components · light") {
     componentExamples.preferredColorScheme(.light)
 }
@@ -218,6 +372,17 @@ struct YarmsEmptyState: View {
 
 #Preview("Save confirmation · action and Reduce Motion") {
     SaveConfirmationPreview()
+}
+
+#Preview("Workout completion · light") {
+    WorkoutCompletionView().preferredColorScheme(.light)
+}
+
+#Preview("Workout completion · dark, large text and Reduce Motion") {
+    WorkoutCompletionView()
+        .preferredColorScheme(.dark)
+        .dynamicTypeSize(.accessibility3)
+        .environment(\.yarmsReduceMotion, true)
 }
 
 private struct SaveConfirmationPreview: View {

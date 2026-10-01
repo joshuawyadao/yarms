@@ -12,7 +12,7 @@ Yarms keeps TikTok workout links, folders, and your notes on your iPhone. It has
 
 You can also copy a TikTok video link and tap **Paste** in Yarms. The paste action stays available when the library is empty or a search has no results. [Sharing from TikTok](Shortcut-Sharing.md) explains the handoff and optional Shortcut action.
 
-The library offers a gentle invitation to choose a saved workout or save a new one. Saving a link does not mark a workout complete; Yarms does not track workout completion.
+The library offers a gentle invitation to choose a saved workout or save a new one. Saving a link does not mark a workout complete. You can celebrate finishing from the workout screen; Yarms does not store a completion history.
 
 After a new save, an inline checkmark says **Saved for your next move**. Its small pink flourish ends on its own; the text stays until you change context. Pasting an already-saved video says **Already in your library** and selects All so you can find it. Opening your existing library does not celebrate old saves.
 
@@ -42,6 +42,14 @@ Open a workout to see its title, creator, folder, and portrait video. Once TikTo
 
 Scroll to **Notes (optional)**, enter your notes, dismiss the keyboard with **Done** if needed, then tap **Save notes**. Done only dismisses the keyboard; notes require Save. To clear a note, delete its text and save again. Notes stay with the local workout and are included in backups. **Saved on this iPhone** confirms a successful save; editing again clears that confirmation until you save the new text.
 
+## Finish a workout
+
+When you are finished, scroll below the video and tap **Finish workout**. A modal says **Good Job BUNS!** with a smiling pink heart and one short sparkle animation. Tap **Done** or swipe down whenever you want to return to the workout; there is no timer to wait through.
+
+Opening the celebration dismisses the keyboard and asks the embedded player to pause if it is ready. Closing it does not start playback or save/change your notes. The button also works when the video is unavailable or you followed along in TikTok. You decide when you are finished: saving a link, opening a workout, or reaching the end of a clip never opens the celebration automatically.
+
+This is an encouraging moment, not a workout log: it does not store completion dates, counts, or streaks. You can use it again after another session.
+
 ## Delete a saved workout
 
 Swipe a library row left and tap **Delete**, or tap the trash button on the workout screen. Confirm **Delete workout** to remove its link, notes, and folder assignment from this installation. Cancel keeps it saved. The folder and other workouts remain, and the TikTok post is unaffected.
@@ -67,7 +75,7 @@ For the former App Group build, follow [Storage migration](Storage-Migration.md)
 
 ## Gentle motion
 
-Buttons, folder choices, and save confirmations use brief animation. No celebration blocks an action or requires dismissal. To remove custom motion, enable **Settings → Accessibility → Motion → Reduce Motion** on your iPhone; checkmarks, confirmation text, and selected folders remain available.
+Buttons, folder choices, and save confirmations use brief animation. Save feedback stays inline. The workout-completion modal opens only when you choose Finish workout and can be dismissed immediately. To remove custom motion, enable **Settings → Accessibility → Motion → Reduce Motion** on your iPhone; checkmarks, confirmation text, selected folders, and the static completion heart remain available.
 
 ## Troubleshooting
 

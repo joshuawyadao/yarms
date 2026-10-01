@@ -14,13 +14,13 @@ Use these principles in order when decisions conflict:
 4. **Be familiar on iPhone.** Use native navigation, search, sheets, menus, alerts, system type, and SF Symbols. Preserve their accessibility and platform behavior.
 5. **Make encouragement feel personal.** Use deeper rose-pink actions, softly tinted backgrounds, generous rounding, and occasional friendly copy. Celebrate a completed action briefly and truthfully. Avoid competitive fitness language, guilt, and ornamental cards around every section.
 
-This foundation does not introduce workout tracking, streaks, recommendations, or additional navigation destinations.
+The completion celebration is self-reported through Finish workout. It does not introduce workout history, streaks, recommendations, or additional navigation destinations.
 
 ### Playfulness without extra work
 
-Let friendliness appear in an invitation such as “Find your feel-good move,” a rounded workout card, a familiar symbol, or a small saved confirmation. Keep instructional and error copy precise. A person should never need to dismiss a celebration to keep using the app. Mascots, confetti, points, and reminders are not part of this foundation; consider them only if user feedback reveals a real need.
+Let friendliness appear in an invitation such as “Find your feel-good move,” a rounded workout card, a familiar symbol, or a small saved confirmation. Keep instructional and error copy precise. Save confirmations stay inline and require no dismissal. The explicitly requested workout-completion celebration is a native modal opened only by Finish workout, with an immediately available Done action and swipe dismissal. Its smiling heart and small sparkles are confined to that moment; there are no ongoing mascots, confetti showers, points, or reminders.
 
-Encourage a real next step: choose a saved workout to try, save a move that looks fun, or return when it suits the person. Frame movement as enjoyable and self-directed. Rest days and returning after a break need no apology. Keep exercise instructions with the original creator; do not invent routines, progress, or completed-workout celebrations. The app does not track workout completion, and saving a video is not completing a workout. Avoid guilt, body/weight judgments, streak loss, and urgency.
+Encourage a real next step: choose a saved workout to try, save a move that looks fun, or return when it suits the person. Frame movement as enjoyable and self-directed. Rest days and returning after a break need no apology. Keep exercise instructions with the original creator; do not invent routines or progress. Celebrate a workout only when the person taps Finish workout. Saving a video or reaching its end does not establish workout completion, and the app does not save a completion history. Avoid guilt, body/weight judgments, streak loss, and urgency.
 
 Judge usability by whether someone can save without typing, find an appealing saved workout, and start following it with little hesitation. For an informal feedback session, ask the intended user to save a link, find it again, and open it; observe where labels or actions cause hesitation, then ask which details feel welcoming or distracting. Use that feedback to refine the implemented screens and this guide in the next iteration. There is no need to choose inspiration apps first.
 
@@ -98,7 +98,7 @@ A successful new save shows an inline checkmark and one small pink bloom behind 
 
 Read the system Reduce Motion preference through `yarmsReduceMotion`. When enabled, custom scaling, bloom, count motion, and fades are disabled; words, checkmarks, selection, and pressed color feedback remain. Its internal override is for previews and isolated debug UI tests, and cannot turn off the real system preference. See Apple's [Reduce Motion environment documentation](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion).
 
-Keep animations local to controls and confirmation symbols. Search typing, full library result changes, background metadata text updates, playback time, navigation, keyboard movement, and the Share extension use their existing behavior. No looping decoration, bouncing cards, animated gradients, loading shimmer, sounds, haptics, added completion delays, or startup choreography. Motion never represents workout completion.
+Keep animations local to controls and confirmation symbols. Search typing, full library result changes, background metadata text updates, playback time, navigation, keyboard movement, and the Share extension use their existing behavior. No looping decoration, bouncing cards, animated gradients, loading shimmer, sounds, haptics, added completion delays, or startup choreography. The completion modal is the explicit exception: a smiling pink heart makes one brief hop/pop with soft sparkles after the person taps Finish workout. It settles in under a second, never repeats while the modal is open, and becomes static with Reduce Motion. It never waits to enable dismissal.
 
 ## Component contracts
 
@@ -117,6 +117,7 @@ Build only components used by actual screens. Keep the visual API small and let 
 | Notes panel | Optional disclosure; native text editing; keyboard Done; explicit Save notes; clear saved/error feedback. | Empty, existing note, editing, saving, saved, failed write |
 | Empty state | Plain title, concise explanation, relevant next step. Keep save/search/folder controls available as appropriate. | First save, empty folder, empty Unfiled, no matches |
 | Confirmation / feedback | Native confirmation for destructive or consequential operations. Use inline feedback for local state; an alert for failures that need attention. | Cancel, confirm, success, retryable failure |
+| Workout completion | Explicit Finish workout below the player opens a native modal with “Good Job BUNS!”, a smiling pink heart, one short sparkle animation, and Done. No stored completion record. | Ready/unavailable video, reduced motion, large text, immediate dismissal, reopening |
 
 Do not visually elevate Open in TikTok above the video itself. Its prominent button treatment provides a dependable alternative while the player remains the dominant content.
 
@@ -130,11 +131,13 @@ The populated library should be easy to scan without interpreting badges. Use co
 
 ### Workout
 
-Hierarchy: back navigation and contextual actions → title, creator, folder → portrait player → optional notes. Keep transport controls and the full-width external fallback in the bottom safe-area tray. Maintain the player's portrait framing and useful width; avoid wasting space on decorative headings. The notes editor and its focused text must remain reachable with the keyboard open. Short screens, landscape, and large text need device review rather than blindly applying a fixed height.
+Hierarchy: back navigation and contextual actions → title, creator, folder → portrait player → Finish workout → optional notes. Keep transport controls and the full-width external fallback in the bottom safe-area tray. Maintain the player's portrait framing and useful width; avoid wasting space on decorative headings. The notes editor and its focused text must remain reachable with the keyboard open. Short screens, landscape, and large text need device review rather than blindly applying a fixed height.
+
+The Finish workout button is available even when an embedded video cannot play, so someone who followed along externally can use it. Opening the celebration dismisses the keyboard and requests a pause from a ready embedded player. Dismissing it returns to the current workout without auto-resuming or changing notes. It uses medium/large native sheet sizes, or a full-height sheet at accessibility text sizes; content can scroll and Done remains reachable.
 
 ### Language and trust
 
-Use `yarms` for the product name in visible copy. Use sentence case, direct verbs, and concrete nouns: “New folder,” “Move workout,” “Save notes,” “Export backup.” Be encouraging without pressure, calorie language, streaks, or judgments about exercise habits.
+Use `yarms` for the product name in visible copy. Use sentence case for controls, direct verbs, and concrete nouns: “New folder,” “Move workout,” “Save notes,” “Export backup.” Be encouraging without pressure, calorie language, streaks, or judgments about exercise habits.
 
 | Situation | Example copy / required meaning |
 | --- | --- |
@@ -144,6 +147,7 @@ Use `yarms` for the product name in visible copy. Use sentence case, direct verb
 | No matches | “No matching workouts.” / “Try a different title, creator, or link.” |
 | Failed playback | “This video couldn't play here.” / keep “Open in TikTok” available |
 | Note saved | “Saved on this iPhone.” only after the write succeeds |
+| Workout finished | Exact requested headline “Good Job BUNS!” after the person taps Finish workout; encouragement does not claim saved completion history |
 | Delete workout | Explain that the saved link and notes are removed from this iPhone; the TikTok post remains |
 | Delete folder | Explain that workouts move to Unfiled and remain saved |
 | Restore backup | Explain the additive merge before confirmation; do not imply the current library is replaced |
@@ -157,16 +161,16 @@ Use **Apple's native controls + yarms semantic tokens + shared content component
 | Source | Responsibility |
 | --- | --- |
 | [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Adaptive color roles, spacing, radii, target/content sizes, motion timing, Reduce Motion policy, and action styles |
-| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | `FolderBadge`, `FolderFilter`, `WorkoutCardContent`, `YarmsSaveConfirmation`, `YarmsEmptyState`, and interactive/light/dark/large-text previews |
+| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | `FolderBadge`, `FolderFilter`, `WorkoutCardContent`, `YarmsSaveConfirmation`, `WorkoutCompletionView`, `YarmsEmptyState`, and interactive/light/dark/large-text previews |
 | [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) | Save/search/folder composition, adaptive folder sheet, navigation, move/delete/backup operations |
-| [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout/player composition, notes, compact transport controls, and bottom fallback |
+| [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout/player composition, explicit completion presentation, notes, compact transport controls, and bottom fallback |
 | [ShareViewController.swift](../YarmsShare/ShareViewController.swift) | Native progress indicator and scalable “Saving to yarms…” status during capture |
 
 Keep these two small shared Swift files alongside the app's existing sources so the current Xcode project generator can discover them. A deeper directory hierarchy is unnecessary until the component set grows. Components receive content, state, and callbacks; action styles never write data. Persistence, backup operations, and player messages stay with their existing owners.
 
 Use an existing token or component before adding a new one. Extend component previews for new states, and keep the existing UI contracts for saving, selected folders, notes, deletion, and the visible full-width TikTok fallback. System PasteButton retains its native size, wording, and paste permission behavior. The illustrated concept's custom full-width Paste treatment is intentionally represented with a native Paste control in the app.
 
-The Share extension uses system colors rather than linking app-only assets. Its spinner reports work in progress; completion still occurs only after the shared inbox write succeeds, without a celebration delay. Native navigation, sheets, alerts, and Files pickers remain system-managed. Custom motion is confined to the main app’s shared controls and inline feedback; no haptics were introduced.
+The Share extension uses system colors rather than linking app-only assets. Its spinner reports work in progress; completion still occurs only after the shared inbox write succeeds, without a celebration delay. Native navigation, sheets, alerts, and Files pickers remain system-managed. Custom motion is confined to the main app’s shared controls, inline feedback, and explicitly opened workout-completion modal; no haptics were introduced.
 
 ## Decision checklist
 
