@@ -39,11 +39,13 @@ Each UI test starts with a distinct `-YarmsUITestStoreID` UUID, selecting a temp
 
 ## Motion verification
 
-The confirmation regressions check a successful new paste, an existing-video paste without duplication, an invalid paste clearing prior success feedback, and relaunch without celebrating existing records. The notes flow checks successful-save feedback, clearing on edit, resaving, and persistence. Existing folder, deletion, and large-text flows remain coverage for control reachability and state changes.
+The confirmation regressions check a successful new paste, an existing-video paste without duplication, an invalid paste clearing prior success feedback, and relaunch without celebrating existing records. The notes flow checks successful-save feedback, clearing on edit, resaving, and persistence. The large-text flow also checks a visible paste result and that its complete wrapped frame can scroll onto the screen. Existing folder, deletion, and large-text flows remain coverage for control reachability and state changes.
 
 `-YarmsUITestReduceMotion` enables the app’s shared reduced-motion policy only in a debug build with `-YarmsUITestStoreID`. It does not change the simulator’s system preferences. This keeps UI tests deterministic; it is not proof of system-setting integration or animation comfort. The app normally reads the native Reduce Motion environment, and the internal preview/test override cannot disable an enabled system preference.
 
 Use the interactive **Save confirmation · action and Reduce Motion** preview to compare save, duplicate, clearing, and rapid repeated actions. On a device, toggle the actual accessibility setting and check that custom scaling, bloom, count transitions, and fades disappear while static feedback remains. Check normal/dark appearance and large text; confirm the bloom stays behind its checkmark, confirmation text remains readable, and controls do not shift. Scroll away/back and background/foreground the app without a new share: neither should replay a celebration. Verify that typing, playback time updates, and ordinary result-list changes stay steady. Confirm a failed persistence operation never claims success; simulator invalid-input coverage alone does not prove every filesystem failure path.
+
+The October 1, 2026 motion change passed the full suite on iPhone 17e / iOS 26.5: 91 passed and two expected skips. After refining empty confirmation spacing at accessibility sizes, three focused dark-mode checks (large text, reduced motion, and notes) and a strengthened light-mode full-message visibility check passed. Simulator screenshots were inspected for light/dark confirmation styling, notes, and large-text wrapping. The existing keyboard/frame diagnostic described below also appeared in these passing notes runs.
 
 ## Opt-in checks
 

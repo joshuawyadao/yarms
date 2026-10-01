@@ -270,6 +270,23 @@ final class YarmsUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
         XCTAssertTrue(paste.isHittable, "Paste should remain reachable at large text")
+
+        paste.tap()
+        let confirmation = app.staticTexts["librarySaveConfirmation"]
+        scrollUntilHittable(confirmation, in: app)
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5),
+                      "Large text should keep a paste result readable")
+        XCTAssertEqual(confirmation.label, "Already in your library.")
+        XCTAssertTrue(confirmation.isHittable, "The complete result should be reachable at large text")
+        // A partially visible label can be hittable. Scroll its complete frame into view;
+        // native search can hide the navigation bar, so use the app's visible bounds.
+        app.swipeDown()
+        XCTAssertTrue(app.frame.contains(confirmation.frame),
+                      "The complete wrapped result should scroll onto the screen")
+        let feedbackScreenshot = XCTAttachment(screenshot: app.screenshot())
+        feedbackScreenshot.name = "Large text with inline paste feedback"
+        feedbackScreenshot.lifetime = .keepAlways
+        add(feedbackScreenshot)
     }
 
     @MainActor

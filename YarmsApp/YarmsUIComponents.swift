@@ -134,6 +134,7 @@ struct YarmsSaveConfirmation: View {
     let celebrates: Bool
     let placeholder: String
     @Environment(\.yarmsReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .subheadline) private var symbolSize = 22
 
     init(message: String?, eventID: Int, celebrates: Bool = true,
@@ -178,6 +179,8 @@ struct YarmsSaveConfirmation: View {
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
+        // A reserved multiline message costs too much browsing space at large text sizes.
+        .frame(height: message == nil && typeSize.isAccessibilitySize ? 0 : nil)
         .accessibilityElement(children: .combine)
         .accessibilityHidden(message == nil)
     }
