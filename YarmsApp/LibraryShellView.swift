@@ -219,7 +219,7 @@ struct LibraryShellView: View {
         if workouts.isEmpty {
             VStack(spacing: YarmsTheme.Spacing.md) {
                 YarmsEmptyState(title: "No workouts yet", symbol: "figure.strengthtraining.traditional",
-                                message: "Save a workout that catches your eye. It will be here when you’re ready.")
+                                message: "Spot a move you’d love to try? Save it here for your next workout.")
                 Button("Restore a backup", systemImage: "square.and.arrow.down") {
                     showingImporter = true
                 }
@@ -253,11 +253,13 @@ struct LibraryShellView: View {
     private var saveCard: some View {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.md) {
             if searchText.isEmpty {
-                Text(workouts.isEmpty ? "Your next move starts here." : "Ready when you are.")
+                Text(workouts.isEmpty ? "Your next move starts here." : "Find your feel-good move.")
                     .font(.title2.bold())
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
-                Text("Share a TikTok to yarms, or paste a link to keep it here.")
+                Text(workouts.isEmpty
+                     ? "Share a TikTok to yarms, or paste a link to keep it here."
+                     : "Pick a workout to try today, or save a new one for later.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -1,10 +1,10 @@
 # yarms design language
 
-**Status: adopted foundation v0.2, September 30, 2026.** The owner selected calm, focused native iPhone styling with restrained purple accents, and clarified that the app should also feel fun, playful, and exceptionally easy to return to. The existing icon and adaptive palette are retained. The owner approved applying this direction across the app. Shared tokens and components now style the library, workout player, notes, and empty states. Native sheets, menus, alerts, and the Share extension retain system presentation. Acceptance checks below distinguish implementation from full device/accessibility verification; feedback from the intended user will guide the next iteration.
+**Status: adopted foundation v0.3, September 30, 2026.** Cool-tone pink is the primary brand direction, reflecting the intended user’s preference. Pair it with calm native iPhone structure, playful details, and gentle invitations to save and try workouts. The adaptive palette includes light, dark, and increased-contrast variants; the app follows the system appearance. Shared tokens and components style the library, workout player, notes, and empty states. Native sheets, menus, alerts, and the Share extension retain system presentation. Feedback from the intended user will refine the shade and experience.
 
 ## Product character
 
-**A friendly place to save a little inspiration and get moving.** yarms helps someone capture a workout, find it again, and follow along. The structure should feel calm and obvious; rounded shapes, soft purple, and friendly language supply a playful personality. Make returning feel welcoming and make saving feel easy. The video and the person's own organization remain central.
+**A friendly place to save a little inspiration and get moving.** yarms helps someone capture a workout, find it again, and follow along. The structure should feel calm and obvious; rounded shapes, cool pink, and friendly language supply a playful personality. Make returning feel welcoming and make saving feel easy. The video and the person's own organization remain central.
 
 Use these principles in order when decisions conflict:
 
@@ -12,13 +12,15 @@ Use these principles in order when decisions conflict:
 2. **Make the next step obvious.** Give each action group one clear primary action. Use labels and hierarchy to distinguish saving, filtering, opening, and deleting.
 3. **Make organization feel light.** Folders are optional. Unfiled is a useful destination, not an error or a task the person must clear.
 4. **Be familiar on iPhone.** Use native navigation, search, sheets, menus, alerts, system type, and SF Symbols. Preserve their accessibility and platform behavior.
-5. **Make encouragement feel personal.** Use plum actions, softly tinted backgrounds, generous rounding, and occasional friendly copy. Celebrate a completed action briefly and truthfully. Avoid competitive fitness language, guilt, and ornamental cards around every section.
+5. **Make encouragement feel personal.** Use deeper rose-pink actions, softly tinted backgrounds, generous rounding, and occasional friendly copy. Celebrate a completed action briefly and truthfully. Avoid competitive fitness language, guilt, and ornamental cards around every section.
 
 This foundation does not introduce workout tracking, streaks, recommendations, or additional navigation destinations.
 
 ### Playfulness without extra work
 
-Let friendliness appear in a welcoming line such as “Ready when you are,” a rounded workout card, a familiar symbol, or a small saved confirmation. Keep instructional and error copy precise. A person should never need to dismiss a celebration to keep using the app. Mascots, confetti, points, and reminders are not part of this foundation; consider them only if user feedback reveals a real need.
+Let friendliness appear in an invitation such as “Find your feel-good move,” a rounded workout card, a familiar symbol, or a small saved confirmation. Keep instructional and error copy precise. A person should never need to dismiss a celebration to keep using the app. Mascots, confetti, points, and reminders are not part of this foundation; consider them only if user feedback reveals a real need.
+
+Encourage a real next step: choose a saved workout to try, save a move that looks fun, or return when it suits the person. Frame movement as enjoyable and self-directed. Rest days and returning after a break need no apology. Keep exercise instructions with the original creator; do not invent routines, progress, or completed-workout celebrations. The app does not track workout completion, and saving a video is not completing a workout. Avoid guilt, body/weight judgments, streak loss, and urgency.
 
 Judge usability by whether someone can save without typing, find an appealing saved workout, and start following it with little hesitation. For an informal feedback session, ask the intended user to save a link, find it again, and open it; observe where labels or actions cause hesitation, then ask which details feel welcoming or distracting. Use that feedback to refine the implemented screens and this guide in the next iteration. There is no need to choose inspiration apps first.
 
@@ -26,22 +28,24 @@ Judge usability by whether someone can save without typing, find an appealing sa
 
 ### Color: choose by purpose
 
-Keep the existing asset catalog as the color source of truth. The hex values below are rounded references derived from its sRGB components; views should use the named assets instead of copying hex values. Primary and secondary text use adaptive system foreground styles.
+Use a blue-based rose pink with a slight lilac influence. Keep peach, coral, and warm salmon out of the core palette. Light appearance uses pale blush and white; dark appearance uses deep rose-charcoal with brighter pink accents. Pink is an inviting accent rather than a saturated full-screen background.
+
+Keep the asset catalog as the color source of truth. The hex values below match its sRGB components; views should use the named assets instead of copying hex values. Primary and secondary text use adaptive system foreground styles.
 
 | Role / existing asset | Light reference | Dark reference | Use |
 | --- | --- | --- | --- |
-| Canvas / `YarmsCanvas` | `#FBF7FC` | `#18131C` | Main content background |
-| Surface / `YarmsSurface` | `#FFFFFF` | `#29202D` | Workout cards and bottom action tray |
-| Soft / `YarmsSoft` | `#F2E7F3` | `#3D2D42` | Unselected filters, quiet controls, image fallback |
-| Accent / `AccentColor` | `#71317D` | `#E4B9EA` | Interactive text and symbols |
-| Action / `YarmsAction` | `#71317D` | `#9752A2` | Filled action and selected filter, paired with white |
-| Bloom / `YarmsBloom` | `#D8AEDC` | `#A76CAF` | Optional decorative detail; never essential text |
+| Canvas / `YarmsCanvas` | `#FFF7FC` | `#1C141B` | Main content background |
+| Surface / `YarmsSurface` | `#FFFFFF` | `#2D202A` | Workout cards and bottom action tray |
+| Soft / `YarmsSoft` | `#F9E4F1` | `#452B3D` | Unselected filters, quiet controls, image fallback |
+| Accent / `AccentColor` | `#8C1D5E` | `#F3B5D7` | Interactive text and symbols |
+| Action / `YarmsAction` | `#A92D76` | `#B3377E` | Filled action and selected filter, paired with white |
+| Bloom / `YarmsBloom` | `#ECA6CD` | `#C977AA` | Optional decorative detail; never essential text |
 
-Accent and Action deliberately differ in dark mode. Do not use the light dark-mode Accent as a background for white labels. Calculated white-on-Action contrast is approximately **8.62:1 in light mode and 5.19:1 in dark mode**, using the stored asset components at full opacity. This checks those two pairs only, not the accessibility of the whole interface.
+Accent and Action deliberately differ in dark mode. Do not use the light dark-mode Accent as a background for white labels. Calculated white-on-Action contrast is **6.32:1 in light mode and 5.58:1 in dark mode**, using the stored sRGB components. The increased-contrast variants provide **8.56:1 and 7.07:1**, respectively. Accent on Canvas, Surface, and Soft exceeds 4.5:1 in all four appearances. Calculated pressed primary and secondary label treatments also exceed 4.5:1 on the brand backgrounds; the lowest checked pair is 4.70:1 for a pressed secondary action in ordinary light appearance. These measurements cover the defined custom pairs, not system materials, disabled controls, images, or the whole interface.
 
 Use system destructive red with an explicit Delete label. Success and error messages require words or symbols as well as color. Disabled native controls should retain native treatment; a custom disabled control must remain identifiable and expose its disabled state. Never use Bloom or Soft alone to communicate selection.
 
-Design each appearance deliberately. Native sheets, menus, navigation materials, and alerts keep their system surfaces. App content uses the brand surfaces. Verify custom pairs under Increase Contrast; appearance variants alone do not establish an increased-contrast design. Apple recommends adaptive semantic colors for appearance changes in its [Dark Mode guidance](https://developer.apple.com/design/human-interface-guidelines/dark-mode).
+Follow the system appearance without forcing a scheme or adding a separate appearance preference. Each brand asset includes an Increase Contrast variant: stronger foreground/action colors and adjusted surfaces in dark appearance. Keep the existing increased-contrast outlines on secondary controls and folder filters. Native sheets, menus, navigation materials, alerts, and the Share extension keep their adaptive system surfaces. Review these combinations on device as well as measuring the custom pairs. Apple recommends adaptive semantic colors for appearance changes in its [Dark Mode guidance](https://developer.apple.com/design/human-interface-guidelines/dark-mode).
 
 ### Typography: system styles with clear roles
 
@@ -128,8 +132,8 @@ Use `yarms` for the product name in visible copy. Use sentence case, direct verb
 
 | Situation | Example copy / required meaning |
 | --- | --- |
-| Returning to the library | “Ready when you are.” / keep this welcome brief so saved workouts remain easy to reach |
-| First save | “Your next move starts here.” / “Share a TikTok to yarms, or paste a link to start.” |
+| Returning to the library | “Find your feel-good move.” / “Pick a workout to try today, or save a new one for later.” |
+| First save | “Your next move starts here.” / “Share a TikTok to yarms, or paste a link to keep it here.” |
 | Empty folder | “This folder is empty.” / “Move a saved workout here.” |
 | No matches | “No matching workouts.” / “Try a different title, creator, or link.” |
 | Failed playback | “This video couldn't play here.” / keep “Open in TikTok” available |
@@ -186,6 +190,8 @@ Apple's [Accessibility guidance](https://developer.apple.com/design/human-interf
 
 ## Validation history
 
-The September 25 concept established the palette and checked two white-on-Action contrast pairs. It did not validate native layout. The September 30 implementation adds native component previews and a UI regression for large-text folder selection and zero-result Paste access. Existing UI tests retain save, note persistence, folder movement, backup access, deletion confirmation, and compact player-control assertions.
+The September 25 concept established the initial purple palette and checked two white-on-Action contrast pairs. It did not validate native layout. The September 30 implementation adds native component previews and a UI regression for large-text folder selection and zero-result Paste access. Existing UI tests retain save, note persistence, folder movement, backup access, deletion confirmation, and compact player-control assertions.
 
 See [Implementation-Plan.md](Implementation-Plan.md) for this change's build/test results and remaining checks. Simulator checks do not establish live TikTok playback, cross-process sharing, physical-device comfort, or a full VoiceOver/accessibility audit.
+
+The cool-pink refinement adds explicit increased-contrast assets and an invitation to choose a workout in the populated library. Contrast calculations use the current asset values, including pressed custom button treatments. The app icon remains the approved artwork.

@@ -145,14 +145,14 @@ struct YarmsEmptyState: View {
 @MainActor private var componentExamples: some View {
     ScrollView {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.lg) {
-            Text("Ready when you are.").font(.title2.bold())
+            Text("Find your feel-good move.").font(.title2.bold())
             FolderBadge(name: nil)
             FolderBadge(name: "A little movement for the end of the day")
             FolderFilter(title: "All", count: 3, isSelected: true, action: {})
             Button("Open in TikTok") {}.buttonStyle(YarmsActionButtonStyle())
             Button("Save notes") {}.buttonStyle(YarmsSecondaryButtonStyle())
             YarmsEmptyState(title: "No workouts yet", symbol: "figure.strengthtraining.traditional",
-                            message: "Save a workout that catches your eye. It will be here when you're ready.")
+                            message: "Spot a move you’d love to try? Save it here for your next workout.")
         }
         .padding(YarmsTheme.Spacing.lg)
     }
