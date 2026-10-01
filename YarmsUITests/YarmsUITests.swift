@@ -27,7 +27,7 @@ final class YarmsUITests: XCTestCase {
 
         let back = app.buttons["Back 10 seconds"]
         let fallback = app.buttons["openInTikTokButton"]
-        XCTAssertTrue(app.staticTexts["WORKOUT"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["workoutHeading"].waitForExistence(timeout: 5),
                       "The player should show the workout heading above the video")
         XCTAssertTrue(back.waitForExistence(timeout: 10), "The workout should show playback controls")
         XCTAssertTrue(fallback.exists, "The workout should offer Open in TikTok")
@@ -151,9 +151,10 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(destination.label.contains("Leg day"), "The destination should have the entered name")
         destination.tap()
 
-        let filedChip = app.buttons["Leg day, 1 workouts"]
+        let filedChip = app.buttons["Leg day, 1 workout"]
         XCTAssertTrue(filedChip.waitForExistence(timeout: 5), "The folder count should update after moving")
         filedChip.tap()
+        XCTAssertTrue(filedChip.isSelected, "The active folder should announce its selected state")
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The folder should show its filed workout")
         let libraryScreenshot = XCTAttachment(screenshot: app.screenshot())
         libraryScreenshot.name = "Library save action, folders, and filed workout card"
@@ -161,6 +162,70 @@ final class YarmsUITests: XCTestCase {
         add(libraryScreenshot)
         app.buttons["folder-unfiled"].tap()
         XCTAssertFalse(row.exists, "The moved workout should leave Unfiled")
+    }
+
+    @MainActor
+    func testLargeTextFolderPickerKeepsLibraryActionsReachable() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+
+        app.buttons["newFolderButton"].tap()
+        let editor = app.alerts["New folder"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        let name = editor.textFields["Folder name"]
+        name.tap()
+        name.typeText("Longer strength sessions")
+        editor.buttons["Create"].tap()
+
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+
+        let picker = app.buttons["folderPickerButton"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 10),
+                      "Large text should offer a labeled folder picker")
+        scrollUntilHittable(picker, in: app)
+        XCTAssertTrue(picker.isHittable, "The folder picker should remain reachable at large text")
+        picker.tap()
+        XCTAssertTrue(app.staticTexts["Choose folder"].waitForExistence(timeout: 5),
+                      "The picker should identify the folder choice")
+        let folder = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "folder-")
+        ).matching(NSPredicate(format: "label CONTAINS %@", "Longer strength sessions")).firstMatch
+        XCTAssertTrue(folder.waitForExistence(timeout: 5), "The named folder should be listed")
+        XCTAssertTrue(folder.label.contains("0 workouts"), "An empty folder should announce its count")
+        folder.tap()
+        XCTAssertTrue(app.staticTexts["This folder is empty"].waitForExistence(timeout: 5),
+                      "Selecting the empty folder should filter the library")
+
+        picker.tap()
+        XCTAssertTrue(folder.waitForExistence(timeout: 5))
+        XCTAssertTrue(folder.isSelected, "The picker should announce the selected folder")
+        let all = app.buttons["folder-all"]
+        XCTAssertTrue(all.waitForExistence(timeout: 5))
+        XCTAssertTrue(all.label.contains("1 workout"), "The All option should announce a singular count")
+        all.tap()
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "workout-\(videoID)").firstMatch.waitForExistence(timeout: 5),
+            "Selecting All should restore the saved workout")
+
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        scrollUntilHittable(search, in: app, towardTop: true)
+        XCTAssertTrue(search.isHittable)
+        search.tap()
+        search.typeText("no-workout-matches-this-search")
+        XCTAssertTrue(app.staticTexts["No matching workouts"].waitForExistence(timeout: 5))
+        let paste = app.buttons["noMatchesPasteLinkButton"]
+        XCTAssertTrue(paste.waitForExistence(timeout: 5),
+                      "A zero-result search should still expose Paste at large text")
+        scrollUntilHittable(paste, in: app, towardTop: true)
+        XCTAssertTrue(paste.isHittable, "Paste should remain reachable at large text")
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Large text library with zero results and Paste action"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 
     @MainActor
@@ -215,6 +280,14 @@ final class YarmsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]
         return app
+    }
+
+    @MainActor
+    private func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication,
+                                    towardTop: Bool = false) {
+        for _ in 0..<4 where !element.isHittable {
+            if towardTop { app.swipeDown() } else { app.swipeUp() }
+        }
     }
 
     @MainActor

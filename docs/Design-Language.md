@@ -1,6 +1,6 @@
 # yarms design language
 
-**Status: proposal v0.1, September 25, 2026.** The owner selected calm, focused native iPhone styling with restrained purple accents, and clarified that the app should also feel fun, playful, and exceptionally easy to return to. The existing icon and adaptive palette are retained. This is a foundation for discussion and future UI work, not a claim that the app already implements every rule. Component treatment and screen layouts remain proposals to refine through feedback from the intended user; no reference apps have been selected yet.
+**Status: adopted foundation v0.2, September 30, 2026.** The owner selected calm, focused native iPhone styling with restrained purple accents, and clarified that the app should also feel fun, playful, and exceptionally easy to return to. The existing icon and adaptive palette are retained. The owner approved applying this direction across the app. Shared tokens and components now style the library, workout player, notes, and empty states. Native sheets, menus, alerts, and the Share extension retain system presentation. Acceptance checks below distinguish implementation from full device/accessibility verification; feedback from the intended user will guide the next iteration.
 
 ## Product character
 
@@ -14,13 +14,13 @@ Use these principles in order when decisions conflict:
 4. **Be familiar on iPhone.** Use native navigation, search, sheets, menus, alerts, system type, and SF Symbols. Preserve their accessibility and platform behavior.
 5. **Make encouragement feel personal.** Use plum actions, softly tinted backgrounds, generous rounding, and occasional friendly copy. Celebrate a completed action briefly and truthfully. Avoid competitive fitness language, guilt, and ornamental cards around every section.
 
-These principles do not introduce workout tracking, streaks, recommendations, or additional navigation destinations.
+This foundation does not introduce workout tracking, streaks, recommendations, or additional navigation destinations.
 
 ### Playfulness without extra work
 
-Let friendliness appear in a welcoming line such as “Ready when you are,” a rounded workout card, a familiar symbol, or a small saved confirmation. Keep instructional and error copy precise. A person should never need to dismiss a celebration to keep using the app. Mascots, confetti, points, and reminders are not part of this proposal; consider them only if user feedback reveals a real need.
+Let friendliness appear in a welcoming line such as “Ready when you are,” a rounded workout card, a familiar symbol, or a small saved confirmation. Keep instructional and error copy precise. A person should never need to dismiss a celebration to keep using the app. Mascots, confetti, points, and reminders are not part of this foundation; consider them only if user feedback reveals a real need.
 
-Judge usability by whether someone can save without typing, find an appealing saved workout, and start following it with little hesitation. For an informal feedback session, ask the intended user to save a link, find it again, and open it; observe where labels or actions cause hesitation, then ask which details feel welcoming or distracting. Use that feedback to refine this guide before broad screen changes. There is no need to choose inspiration apps first.
+Judge usability by whether someone can save without typing, find an appealing saved workout, and start following it with little hesitation. For an informal feedback session, ask the intended user to save a link, find it again, and open it; observe where labels or actions cause hesitation, then ask which details feel welcoming or distracting. Use that feedback to refine the implemented screens and this guide in the next iteration. There is no need to choose inspiration apps first.
 
 ## Foundations
 
@@ -63,7 +63,7 @@ Use semantic text styles and Dynamic Type instead of fixed font sizes. This foll
 
 ### Spacing, shape, and size
 
-The following are **proposed tokens**, not existing Swift symbols. Values are in points. Native component metrics take precedence inside system controls.
+These roles are implemented in `YarmsTheme`: `space.*` maps to `Spacing.*`, `radius.*` to `Radius.*`, and the size roles to `minimumTarget` and `maximumContentWidth`. Values are in points. Native component metrics take precedence inside system controls; the UIKit Share extension keeps its own native layout constants.
 
 | Token | Value | Default use |
 | --- | --- | --- |
@@ -82,7 +82,7 @@ The following are **proposed tokens**, not existing Swift symbols. Values are in
 
 Cards separate independent tappable workouts. Use spacing and headings to group related content rather than nesting cards. Default to flat surfaces without shadows. Use a system separator when an edge is necessary; low-contrast decorative borders cannot be the only cue that a control exists.
 
-The 44-point target is a yarms baseline for all custom controls. A compact glyph can sit inside that target. Prefer a minimum height over a fixed height for labeled actions, so larger text can wrap. Keep the library's save section, folders, and results in one vertical scrolling region. At larger sizes, use wrapping filters or a labeled folder picker instead of compressing labels or hiding workouts behind fixed chrome. These are future layout options, not implemented behaviors.
+The 44-point target is a yarms baseline for all custom controls. A compact glyph can sit inside that target. Prefer a minimum height over a fixed height for labeled actions, so larger text can wrap. Keep the library's save section, folders, and results in one vertical scrolling region. At accessibility text sizes, with more than six named folders, or when a folder name exceeds 24 characters, show the labeled folder picker. It opens a native sheet with wrapping names and explicit selection. Smaller collections use horizontal filter chips. Workout cards stack their thumbnail and text at accessibility sizes; the player stacks creator/folder metadata and note actions.
 
 ### Icons and motion
 
@@ -97,7 +97,7 @@ Build only components used by actual screens. Keep the visual API small and let 
 | Component | Visual / interaction contract | Required states |
 | --- | --- | --- |
 | Save section | Concise heading, one helpful sentence, native `PasteButton` with Action tint. Keep it reachable in every library state. | Paste available/unavailable, saving, invalid link, saved, failed write |
-| Folder filter | Label and count; selected Action fill plus selected accessibility trait. Unselected Soft fill. Show full name in the picker when truncation is unavoidable. | All, Unfiled, named, selected, empty, long name |
+| Folder filter | Label and count; selected Action fill, checkmark, and selected accessibility trait. Unselected Soft fill. Use the sheet picker for large text or long/many folders. | All, Unfiled, named, selected, empty, long name |
 | Folder badge | Quiet icon and label. Visually lighter than a filter; never pretend a static label is a button. | Named folder, Unfiled, long name |
 | Workout row | Thumbnail or neutral fallback, title, creator if available, folder. Make the whole row open the workout. Use a distinguishing source link when the title is missing. | Complete/missing metadata, long title, missing image, accessibility text |
 | Primary action | Action fill, white label, 44-point minimum height; allow growth. One highest-emphasis action in a given action group. | Default, pressed, disabled, in progress |
@@ -140,18 +140,23 @@ Use `yarms` for the product name in visible copy. Use sentence case, direct verb
 
 Never report success before persistence succeeds. On a stale or failed deletion, keep the person in context and explain how to retry. Do not describe a saved link as a downloaded or offline video. Use invented data in visual examples, tests, and review screenshots.
 
-## SwiftUI adoption framework
+## SwiftUI component framework
 
-Use **Apple's native controls + yarms semantic tokens + a small set of shared components + screen-specific composition**. No third-party UI framework is needed for this proposal.
+Use **Apple's native controls + yarms semantic tokens + shared content components + screen-specific composition**. There is no third-party UI framework.
 
-1. Keep named colors in the existing asset catalog. Add a small proposed `YarmsApp/DesignSystem/YarmsTheme.swift` only when implementing the first screen: give spacing, radius, and target-size values semantic names; use SwiftUI text styles directly.
-2. Extract one repeated component at a time under a proposed `YarmsApp/DesignSystem/Components/` directory. Likely first candidates are `FolderBadge`, `FolderFilter`, and the workout row. These files and symbols do not exist yet.
-3. Keep store access, backup operations, player messages, and navigation out of styling components. Components receive content, state, and callbacks; action styles do not write data.
-4. Start with the library as one coherent screen, then the workout/player screen, then notes and secondary flows. Each adoption change should work in both appearances before continuing.
-5. Add previews for representative content and states. Use existing UI tests to protect saving, filtering, playback layout, notes, and deletion; extend coverage when the implementation changes those behaviors. A browser concept cannot prove SwiftUI or VoiceOver behavior.
-6. Update this document when a proposal is adopted or revised. Record intentional exceptions near the relevant rule so another contributor can make the same decision.
+| Source | Responsibility |
+| --- | --- |
+| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Adaptive color roles, spacing, radii, target/content sizes, primary and secondary action styles |
+| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | `FolderBadge`, `FolderFilter`, `WorkoutCardContent`, `YarmsEmptyState`, and light/dark large-text component previews |
+| [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) | Save/search/folder composition, adaptive folder sheet, navigation, move/delete/backup operations |
+| [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout/player composition, notes, compact transport controls, and bottom fallback |
+| [ShareViewController.swift](../YarmsShare/ShareViewController.swift) | Native progress indicator and scalable “Saving to yarms…” status during capture |
 
-The current implementation keeps most visual values inside [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) and [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift). It uses several nearby spacing and radius values; the proposed scale consolidates them. Existing architecture and behavior remain described in [Architecture.md](Architecture.md).
+Keep these two small shared Swift files alongside the app's existing sources so the current Xcode project generator can discover them. A deeper directory hierarchy is unnecessary until the component set grows. Components receive content, state, and callbacks; action styles never write data. Persistence, backup operations, and player messages stay with their existing owners.
+
+Use an existing token or component before adding a new one. Extend component previews for new states, and keep the existing UI contracts for saving, selected folders, notes, deletion, and the visible full-width TikTok fallback. System PasteButton retains its native size, wording, and paste permission behavior. The illustrated concept's custom full-width Paste treatment is intentionally represented with a native Paste control in the app.
+
+The Share extension uses system colors rather than linking app-only assets. Its spinner reports work in progress; completion still occurs only after the shared inbox write succeeds. Native alerts and Files pickers remain system-managed. No custom animations or haptics were introduced.
 
 ## Decision checklist
 
@@ -179,6 +184,8 @@ If a new token or component is still necessary, document its purpose and where i
 
 Apple's [Accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility) informs the platform checks. The acceptance criteria here are project requirements to verify during implementation, not a statement that the existing app or this proposal has passed an accessibility audit.
 
-## Proposal validation
+## Validation history
 
-The first proposal is documentation only. Its asset references and two white-on-Action contrast ratios were checked against the repository. App test files are unchanged because no executable app behavior changes. Repository/link verification and the conversation concept are checked separately; simulator and device acceptance checks remain work for UI adoption.
+The September 25 concept established the palette and checked two white-on-Action contrast pairs. It did not validate native layout. The September 30 implementation adds native component previews and a UI regression for large-text folder selection and zero-result Paste access. Existing UI tests retain save, note persistence, folder movement, backup access, deletion confirmation, and compact player-control assertions.
+
+See [Implementation-Plan.md](Implementation-Plan.md) for this change's build/test results and remaining checks. Simulator checks do not establish live TikTok playback, cross-process sharing, physical-device comfort, or a full VoiceOver/accessibility audit.

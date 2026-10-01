@@ -19,7 +19,7 @@ The Backup menu exports a JSON copy of workout links, details, notes, and folder
 
 The library keeps the paste action above the folder filters and presents saved workouts as thumbnail cards with their folder names. The workout screen puts its title and folder above the portrait video, with compact playback controls and a full-width Open in TikTok action below. Light and dark colors draw from the approved yarms icon; the UI follows iOS text sizing and VoiceOver labels.
 
-The proposed [yarms design language](docs/Design-Language.md) defines shared principles, visual tokens, component behavior, and a decision checklist for future UI updates. It is a starting point for design review; its proposed layouts and shared components are not yet implemented.
+The [yarms design language](docs/Design-Language.md) supplies shared colors, type, spacing, rounded surfaces, and component rules across the app. Friendly welcome and empty-state copy keep the library inviting. Larger text uses stacked workout cards and a full folder picker; the same picker handles long names and larger folder collections. Native controls keep saving, notes, backup, and sharing familiar.
 
 ## Privacy and security
 

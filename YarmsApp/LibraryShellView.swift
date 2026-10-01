@@ -54,6 +54,7 @@ struct LibraryShellView: View {
     }
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var workouts: [Workout] = []
     @State private var folders: [WorkoutFolder] = []
     @State private var selectedFolder: FolderSelection = .all
@@ -61,6 +62,7 @@ struct LibraryShellView: View {
     @State private var folderName = ""
     @State private var editingFolder: WorkoutFolder?
     @State private var showingFolderEditor = false
+    @State private var showingFolderPicker = false
     @State private var folderPendingDeletion: WorkoutFolder?
     @State private var showingDeleteFolder = false
     @State private var movingWorkout: Workout?
@@ -109,9 +111,11 @@ struct LibraryShellView: View {
                 libraryContent
             }
             .listStyle(.plain)
-            .contentMargins(.horizontal, 16, for: .scrollContent)
+            .contentMargins(.horizontal, YarmsTheme.Spacing.lg, for: .scrollContent)
+            .frame(maxWidth: YarmsTheme.maximumContentWidth)
+            .frame(maxWidth: .infinity)
             .scrollContentBackground(.hidden)
-            .background(Color("YarmsCanvas").ignoresSafeArea())
+            .background(YarmsTheme.canvas.ignoresSafeArea())
             .navigationTitle("yarms")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search workouts")
@@ -179,22 +183,23 @@ struct LibraryShellView: View {
             } message: {
                 Text("The saved link and its notes will be removed from this iPhone. The TikTok post will not be affected.")
             }
+            .sheet(isPresented: $showingFolderPicker) { folderPicker }
             .sheet(item: $movingWorkout) { workout in
                 moveSheet(for: workout)
             }
             .fileExporter(isPresented: $showingExporter, document: backupDocument,
-                          contentType: .json, defaultFilename: "Yarms Backup") { result in
+                          contentType: .json, defaultFilename: "yarms Backup") { result in
                 backupDocument = nil
                 switch result {
                 case .success:
                     if exportedBackupExceedsImportLimit {
-                        showMessage("Backup exported", "Keep this file private. It exceeds this version's 10 MB restore limit, so Yarms cannot import it yet.")
+                        showMessage("Backup exported", "Keep this file private. It exceeds this version's 10 MB restore limit, so yarms cannot import it yet.")
                     } else {
                         showMessage("Backup exported", "Your backup includes workout links, notes, and folders. Keep the file somewhere private.")
                     }
                 case .failure(let error):
                     if !isCancellation(error) {
-                        showMessage("Could not export backup", "Yarms could not save the backup file. Try again.")
+                        showMessage("Could not export backup", "yarms could not save the backup file. Try again.")
                     }
                 }
             }
@@ -211,35 +216,30 @@ struct LibraryShellView: View {
     @ViewBuilder
     private var libraryContent: some View {
         if workouts.isEmpty {
-            VStack(spacing: 12) {
-                ContentUnavailableView(
-                    "No workouts yet",
-                    systemImage: "figure.strengthtraining.traditional",
-                    description: Text("Share a workout from TikTok and it will appear here.")
-                )
+            VStack(spacing: YarmsTheme.Spacing.md) {
+                YarmsEmptyState(title: "No workouts yet", symbol: "figure.strengthtraining.traditional",
+                                message: "Save a workout that catches your eye. It will be here when you’re ready.")
                 Button("Restore a backup", systemImage: "square.and.arrow.down") {
                     showingImporter = true
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(YarmsSecondaryButtonStyle())
             }
-            .padding(.vertical, 40)
+            .padding(.vertical, YarmsTheme.Spacing.xl)
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets())
         } else if visibleWorkouts.isEmpty {
-            VStack(spacing: 12) {
-                ContentUnavailableView(
-                    emptySelectionTitle,
-                    systemImage: searchText.isEmpty ? "folder" : "magnifyingglass",
-                    description: Text(emptySelectionDescription)
-                )
+            VStack(spacing: YarmsTheme.Spacing.md) {
+                YarmsEmptyState(title: emptySelectionTitle,
+                                symbol: searchText.isEmpty ? (selectedFolder == .unfiled ? "tray" : "folder") : "magnifyingglass",
+                                message: emptySelectionDescription)
                 if searchText.isEmpty && selectedFolder != .all {
                     Button("Show all workouts") { selectedFolder = .all }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(YarmsSecondaryButtonStyle())
                 }
             }
-            .padding(.vertical, 40)
+            .padding(.vertical, YarmsTheme.Spacing.xl)
             .frame(maxWidth: .infinity)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -250,32 +250,33 @@ struct LibraryShellView: View {
     }
 
     private var saveCard: some View {
-        HStack(alignment: .center, spacing: 14) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Save a workout")
+        VStack(alignment: .leading, spacing: YarmsTheme.Spacing.md) {
+            Text(workouts.isEmpty ? "Your next move starts here." : "Ready when you are.")
+                .font(.title2.bold())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            Text("Share a TikTok to yarms, or paste a link to keep it here.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: YarmsTheme.Spacing.md))
+                : AnyLayout(HStackLayout(spacing: YarmsTheme.Spacing.md))
+            layout {
+                Label("Save a workout", systemImage: "plus.circle")
                     .font(.headline)
-                    .foregroundStyle(.primary)
-                    .accessibilityAddTraits(.isHeader)
-                Text("Share from TikTok, or paste a link")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                pasteButton(identifier: pasteButtonIdentifier)
+                    .controlSize(.large)
+                    .tint(YarmsTheme.action)
+                    .frame(minHeight: YarmsTheme.minimumTarget)
             }
-            Spacer(minLength: 0)
-            pasteButton(identifier: pasteButtonIdentifier)
-                .tint(Color("YarmsAction"))
+            .padding(YarmsTheme.Spacing.lg)
+            .background(YarmsTheme.surface,
+                        in: RoundedRectangle(cornerRadius: YarmsTheme.Radius.surface))
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color("YarmsSurface"))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(Color("YarmsBloom").opacity(0.35), lineWidth: 1)
-                }
-        }
-        .padding(.top, 12)
+        .padding(.top, YarmsTheme.Spacing.lg)
+        .padding(.bottom, YarmsTheme.Spacing.sm)
     }
 
     private var pasteButtonIdentifier: String {
@@ -299,7 +300,7 @@ struct LibraryShellView: View {
             }
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-            .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 6, trailing: 4))
+            .listRowInsets(EdgeInsets(top: YarmsTheme.Spacing.sm, leading: 0, bottom: YarmsTheme.Spacing.md, trailing: 0))
             ForEach(visibleWorkouts) { workout in
                 NavigationLink {
                     EmbeddedPlayerView(
@@ -310,18 +311,18 @@ struct LibraryShellView: View {
                         onDeleteWorkout: { removeWorkout(workout) }
                     )
                 } label: {
-                    WorkoutRow(workout: workout, folderName: workout.folderID.flatMap { namesByID[$0] })
+                    WorkoutCardContent(workout: workout, folderName: workout.folderID.flatMap { namesByID[$0] })
                 }
                 .accessibilityIdentifier("workout-\(workout.sourceLink.videoID ?? workout.id.uuidString)")
                 .listRowBackground(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color("YarmsSurface"))
+                    RoundedRectangle(cornerRadius: YarmsTheme.Radius.surface, style: .continuous)
+                        .fill(YarmsTheme.surface)
                 )
                 .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: 5, leading: 0, bottom: 5, trailing: 0))
+                .listRowInsets(EdgeInsets(top: YarmsTheme.Spacing.xs, leading: 0, bottom: YarmsTheme.Spacing.xs, trailing: 0))
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Move", systemImage: "folder") { movingWorkout = workout }
-                        .tint(Color("YarmsAction"))
+                        .tint(YarmsTheme.action)
                     Button("Delete", systemImage: "trash", role: .destructive) {
                         workoutPendingDeletion = workout
                         showingDeleteWorkout = true
@@ -332,66 +333,136 @@ struct LibraryShellView: View {
         }
     }
 
+    private var usesFolderPicker: Bool {
+        typeSize.isAccessibilitySize || folders.count > 6 || folders.contains { $0.name.count > 24 }
+    }
+
+    private var selectedFolderTitle: String {
+        switch selectedFolder {
+        case .all: return "All"
+        case .unfiled: return "Unfiled"
+        case .folder(let id): return folders.first { $0.id == id }?.name ?? "All"
+        }
+    }
+
     private var folderBar: some View {
         let counts = FolderCounts(workouts: workouts)
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Folders")
-                    .font(.headline)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer()
-                Button(action: prepareNewFolder) {
-                    Label("New folder", systemImage: "plus")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(minHeight: 44)
+        return VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    Text("Folders").font(.headline).accessibilityAddTraits(.isHeader)
+                    Spacer()
+                    newFolderButton
                 }
-                .accessibilityIdentifier("newFolderButton")
+                VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
+                    Text("Folders").font(.headline).accessibilityAddTraits(.isHeader)
+                    newFolderButton
+                }
             }
-            .padding(.horizontal, 4)
-
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    folderChip("All", count: counts.total, selection: .all, identifier: "folder-all")
-                    folderChip("Unfiled", count: counts.unfiled,
-                               selection: .unfiled, identifier: "folder-unfiled")
-                    ForEach(folders) { folder in
-                        folderChip(folder.name, count: counts.byID[folder.id] ?? 0,
-                                   selection: .folder(folder.id),
-                                   identifier: "folder-\(folder.id.uuidString)")
-                            .contextMenu {
-                                Button("Rename folder", systemImage: "pencil") {
-                                    prepareRename(folder)
+            if usesFolderPicker {
+                Button { showingFolderPicker = true } label: {
+                    HStack(spacing: YarmsTheme.Spacing.sm) {
+                        Text(selectedFolderTitle).fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        Text("\(counts.count(for: selectedFolder))").monospacedDigit()
+                        Image(systemName: "chevron.up.chevron.down").font(.caption)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(YarmsSecondaryButtonStyle())
+                .accessibilityLabel("Choose folder")
+                .accessibilityValue(selectedFolderTitle)
+                .accessibilityIdentifier("folderPickerButton")
+            } else {
+                ScrollView(.horizontal) {
+                    HStack(spacing: YarmsTheme.Spacing.sm) {
+                        folderChip("All", count: counts.total, selection: .all, identifier: "folder-all")
+                        folderChip("Unfiled", count: counts.unfiled,
+                                   selection: .unfiled, identifier: "folder-unfiled")
+                        ForEach(folders) { folder in
+                            folderChip(folder.name, count: counts.byID[folder.id] ?? 0,
+                                       selection: .folder(folder.id), identifier: "folder-\(folder.id.uuidString)")
+                                .contextMenu {
+                                    Button("Rename folder", systemImage: "pencil") { prepareRename(folder) }
+                                    Button("Delete folder", systemImage: "trash", role: .destructive) {
+                                        folderPendingDeletion = folder
+                                        showingDeleteFolder = true
+                                    }
                                 }
-                                Button("Delete folder", systemImage: "trash", role: .destructive) {
-                                    folderPendingDeletion = folder
-                                    showingDeleteFolder = true
-                                }
-                            }
+                        }
                     }
                 }
+                .scrollIndicators(.hidden)
             }
-            .scrollIndicators(.hidden)
         }
-        .padding(.top, 16)
-        .padding(.bottom, 8)
+        .padding(.top, YarmsTheme.Spacing.md)
+        .padding(.bottom, YarmsTheme.Spacing.sm)
+    }
+
+    private var newFolderButton: some View {
+        Button(action: prepareNewFolder) {
+            Label("New folder", systemImage: "plus")
+                .font(.subheadline.weight(.semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: YarmsTheme.minimumTarget)
+        }
+        .accessibilityIdentifier("newFolderButton")
     }
 
     private func folderChip(_ title: String, count: Int, selection: FolderSelection,
                             identifier: String) -> some View {
-        return Button { selectedFolder = selection } label: {
-            HStack(spacing: 5) {
-                Text(title).lineLimit(1)
-                Text("\(count)").font(.caption.monospacedDigit())
-            }
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 13)
-            .frame(minHeight: 44)
-            .foregroundStyle(selectedFolder == selection ? .white : .primary)
-            .background(selectedFolder == selection ? Color("YarmsAction") : Color("YarmsSoft"),
-                        in: Capsule())
+        FolderFilter(title: title, count: count, isSelected: selectedFolder == selection) {
+            selectedFolder = selection
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title), \(count) workouts")
+        .accessibilityIdentifier(identifier)
+    }
+
+    private var folderPicker: some View {
+        let counts = FolderCounts(workouts: workouts)
+        return NavigationStack {
+            List {
+                folderChoice("All", symbol: "square.grid.2x2", count: counts.total,
+                             selection: .all, identifier: "folder-all")
+                folderChoice("Unfiled", symbol: "tray", count: counts.unfiled,
+                             selection: .unfiled, identifier: "folder-unfiled")
+                ForEach(folders) { folder in
+                    folderChoice(folder.name, symbol: "folder", count: counts.byID[folder.id] ?? 0,
+                                 selection: .folder(folder.id), identifier: "folder-\(folder.id.uuidString)")
+                }
+            }
+            .navigationTitle("Choose folder")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { showingFolderPicker = false }
+                }
+            }
+        }
+        .tint(YarmsTheme.accent)
+        .presentationDetents([.large])
+    }
+
+    private func folderChoice(_ title: String, symbol: String, count: Int,
+                              selection: FolderSelection, identifier: String) -> some View {
+        Button {
+            selectedFolder = selection
+            showingFolderPicker = false
+        } label: {
+            HStack(spacing: YarmsTheme.Spacing.md) {
+                VStack(alignment: .leading, spacing: YarmsTheme.Spacing.xs) {
+                    Label(title, systemImage: symbol)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("\(count) \(count == 1 ? "workout" : "workouts")")
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                if selectedFolder == selection { Image(systemName: "checkmark") }
+            }
+            .frame(minHeight: YarmsTheme.minimumTarget)
+        }
+        .accessibilityLabel("\(title), \(count) \(count == 1 ? "workout" : "workouts")")
+        .accessibilityAddTraits(selectedFolder == selection ? .isSelected : [])
         .accessibilityIdentifier(identifier)
     }
 
@@ -503,7 +574,7 @@ struct LibraryShellView: View {
             return
         }
         guard let inbox = SharedInbox.live() else {
-            showMessage("Could not update workouts", "Yarms could not access its saved links.")
+            showMessage("Could not update workouts", "yarms could not access its saved links.")
             return
         }
         do {
@@ -511,14 +582,14 @@ struct LibraryShellView: View {
             selectedFolder = .unfiled
             refresh()
         } catch {
-            showMessage("Could not update workouts", "Yarms could not save that link.")
+            showMessage("Could not update workouts", "yarms could not save that link.")
         }
     }
 
     @discardableResult
     private func refresh(showNewShares: Bool = false) -> Bool {
         guard let store = WorkoutStore.live() else {
-            showMessage("Could not update workouts", "Yarms could not access its saved workouts.")
+            showMessage("Could not update workouts", "yarms could not access its saved workouts.")
             return false
         }
         do {
@@ -538,7 +609,7 @@ struct LibraryShellView: View {
             scheduleEnrichment(using: store)
             return true
         } catch {
-            showMessage("Could not update workouts", "Yarms could not read its saved workouts.")
+            showMessage("Could not update workouts", "yarms could not read its saved workouts.")
             return false
         }
     }
@@ -555,7 +626,7 @@ struct LibraryShellView: View {
             try store.applyEnrichment(result, to: workout.id)
             workouts = try store.load()
         } catch {
-            showMessage("Could not update workouts", "Yarms saved the link but could not update its details.")
+            showMessage("Could not update workouts", "yarms saved the link but could not update its details.")
         }
         enrichmentQueue.finish(workout.id)
         scheduleEnrichment(using: store)
@@ -588,7 +659,7 @@ struct LibraryShellView: View {
 
     private func exportBackup() {
         guard let store = WorkoutStore.live() else {
-            showMessage("Could not export backup", "Yarms could not access its saved workouts.")
+            showMessage("Could not export backup", "yarms could not access its saved workouts.")
             return
         }
         do {
@@ -597,7 +668,7 @@ struct LibraryShellView: View {
             backupDocument = WorkoutBackupDocument(data: data)
             showingExporter = true
         } catch {
-            showMessage("Could not export backup", "Yarms could not prepare the backup file.")
+            showMessage("Could not export backup", "yarms could not prepare the backup file.")
         }
     }
 
@@ -605,7 +676,7 @@ struct LibraryShellView: View {
         switch result {
         case .failure(let error):
             if !isCancellation(error) {
-                showMessage("Could not read backup", "Choose a Yarms JSON backup file and try again.")
+                showMessage("Could not read backup", "Choose a yarms JSON backup file and try again.")
             }
         case .success(let url):
             let hasAccess = url.startAccessingSecurityScopedResource()
@@ -614,16 +685,16 @@ struct LibraryShellView: View {
                 pendingBackup = try WorkoutBackup.load(from: url)
                 confirmingRestore = true
             } catch let error as WorkoutBackup.BackupError where error == .tooLarge {
-                showMessage("Backup too large", "Choose a Yarms backup smaller than 10 MB.")
+                showMessage("Backup too large", "Choose a yarms backup smaller than 10 MB.")
             } catch {
-                showMessage("Could not read backup", "This file is not a supported Yarms backup.")
+                showMessage("Could not read backup", "This file is not a supported yarms backup.")
             }
         }
     }
 
     private func restoreBackup() {
         guard let backup = pendingBackup, let store = WorkoutStore.live() else {
-            showMessage("Could not restore backup", "Yarms could not access its saved workouts.")
+            showMessage("Could not restore backup", "yarms could not access its saved workouts.")
             return
         }
         pendingBackup = nil
@@ -637,7 +708,7 @@ struct LibraryShellView: View {
             }
             showMessage("Backup restored", "Added \(result.added) workouts; updated or combined \(result.updated) existing records.")
         } catch {
-            showMessage("Could not restore backup", "Yarms could not save the backup. Try again.")
+            showMessage("Could not restore backup", "yarms could not save the backup. Try again.")
         }
     }
 
@@ -649,64 +720,5 @@ struct LibraryShellView: View {
     private func isCancellation(_ error: Error) -> Bool {
         let cocoaError = error as NSError
         return cocoaError.domain == NSCocoaErrorDomain && cocoaError.code == NSUserCancelledError
-    }
-}
-
-private struct WorkoutRow: View {
-    let workout: Workout
-    let folderName: String?
-
-    var body: some View {
-        HStack(spacing: 14) {
-            AsyncImage(url: workout.thumbnailURL) { phase in
-                if let image = phase.image {
-                    image.resizable().scaledToFill()
-                } else {
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .resizable()
-                        .scaledToFit()
-                        .padding(24)
-                        .foregroundStyle(Color.accentColor)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color("YarmsSoft"))
-                }
-            }
-            .frame(width: 84, height: 104)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(workout.title ?? "TikTok workout")
-                    .font(.headline)
-                    .lineLimit(2)
-                if let creator = workout.creator {
-                    Text(creator)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                if workout.title == nil {
-                    Text(sourceReference)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-                HStack(spacing: 5) {
-                    Image(systemName: folderName == nil ? "tray" : "folder.fill")
-                    Text(folderName ?? "Unfiled")
-                        .lineLimit(1)
-                }
-                .font(.caption.weight(.medium))
-                .foregroundStyle(Color.accentColor)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-    }
-
-    private var sourceReference: String {
-        let url = workout.sourceLink.url
-        return (url.host ?? "tiktok.com") + url.path
     }
 }
