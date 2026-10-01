@@ -21,6 +21,7 @@ Start with the guide for your task. These pages describe the checked-in app; mil
 | [Architecture](Architecture.md) | Capture and playback diagrams, module boundaries, failure behavior, and terminology |
 | [Data and privacy](Data-and-Privacy.md) | Storage locations, schema fields, backup validation and merge rules, network boundaries |
 | [Design and assets](Design-and-Assets.md) | App icon, semantic colors, layout/accessibility rules, and documentation graphics |
+| [Design language](Design-Language.md) | Adopted cool-pink direction, UI tokens, shared components, copy, and decision rules |
 | [Testing and verification](Testing.md) | Test coverage, runnable commands, CI jobs, device checklist, and known limitations |
 | [Contributing](../CONTRIBUTING.md) | Branch workflow, review expectations, and keeping docs current |
 | [Security policy](../SECURITY.md) | Private vulnerability reporting and supported version |

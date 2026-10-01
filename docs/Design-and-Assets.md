@@ -1,30 +1,30 @@
 # Design and assets
 
-[Documentation index](README.md) · [Repository map](Repository-Map.md) · [UI verification](Testing.md)
+[Documentation index](README.md) · [Design language](Design-Language.md) · [Repository map](Repository-Map.md) · [UI verification](Testing.md)
 
 The UI uses the approved Yarms app icon, semantic colors, system fonts, and SF Symbols. The installed display name and library title are **yarms**; the Share extension title is **Save to yarms**. Swift types, the Xcode scheme, and prose use **Yarms**.
 
 ## Icon and color source
 
-The [asset catalog](../Assets/Assets.xcassets/) contains the [1024 × 1024 app icon](../Assets/Assets.xcassets/AppIcon.appiconset/AppIcon.png) and six named color sets. Each color has light and dark appearances. Keep the existing catalog names stable because SwiftUI views look them up by string.
+The [asset catalog](../Assets/Assets.xcassets/) contains the [1024 × 1024 app icon](../Assets/Assets.xcassets/AppIcon.appiconset/AppIcon.png) and six named color sets. Each color has light, dark, and increased-contrast appearances. Keep the existing catalog names stable because SwiftUI views look them up by string. The [design language](Design-Language.md#color-choose-by-purpose) records the current palette and component rules.
 
 | Color | Role in the app |
 | --- | --- |
 | [AccentColor](../Assets/Assets.xcassets/AccentColor.colorset/Contents.json) | Text, icons, and controls; lighter in dark mode |
-| [YarmsAction](../Assets/Assets.xcassets/YarmsAction.colorset/Contents.json) | Filled Paste/Open in TikTok actions, selected folder chips, and swipe Move |
+| [YarmsAction](../Assets/Assets.xcassets/YarmsAction.colorset/Contents.json) | Native Paste tint, filled Open in TikTok action, selected folder chips, and swipe Move |
 | [YarmsCanvas](../Assets/Assets.xcassets/YarmsCanvas.colorset/Contents.json) | Screen and notes-editor backgrounds |
 | [YarmsSurface](../Assets/Assets.xcassets/YarmsSurface.colorset/Contents.json) | Cards, notes container, bottom action area |
 | [YarmsSoft](../Assets/Assets.xcassets/YarmsSoft.colorset/Contents.json) | Unselected chips, playback buttons, placeholders, subtle borders |
-| [YarmsBloom](../Assets/Assets.xcassets/YarmsBloom.colorset/Contents.json) | Save-card border tint |
+| [YarmsBloom](../Assets/Assets.xcassets/YarmsBloom.colorset/Contents.json) | Optional decorative pink, never essential text or a selection cue |
 
-The catalog JSON is the authority for color values; avoid copying hex values into Swift or documentation. `YarmsAction` is deliberately separate from the text accent so white labels remain readable in dark mode. Changing one requires checking the actual foreground/background pairing in both appearances.
+The catalog JSON is the authority for color values; the [design language](Design-Language.md#color-choose-by-purpose) has the single human-readable reference table. Avoid copying hex values into Swift or other guides. `YarmsAction` is deliberately separate from the text accent so white labels remain readable in dark mode. Changing one requires checking the actual foreground/background pairing in light, dark, and increased-contrast appearances. [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) exposes the shared roles and action styles, while [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) contains reusable folder, workout-card, and empty-state content.
 
 ## Layout and accessibility
 
 | Surface | Rules to preserve |
 | --- | --- |
 | Library | Save card, folder section, and workout rows share a vertical list; avoid a fixed header that squeezes rows out at large text sizes |
-| Folder chips | Horizontally scrollable with counts and VoiceOver labels; labels may truncate, but controls remain usable |
+| Folder selection | Horizontal chips with counts, checkmarks, and selected VoiceOver state for smaller collections. At accessibility text sizes, with more than six named folders, or when a name exceeds 24 characters, a labeled picker opens a native sheet with wrapping names, counts, and explicit selection |
 | Workout cards | Thumbnail or SF Symbol placeholder, title, available creator, and folder; a source-link subtitle distinguishes untitled links |
 | Workout screen | Heading above a portrait player, optional notes below, and controls plus full-width Open in TikTok in a bottom safe-area inset |
 | Player sizing | 16:9 height-to-width portrait region; content capped at 600 points with 16-point horizontal padding |
@@ -32,7 +32,7 @@ The catalog JSON is the authority for color values; avoid copying hex values int
 | Notes | Explicit Save action, keyboard Done button, and persisted text after reopening/relaunching |
 | Destructive actions | Confirm workout/folder deletion; explain what data remains |
 
-Use semantic system fonts so Dynamic Type can scale. Keep visible text/VoiceOver meaning alongside symbols and colors. Verify light/dark appearances, long titles/folder names, missing metadata, large text, keyboard focus, and scrolling using the [test/device checklist](Testing.md). Do not describe simulator layout assertions as a full accessibility audit.
+Use semantic system fonts so Dynamic Type can scale. Keep visible text/VoiceOver meaning alongside symbols and colors. Verify light/dark/increased-contrast appearances, long titles/folder names, missing metadata, large text, keyboard focus, and scrolling using the [test/device checklist](Testing.md). Do not describe simulator layout assertions as a full accessibility audit.
 
 ## Graphics in repository documentation
 

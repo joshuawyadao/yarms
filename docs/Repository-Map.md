@@ -1,12 +1,14 @@
 # Repository map
 
-Use this map to find an owner before editing. The [README](../README.md) is the entry point; [Architecture](Architecture.md) explains data flow and storage, [Data and Privacy](Data-and-Privacy.md) explains stored data, [Design and Assets](Design-and-Assets.md) covers the visual system, [User Guide](User-Guide.md) covers app tasks, and [Development](Development.md) and [Testing](Testing.md) cover contributor work. This page identifies files rather than repeating those guides.
+Use this map to find an owner before editing. The [README](../README.md) is the entry point; [Architecture](Architecture.md) explains data flow and storage, [Data and Privacy](Data-and-Privacy.md) explains stored data, [Design Language](Design-Language.md) defines UI decisions, [Design and Assets](Design-and-Assets.md) maps those decisions to assets, [User Guide](User-Guide.md) covers app tasks, and [Development](Development.md) and [Testing](Testing.md) cover contributor work. This page identifies files rather than repeating those guides.
 
 ## Application and shared code
 
 | File | Responsibility |
 | --- | --- |
 | [YarmsApp.swift](../YarmsApp/YarmsApp.swift) | SwiftUI app entry point and root library window. |
+| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Shared semantic color roles, spacing, radii, size limits, and action button styles. |
+| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | Folder badge/filter, workout card content, empty state, and component previews. |
 | [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) | Library and folder screens; paste, search, row deletion, and backup presentation. |
 | [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout screen, portrait embedded player and controls, notes editor, and workout deletion. |
 | [TikTokPlayerBridge.swift](../YarmsApp/TikTokPlayerBridge.swift) | WebKit host, player messages, commands, and playback state. |
@@ -41,7 +43,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [BackupImportSecurityTests.swift](../YarmsTests/BackupImportSecurityTests.swift) | Imported-claim trust boundaries. |
 | [BackupExportSizeTests.swift](../YarmsTests/BackupExportSizeTests.swift) | Large-library export. |
 | [BackupScalingBenchmarkTests.swift](../YarmsTests/BackupScalingBenchmarkTests.swift) | Opt-in restore scaling. |
-| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Simulator user flows. |
+| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Eight simulator user flows, including accessibility-size folder selection and Paste access. |
 
 ## Project, resources, and automation
 
@@ -65,10 +67,10 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [docs/README.md](README.md) | Task-oriented documentation index. |
 | [CONTRIBUTING.md](../CONTRIBUTING.md), [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md), [SECURITY.md](../SECURITY.md), [LICENSE](../LICENSE) | Contribution process, community rules, private vulnerability reporting, and MIT license. |
 | [.github/ISSUE_TEMPLATE/](../.github/ISSUE_TEMPLATE/) and [pull_request_template.md](../.github/pull_request_template.md) | Bug/feature forms, issue-template config, and PR reporting prompts. |
-| [Architecture.md](Architecture.md), [Data-and-Privacy.md](Data-and-Privacy.md), [Design-and-Assets.md](Design-and-Assets.md), [User-Guide.md](User-Guide.md) | Current system, data, visuals, and user task references. |
+| [Architecture.md](Architecture.md), [Data-and-Privacy.md](Data-and-Privacy.md), [Design-Language.md](Design-Language.md), [Design-and-Assets.md](Design-and-Assets.md), [User-Guide.md](User-Guide.md) | Current system, data, UI design rules, assets, and user task references. |
 | [Development.md](Development.md), [Testing.md](Testing.md), [Repository-Map.md](Repository-Map.md) | Setup, verification, and this file index. |
 | [Shortcut-Sharing.md](Shortcut-Sharing.md), [Storage-Migration.md](Storage-Migration.md) | Share Sheet behavior and upgrade/backup steps. |
-| [MVP-Roadmap.md](MVP-Roadmap.md), [MVP-Progress.md](MVP-Progress.md), [Implementation-Plan.md](Implementation-Plan.md) | Milestone history and current documentation work plan. |
+| [MVP-Roadmap.md](MVP-Roadmap.md), [MVP-Progress.md](MVP-Progress.md), [Implementation-Plan.md](Implementation-Plan.md) | Milestone history and current implementation plan. |
 
 ## Where to make a change
 
@@ -80,5 +82,5 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | Share Sheet input or pending delivery | `ShareViewController.swift`, `KeychainInbox.swift` | Both entitlements, `ShortcutCaptureTests.swift`, signed-device checks |
 | Link acceptance or metadata | `TikTokLink.swift`, `TikTokMetadataClient.swift` | `FoundationTests.swift`, `MetadataTests.swift` |
 | Inline playback | `EmbeddedPlayerView.swift`, `TikTokPlayerBridge.swift` | `PlayerBridgeTests.swift`, device playback checks |
-| Visual colors or icon | `Assets.xcassets`, `LibraryShellView.swift` | [Design and Assets](Design-and-Assets.md), simulator light/dark checks |
+| Visual colors, components, or icon | `YarmsTheme.swift`, `YarmsUIComponents.swift`, `Assets.xcassets` | [Design Language](Design-Language.md), [Design and Assets](Design-and-Assets.md), simulator light/dark/high-contrast checks |
 | Build settings, scheme, or CI | `project.pbxproj`, `Yarms.xcscheme`, `ci.yml` | `generate-project.rb`, `verify-repository.sh`, [Development](Development.md) |

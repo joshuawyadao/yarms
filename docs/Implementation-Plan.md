@@ -1,36 +1,44 @@
 # Plan
 
-Make the whole Yarms repository easier to navigate, use, and maintain. Audit the latest source, tests, configuration, and existing docs, then publish focused guides and source-based diagrams with progressive commits on `feat/repository-documentation`.
+Prepare the cool-pink UI update on `codex/ui-design-system` for review against current `main`. Preserve main's storage fixes and documentation structure, reconcile the design guidance, and shepherd a pull request through review and CI without merging it.
 
 ## Scope
-- In: README and contributor onboarding, a documentation index and repository map, user and troubleshooting guidance, development/testing instructions, architecture and storage/privacy references, asset guidance, and current progress records.
-- Out: application behavior changes, source-folder moves, new dependencies, invented screenshots, and claims that unperformed device checks passed.
+- In: merge current main, reconcile documentation, validate the integrated app, open a draft PR, run Brooks and Codex review, address actionable feedback and CI failures, and push the completed branch.
+- Out: additional product features, redesign changes beyond review fixes, personal device data or artifacts, and the final PR merge.
 
 ## Action items
-- [x] Inspect the existing docs, source layout, tests, project generator, assets, and CI; start from current `origin/main` (`05d866a`, including PR #12).
-- [x] Commit this resolved plan before documentation edits; preserve earlier implementation plans in Git history.
-- [x] Delegate the independent developer, test, and repository-map guides with explicit file ownership; audit app, capture, storage, backup, and playback behavior in the parent task.
-- [x] Add `docs/README.md`, shorten the root README into an entry point, and update `CONTRIBUTING.md` with usable navigation and maintenance expectations.
-- [x] Add `docs/User-Guide.md`, `docs/Data-and-Privacy.md`, and `docs/Design-and-Assets.md`; restructure `docs/Architecture.md` with accessible Mermaid diagrams and textual explanations.
-- [x] Add `docs/Development.md`, `docs/Testing.md`, and `docs/Repository-Map.md`; verify commands, file ownership, target wiring, test limitations, and all tracked-file coverage.
-- [x] Refresh sharing, migration, roadmap, and progress documentation, keeping historical validation separate from current limitations; checkpoint each coherent slice.
-- [x] Run repository verification, local link/anchor/image checks, diagram syntax/render checks, and a source-to-doc consistency review. No test files need changing because executable behavior is unchanged; use existing PR CI for build/unit/UI validation.
-- [x] Push the feature branch and open draft PR #13; request Codex review and run Brooks review. Follow live CI and mergeability in the PR; do not merge.
+- [x] Inspect branch history, main's documentation and storage changes, the PR template, CI configuration, and existing UI coverage.
+- [x] Merge main while preserving both the design-system work and newer storage/test behavior; resolve README, Architecture, and active-plan conflicts from their source intent.
+- [x] Update the documentation index, repository map, Design and Assets, User Guide, Testing, README, and Architecture to reference the canonical Design Language and describe adaptive folder controls.
+- [x] Run repository checks and the integrated simulator suite; retain meaningful UI assertions and isolated synthetic test data. No new tests are needed for documentation reconciliation; add focused regressions only for executable review fixes.
+- [x] Commit and push the integration, open and attach a draft PR, and request Codex review.
+- [x] Run a scoped Brooks review, record findings in the review ledger and history, and address actionable review or CI findings with targeted validation.
+- [x] Record review, CI follow-up, and mergeability evidence; keep live readiness on PR #14 and leave the final merge to the user.
 
 ## Open questions
-- None. Keep the existing source structure and use focused documentation plus diagrams to improve readability.
+- None. The user authorized the PR workflow. Preserve the calm, playful cool-pink direction and native light/dark support; further design feedback follows the intended user's hands-on review.
 
-## Validation evidence
+## Integration and review evidence
 
-- Audited application/shared/extension sources, all test files, asset catalogs, Xcode configuration, scripts, CI, community files, and existing documentation. Source folders remain in place; the repository map records ownership and navigation.
-- `./scripts/verify-repository.sh` and `git diff --check` pass. A temporary Markdown parser checked 18 documents and 225 local page, heading-anchor, and image references with no failures.
-- Three Mermaid diagrams parsed and rendered in a temporary browser preview; the README icon, navigation, diagrams, and representative guides were visually checked. Rendering tools and previews stay outside the repository.
-- Current Apple Personal Team guidance and TikTok embed references were checked against their primary documentation. PR #11 and #12 merge/check history was verified on GitHub.
-- No production code or test files changed. Existing CI will run the simulator build and unit/UI suite on the PR; no new signed-device or live TikTok result is claimed.
+- Resolved conflicts in README, Architecture, and this active plan. Preserved main's documentation navigation, diagrams, and current storage/test improvements; added design-language links and UI-specific guidance.
+- Scoped Brooks review: 100/100, no actionable findings across six production risks and the quick test check. The large but cohesive UI diff was sampled at its highest-risk presentation and interaction boundaries; generated project wiring was excluded.
+- Documentation links and repository checks pass. No additional test source changes were needed for integration. Integrated simulator suite on iPhone 17e / iOS 26.5: 89 passed, two expected skips (signed-device Keychain and opt-in restore benchmark), zero failures, including all eight UI tests. GitHub review/check status will be recorded before handoff.
 
-## PR review handoff
+- Opened [PR #14](https://github.com/joshuawyadao/yarms/pull/14) against main after pushing the integration. Codex review completed for `13aaab7` with no issues raised and no inline review threads; no feedback fixes or reactions were needed.
 
-- [PR #13](https://github.com/joshuawyadao/yarms/pull/13) contains the progressive plan, guide, and validation commits. Local Brooks review found no actionable concerns (100/100); its documentation scope does not change production dependencies or behavior. The broad diff reflects the requested whole-repository documentation pass.
-- An independent source-to-doc review found no factual discrepancies in capture, storage, backups, note precedence, playback, or assets.
-- The GitHub Codex review request was accepted, but the bot [reported an exhausted code-review usage limit](https://github.com/joshuawyadao/yarms/pull/13#issuecomment-5905654516) instead of reviewing. No inline feedback was produced. The PR stays a draft and is not declared merge-ready; request `@codex review` again once review capacity is available.
-- Final CI state is reported on the PR rather than hard-coded here while runs are active. Signed-device/live-service checks were not repeated for this documentation-only change.
+## CI follow-up plan
+
+CI run `36817024976` passed 88 tests and skipped two, but the new large-text test failed at its initial folder-picker existence assertion on iPhone 16 Pro / iOS 18.5. The same test passes locally on iOS 26.5. Its current order waits for an offscreen lazy-list row before attempting to scroll; CI is the available iOS 18.5 reproduction environment.
+
+- [x] Inspect the failed assertion, test activities, simulator versions, and lazy list composition. Codex review remains clear for the UI implementation.
+- [x] Make the large-text test locate offscreen controls through bounded scrolling before asserting existence and reachability. Preserve all folder, count, selection, search, and Paste assertions; do not change production layout unless runtime evidence requires it.
+- [x] Run the focused test on the available small iPhone simulator, check the diff, and review the test-only change.
+- [x] Prepare the fix and review evidence for the branch save; track CI's full iOS 18.5 suite and final review/mergeability state on PR #14.
+
+No product decision is needed. Check scroll order first; if it does not resolve CI, investigate Dynamic Type launch settings and folder setup rather than weakening assertions.
+
+## CI fix validation and handoff
+
+The focused large-text test passes on iPhone 17e / iOS 26.5 after moving bounded scrolling before existence checks for offscreen list content. It retains every folder, count, selection, search, and reachability assertion and adds a folder-creation setup assertion. The helper checks existence before hittability; production code is unchanged. A scoped review of this test change found no actionable issues (Brooks 100/100). Repository and whitespace checks pass.
+
+This file records repository changes and local evidence at the fix checkpoint. The iOS 18.5 full-suite result and final readiness are tracked in [PR #14's checks and review](https://github.com/joshuawyadao/yarms/pull/14); do not infer readiness from the local pass. The workflow must wait for those gates before handoff, and the final merge remains a separate user action.

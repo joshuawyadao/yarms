@@ -58,7 +58,13 @@ When links resolve to the same video ID, the store keeps the earliest saved iden
 
 `LibraryShellView` owns selection, search, dialogs, backup pickers, and enrichment scheduling. All/Unfiled/folder filtering runs before `Workout.matches` searches title, creator, and source/resolved/alias links. Folder counts and ID-to-name lookup are prepared before rendering rows.
 
-The save card, folder section, and workout cards share one vertical list, allowing large text to scroll. A missing metadata title gets a source-link subtitle so cards can still be distinguished. The [design guide](Design-and-Assets.md) documents colors and layout rules.
+The [design language](Design-Language.md) defines the UI rules. `YarmsTheme` owns adaptive color roles, spacing, radii, button styles, and target/content sizes; `YarmsUIComponents` supplies folder badges/filters, adaptive workout-card content, and empty states. Screen views retain persistence, navigation, and playback responsibilities. [Design and assets](Design-and-Assets.md) covers icon and asset maintenance.
+
+The welcome, native Paste control, folder section, and workout cards share one vertical list capped at 600 points. Welcome copy invites saving and trying workouts, and disappears during search. Paste remains available with an empty library or zero matches. At accessibility text sizes, cards stack their thumbnail and text; missing titles get a distinguishing source-link subtitle.
+
+Folder browsing uses a full-height native picker sheet at accessibility text sizes, above six named folders, or when a name exceeds 24 characters. Otherwise horizontal chips show counts and selected checkmarks. Both presentations expose selected accessibility traits. Cool-pink assets adapt to light/dark appearance and Increase Contrast.
+
+The workout screen places its title and folder above the portrait player. Compact playback controls and a full-width Open in TikTok fallback sit in a bottom safe-area tray; notes use scalable native editing with keyboard Done. The Share extension uses a native activity indicator and wrapping Dynamic Type status on a system background while the pending link is saved.
 
 `EmbeddedPlayerView` owns a snapshot of the selected workout and local note/folder editor state. Successful note saving refreshes the parent library so a later opening sees the saved value. Deletion only dismisses the workout screen after `WorkoutStore.remove` reports success. If enrichment removed that identity by coalescing it, the UI refreshes and asks the user to select the surviving workout again.
 

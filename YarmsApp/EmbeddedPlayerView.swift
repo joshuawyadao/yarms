@@ -2,10 +2,9 @@ import SwiftUI
 import WebKit
 
 struct EmbeddedPlayerView: View {
-    private static let maximumContentWidth: CGFloat = 600
-
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.dynamicTypeSize) private var typeSize
     @StateObject private var player = TikTokPlayerController()
     @State private var notesOpen: Bool
     @State private var noteText: String
@@ -37,40 +36,42 @@ struct EmbeddedPlayerView: View {
     var body: some View {
         GeometryReader { geometry in
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: YarmsTheme.Spacing.xl) {
                     workoutHeading
 
                     if let playerURL = workout.playbackLink.playerURL,
                        let html = TikTokPlayerHTML.document(for: playerURL) {
-                        let playerWidth = max(0, min(geometry.size.width, Self.maximumContentWidth) - 32)
+                        let playerWidth = max(0, min(geometry.size.width, YarmsTheme.maximumContentWidth) - 2 * YarmsTheme.Spacing.lg)
                         TikTokWebPlayer(html: html, controller: player)
                             .frame(width: playerWidth, height: playerWidth * 16 / 9)
                             .frame(maxWidth: .infinity)
                             .background(.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 22))
+                            .clipShape(RoundedRectangle(cornerRadius: YarmsTheme.Radius.media))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 22)
+                                RoundedRectangle(cornerRadius: YarmsTheme.Radius.media)
                                     .strokeBorder(Color.white.opacity(0.12))
                             }
 
                         if player.hasError {
-                            Label("This post could not play here. Try TikTok.",
+                            Label("This video couldn't play here. Open it in TikTok below.",
                                   systemImage: "exclamationmark.triangle")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         } else if !player.isReady {
-                            Text("Player controls activate when TikTok is ready.")
-                                .font(.caption)
+                            Label("Loading video. Player controls will be available when it's ready.",
+                                  systemImage: "play.rectangle")
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                     } else {
-                        ContentUnavailableView(
-                            "Player unavailable",
-                            systemImage: "play.slash",
-                            description: Text("Open this workout in TikTok to watch it.")
+                        YarmsEmptyState(
+                            title: "Player unavailable",
+                            symbol: "play.slash",
+                            message: "Open this workout in TikTok to watch it."
                         )
-                        .frame(maxWidth: .infinity)
                     }
 
                     DisclosureGroup(isExpanded: $notesOpen) {
@@ -79,40 +80,39 @@ struct EmbeddedPlayerView: View {
                             .accessibilityLabel("Workout notes")
                             .focused($notesFocused)
                             .scrollContentBackground(.hidden)
-                            .padding(8)
-                            .background(Color("YarmsCanvas"), in: RoundedRectangle(cornerRadius: 12))
+                            .padding(YarmsTheme.Spacing.sm)
+                            .background(YarmsTheme.canvas, in: RoundedRectangle(cornerRadius: YarmsTheme.Radius.control))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .strokeBorder(Color("YarmsSoft"), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: YarmsTheme.Radius.control)
+                                    .strokeBorder(YarmsTheme.soft, lineWidth: 1)
                             }
                             .onChange(of: noteText) { _, _ in noteSaved = false }
-                        HStack {
-                            Button("Save notes", action: saveNotes)
-                                .buttonStyle(.bordered)
-                            if noteSaved {
-                                Text("Saved on this iPhone")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                        if typeSize.isAccessibilitySize {
+                            noteActionsVertical
+                        } else {
+                            ViewThatFits(in: .horizontal) {
+                                noteActions
+                                noteActionsVertical
                             }
                         }
                     } label: {
                         Label("Notes (optional)", systemImage: "square.and.pencil")
                             .font(.headline.weight(.semibold))
                     }
-                    .tint(Color.accentColor)
-                    .padding(16)
-                    .background(Color("YarmsSurface"), in: RoundedRectangle(cornerRadius: 18))
+                    .tint(YarmsTheme.accent)
+                    .padding(YarmsTheme.Spacing.lg)
+                    .background(YarmsTheme.surface, in: RoundedRectangle(cornerRadius: YarmsTheme.Radius.surface))
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 18)
-                .padding(.bottom, 24)
-                .frame(maxWidth: Self.maximumContentWidth)
+                .padding(.horizontal, YarmsTheme.Spacing.lg)
+                .padding(.top, YarmsTheme.Spacing.lg)
+                .padding(.bottom, YarmsTheme.Spacing.xl)
+                .frame(maxWidth: YarmsTheme.maximumContentWidth)
                 .frame(maxWidth: .infinity)
             }
-            .background(Color("YarmsCanvas"))
+            .background(YarmsTheme.canvas)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 8) {
+            VStack(spacing: YarmsTheme.Spacing.sm) {
                 if workout.playbackLink.playerURL != nil {
                     playbackControls
                 }
@@ -120,19 +120,18 @@ struct EmbeddedPlayerView: View {
                     openURL(workout.playbackLink.url)
                 } label: {
                     Label("Open in TikTok", systemImage: "arrow.up.right.square")
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(Color("YarmsAction"))
+                .buttonStyle(YarmsActionButtonStyle())
                 .accessibilityIdentifier("openInTikTokButton")
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
-            .padding(.bottom, 8)
-            .frame(maxWidth: Self.maximumContentWidth)
+            .padding(.horizontal, YarmsTheme.Spacing.lg)
+            .padding(.top, YarmsTheme.Spacing.sm)
+            .padding(.bottom, YarmsTheme.Spacing.sm)
+            .frame(maxWidth: YarmsTheme.maximumContentWidth)
             .frame(maxWidth: .infinity)
-            .background(Color("YarmsSurface"))
-            .overlay(alignment: .top) { Rectangle().fill(Color("YarmsSoft")).frame(height: 1) }
+            .background(YarmsTheme.surface)
+            .overlay(alignment: .top) { Rectangle().fill(YarmsTheme.soft).frame(height: 1) }
         }
         .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
@@ -187,41 +186,80 @@ struct EmbeddedPlayerView: View {
         }
     }
 
-    private var workoutHeading: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("WORKOUT")
-                .font(.caption.weight(.bold))
-                .tracking(1.7)
-                .foregroundStyle(Color.accentColor)
+    private var noteActions: some View {
+        HStack(spacing: YarmsTheme.Spacing.md) {
+            Button("Save notes", action: saveNotes)
+                .buttonStyle(YarmsSecondaryButtonStyle())
+            if noteSaved {
+                Text("Saved on this iPhone")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
 
+    private var noteActionsVertical: some View {
+        VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
+            Button("Save notes", action: saveNotes)
+                .buttonStyle(YarmsSecondaryButtonStyle())
+            if noteSaved {
+                Text("Saved on this iPhone")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var workoutHeading: some View {
+        VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
             Text(workout.title ?? "TikTok workout")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("workoutHeading")
 
-            HStack(spacing: 8) {
-                if let creator = workout.creator {
-                    Text(creator)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+            if typeSize.isAccessibilitySize {
+                metadataVertical
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    metadataHorizontal
+                    metadataVertical
                 }
-                Spacer(minLength: 0)
-                Label(selectedFolderName, systemImage: "folder")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
-                    .lineLimit(1)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 7)
-                    .background(Color("YarmsSoft"), in: Capsule())
-                    .accessibilityLabel("Folder: \(selectedFolderName)")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var selectedFolderName: String {
-        folders.first(where: { $0.id == selectedFolderID })?.name ?? "Unfiled"
+    private var metadataHorizontal: some View {
+        HStack(spacing: YarmsTheme.Spacing.sm) {
+            if let creator = workout.creator {
+                Text(creator)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            FolderBadge(name: selectedFolderName)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var metadataVertical: some View {
+        VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
+            if let creator = workout.creator {
+                Text(creator)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            FolderBadge(name: selectedFolderName)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var selectedFolderName: String? {
+        folders.first(where: { $0.id == selectedFolderID })?.name
     }
 
     private func selectFolder(_ id: UUID?) {
@@ -229,8 +267,8 @@ struct EmbeddedPlayerView: View {
     }
 
     private var playbackControls: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 12) {
+        VStack(spacing: YarmsTheme.Spacing.sm) {
+            HStack(spacing: YarmsTheme.Spacing.md) {
                 Button { player.seek(by: -10) } label: {
                     Image(systemName: "gobackward.10")
                 }
@@ -275,7 +313,7 @@ struct EmbeddedPlayerView: View {
     private func saveNotes() {
         messageTitle = "Could not save notes"
         guard let store = WorkoutStore.live() else {
-            message = "Yarms could not access its saved workouts."
+            message = "yarms could not access its saved workouts."
             return
         }
         do {
@@ -295,9 +333,9 @@ private struct CompactPlaybackButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.title3.weight(.semibold))
-            .foregroundStyle(Color.accentColor)
-            .frame(width: 44, height: 44)
-            .background(Color("YarmsSoft"), in: RoundedRectangle(cornerRadius: 12))
+            .foregroundStyle(YarmsTheme.accent)
+            .frame(width: YarmsTheme.minimumTarget, height: YarmsTheme.minimumTarget)
+            .background(YarmsTheme.soft, in: RoundedRectangle(cornerRadius: YarmsTheme.Radius.control))
             .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }

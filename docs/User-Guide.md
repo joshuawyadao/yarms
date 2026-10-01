@@ -12,6 +12,8 @@ Yarms keeps TikTok workout links, folders, and your notes on your iPhone. It has
 
 You can also copy a TikTok video link and tap **Paste** in Yarms. The paste action stays available when the library is empty or a search has no results. [Sharing from TikTok](Shortcut-Sharing.md) explains the handoff and optional Shortcut action.
 
+The library offers a gentle invitation to choose a saved workout or save a new one. Saving a link does not mark a workout complete; Yarms does not track workout completion.
+
 A saved link survives metadata or network failure. Saving the same recognized video again does not create another workout. Short links can appear separately until Yarms resolves them to the same video.
 
 ## Find and organize workouts
@@ -27,6 +29,8 @@ A saved link survives metadata or network failure. Saving the same recognized vi
 | Search | Use **Search workouts** for a title, creator, or link; choose All to search the whole library |
 
 A workout belongs to one folder at a time. Folder names must be nonempty, at most 80 characters, and distinct regardless of case or accents. Leading/trailing whitespace is removed; control characters are rejected. Folder counts show totals for each folder, not just search matches. Search does not include note text or folder names.
+
+Folders normally appear as a horizontal row. With accessibility text sizes, more than six named folders, or a folder name longer than 24 characters, tap **Choose folder** to see All, Unfiled, and named folders in a sheet with full names and counts. The selected folder has a checkmark.
 
 ## Watch and take notes
 

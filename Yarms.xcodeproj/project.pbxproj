@@ -16,6 +16,7 @@
 		218EB3BBE06F1C6656C0FEBE /* LibraryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC35474166EC9EABD01C8C3E /* LibraryTests.swift */; };
 		252F1709496E9E751F028D7F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 757FBB9EDF95ED5E71ABC01D /* Foundation.framework */; };
 		26AEEC60EDF99D75519BE413 /* TikTokMetadataClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F3B47CAD1031A5BD8D7BC83 /* TikTokMetadataClient.swift */; };
+		32836094BE94CD11A256279B /* YarmsTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7C66B3FCC12976FFF42536 /* YarmsTheme.swift */; };
 		43EDC79FC6A58D8DB42E48D3 /* BackupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96701BEDBB3F7C43CD66CBD3 /* BackupTests.swift */; };
 		5679D72CA3EA9628A0948CBE /* MetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E0B90C9A2FBE8A797AD000 /* MetadataTests.swift */; };
 		67E0CF9816995152C213115F /* KeychainInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89C58C75F638A33D8396B9E6 /* KeychainInbox.swift */; };
@@ -33,6 +34,7 @@
 		AA74075084B8A1C4835C18D5 /* SharedInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 576DB3998EBF777B0C0751F8 /* SharedInbox.swift */; };
 		C3F3FEB02F09F287E833529E /* KeychainInboxTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E7576B33B02F1285C80B536 /* KeychainInboxTests.swift */; };
 		C4413E485D99248430D15968 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 94F340F06679EFBC33AA0D15 /* Assets.xcassets */; };
+		C6FB18E01A0649E0E2F87D65 /* YarmsUIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6FB4E9655F50874E2409A1E /* YarmsUIComponents.swift */; };
 		D1352659D8F828576379E0DF /* SaveTikTokWorkoutIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B427E4414BBD93E1B66B741E /* SaveTikTokWorkoutIntent.swift */; };
 		D8CE4930B6E978C16126C782 /* YarmsShare.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 765C6D79099091D3D70AB646 /* YarmsShare.appex */; };
 		D930A3A63CC021476DC35239 /* FoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFFCDC4B9D60B677BB57254F /* FoundationTests.swift */; };
@@ -105,11 +107,13 @@
 		96701BEDBB3F7C43CD66CBD3 /* BackupTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BackupTests.swift; sourceTree = "<group>"; };
 		9E7576B33B02F1285C80B536 /* KeychainInboxTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeychainInboxTests.swift; sourceTree = "<group>"; };
 		A26CEC9617BA9DB518463CF3 /* PlayerBridgeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlayerBridgeTests.swift; sourceTree = "<group>"; };
+		A6FB4E9655F50874E2409A1E /* YarmsUIComponents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = YarmsUIComponents.swift; sourceTree = "<group>"; };
 		ADB9A75FD92F9AF3B283C125 /* BackupExportSizeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BackupExportSizeTests.swift; sourceTree = "<group>"; };
 		B427E4414BBD93E1B66B741E /* SaveTikTokWorkoutIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SaveTikTokWorkoutIntent.swift; sourceTree = "<group>"; };
 		B7856CD9DA092B69BAD66414 /* WorkoutBackup.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutBackup.swift; sourceTree = "<group>"; };
 		BDD8C19B71AE048FEFEF05F7 /* Yarms.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Yarms.entitlements; sourceTree = "<group>"; };
 		C6A1266B566B232D26008E04 /* TikTokPlayerBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TikTokPlayerBridge.swift; sourceTree = "<group>"; };
+		CA7C66B3FCC12976FFF42536 /* YarmsTheme.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = YarmsTheme.swift; sourceTree = "<group>"; };
 		D6BA23DA70566BF0D8D9AB1E /* EmbeddedPlayerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmbeddedPlayerView.swift; sourceTree = "<group>"; };
 		DA72D22E5E44A430BDA38CE7 /* Yarms.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Yarms.entitlements; sourceTree = "<group>"; };
 		DCBEA501EFE8ADC10141A648 /* YarmsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YarmsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -254,6 +258,8 @@
 				6915E397AC3F24A79CA0AD06 /* WorkoutBackupDocument.swift */,
 				FA76DE1F7281176E457C30C1 /* WorkoutEnrichmentQueue.swift */,
 				B427E4414BBD93E1B66B741E /* SaveTikTokWorkoutIntent.swift */,
+				CA7C66B3FCC12976FFF42536 /* YarmsTheme.swift */,
+				A6FB4E9655F50874E2409A1E /* YarmsUIComponents.swift */,
 			);
 			name = YarmsApp;
 			path = YarmsApp;
@@ -476,6 +482,8 @@
 				7EB0AC0CE026F862D68BA198 /* WorkoutEnrichmentQueue.swift in Sources */,
 				D1352659D8F828576379E0DF /* SaveTikTokWorkoutIntent.swift in Sources */,
 				A7749C318131BECBEEA77DED /* KeychainInbox.swift in Sources */,
+				32836094BE94CD11A256279B /* YarmsTheme.swift in Sources */,
+				C6FB18E01A0649E0E2F87D65 /* YarmsUIComponents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -16,6 +16,7 @@ Save TikTok workouts, organize them into folders, and follow along on your iPhon
 | Save, organize, watch, or back up workouts | [User guide](docs/User-Guide.md) |
 | Install on an iPhone or run the simulator | [Development and setup](docs/Development.md) |
 | Find the right file to change | [Repository map](docs/Repository-Map.md) |
+| Design a consistent, accessible UI | [Design language](docs/Design-Language.md) |
 | Understand how the app works | [Architecture and diagrams](docs/Architecture.md) |
 | Understand stored data and network access | [Data, backups, and privacy](docs/Data-and-Privacy.md) |
 | Browse all documentation | [Documentation index](docs/README.md) |
@@ -30,6 +31,8 @@ Save TikTok workouts, organize them into folders, and follow along on your iPhon
 No Yarms account or Shortcut is required. Yarms saves links rather than video files; playback and metadata depend on TikTok and the post remaining available. Backups are unencrypted and include your notes. See the [user guide](docs/User-Guide.md) for restore limits, deletion behavior, and troubleshooting.
 
 **Upgrading an old App Group build?** [Export and check your backup before installing](docs/Storage-Migration.md). The current build cannot read that old storage location directly.
+
+The [yarms design language](docs/Design-Language.md) combines a cool-pink palette, native controls, and gentle invitations to save and try enjoyable workouts. Colors follow light/dark appearance and Increase Contrast; larger text uses stacked cards and a full folder picker.
 
 ## Work on Yarms
 

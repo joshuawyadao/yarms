@@ -7,14 +7,30 @@ final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.color = view.tintColor
+        spinner.startAnimating()
+        spinner.isAccessibilityElement = false
+
         let label = UILabel()
-        label.text = "Saving to Yarms…"
+        label.text = "Saving to yarms…"
+        label.font = .preferredFont(forTextStyle: .body)
+        label.adjustsFontForContentSizeCategory = true
         label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
+        label.numberOfLines = 0
+
+        let content = UIStackView(arrangedSubviews: [spinner, label])
+        content.axis = .vertical
+        content.alignment = .center
+        content.spacing = 16
+        content.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(content)
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            content.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            content.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            content.leadingAnchor.constraint(greaterThanOrEqualTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            content.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24)
         ])
     }
 
@@ -41,7 +57,7 @@ final class ShareViewController: UIViewController {
                     try inbox.save(link)
                     extensionContext?.completeRequest(returningItems: nil)
                 } catch {
-                    finish(error: "Yarms could not save the link.")
+                    finish(error: "yarms could not save the link.")
                 }
                 return
             }
