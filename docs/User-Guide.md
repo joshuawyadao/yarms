@@ -14,6 +14,8 @@ You can also copy a TikTok video link and tap **Paste** in Yarms. The paste acti
 
 The library offers a gentle invitation to choose a saved workout or save a new one. Saving a link does not mark a workout complete; Yarms does not track workout completion.
 
+After a new save, an inline checkmark says **Saved for your next move**. Its small pink flourish ends on its own; the text stays until you change context. Pasting an already-saved video says **Already in your library** and selects All so you can find it. Opening your existing library does not celebrate old saves.
+
 A saved link survives metadata or network failure. Saving the same recognized video again does not create another workout. Short links can appear separately until Yarms resolves them to the same video.
 
 ## Find and organize workouts
@@ -38,7 +40,7 @@ Open a workout to see its title, creator, folder, and portrait video. Once TikTo
 
 **Open in TikTok** is always available on the workout screen. It opens the saved or resolved link through iOS, which may use TikTok or the browser. Private, removed, or restricted posts may still be unavailable there.
 
-Scroll to **Notes (optional)**, enter your notes, dismiss the keyboard with **Done** if needed, then tap **Save notes**. Done only dismisses the keyboard; notes require Save. To clear a note, delete its text and save again. Notes stay with the local workout and are included in backups.
+Scroll to **Notes (optional)**, enter your notes, dismiss the keyboard with **Done** if needed, then tap **Save notes**. Done only dismisses the keyboard; notes require Save. To clear a note, delete its text and save again. Notes stay with the local workout and are included in backups. **Saved on this iPhone** confirms a successful save; editing again clears that confirmation until you save the new text.
 
 ## Delete a saved workout
 
@@ -62,6 +64,10 @@ Restore is additive: it does not replace your library or remove items that are a
 Import is limited to **10 MB** (10,485,760 bytes). Export keeps the whole library even above that limit, but warns that this version cannot import the resulting file. Do not remove or replace the old installation when its only backup is too large to restore. Current builds read older schema 1 backups; older builds reject new schema 2 backups.
 
 For the former App Group build, follow [Storage migration](Storage-Migration.md) **before upgrading**. For another iPhone, install Yarms separately and transfer a private backup through Files; there is no automatic Yarms sync.
+
+## Gentle motion
+
+Buttons, folder choices, and save confirmations use brief animation. No celebration blocks an action or requires dismissal. To remove custom motion, enable **Settings → Accessibility → Motion → Reduce Motion** on your iPhone; checkmarks, confirmation text, and selected folders remain available.
 
 ## Troubleshooting
 

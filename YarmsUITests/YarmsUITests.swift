@@ -56,6 +56,27 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(done.waitForExistence(timeout: 5), "Notes should offer a keyboard Done control")
         done.tap()
         app.buttons["Save notes"].tap()
+        let savedNote = app.staticTexts["noteSaveConfirmation"]
+        XCTAssertTrue(savedNote.waitForExistence(timeout: 5),
+                      "Saving notes should show a persistent inline confirmation")
+        XCTAssertEqual(savedNote.label, "Saved on this iPhone")
+        let savedNotesScreenshot = XCTAttachment(screenshot: app.screenshot())
+        savedNotesScreenshot.name = "Notes with persistent save confirmation"
+        savedNotesScreenshot.lifetime = .keepAlways
+        add(savedNotesScreenshot)
+
+        editor.tap()
+        let addition = " plus mobility"
+        editor.typeText(addition)
+        XCTAssertFalse(app.staticTexts["Saved on this iPhone"].exists,
+                       "Editing after a save should clear the previous confirmation")
+        XCTAssertTrue((editor.value as? String)?.contains(addition) == true,
+                      "The edited note should contain the added text")
+        let editedNote = (editor.value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        done.tap()
+        app.buttons["Save notes"].tap()
+        XCTAssertTrue(savedNote.waitForExistence(timeout: 5),
+                      "Saving the edited note should confirm it again")
 
         app.terminate()
         app.launch()
@@ -75,6 +96,18 @@ final class YarmsUITests: XCTestCase {
         let reopenedValue = reopenedEditor.value as? String
         XCTAssertTrue(reopenedValue?.contains(note) == true,
                       "A saved note should survive app relaunch; observed \(String(describing: reopenedValue))")
+        XCTAssertEqual(reopenedValue, editedNote,
+                       "The complete resaved edit should survive app relaunch with normal whitespace trimming")
+    }
+
+    @MainActor
+    func testPasteConfirmationAndErrorState() throws {
+        exercisePasteConfirmation(reduceMotion: false)
+    }
+
+    @MainActor
+    func testPasteConfirmationAndErrorStateWithReduceMotion() throws {
+        exercisePasteConfirmation(reduceMotion: true)
     }
 
     @MainActor
@@ -291,6 +324,68 @@ final class YarmsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]
         return app
+    }
+
+    @MainActor
+    private func exercisePasteConfirmation(reduceMotion: Bool) {
+        let app = isolatedApp()
+        if reduceMotion {
+            app.launchArguments.append("-YarmsUITestReduceMotion")
+        }
+        let videoID = "9\(Int(Date().timeIntervalSince1970 * 1000))"
+        let link = "https://www.tiktok.com/@yarms-test/video/\(videoID)"
+        UIPasteboard.general.string = link
+        app.launch()
+
+        let confirmation = app.staticTexts["librarySaveConfirmation"]
+        XCTAssertTrue(app.buttons["emptyPasteLinkButton"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Saved for your next move."].exists,
+                       "Opening an empty library should not claim a save")
+
+        app.buttons["emptyPasteLinkButton"].tap()
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 10),
+                      "A newly pasted workout should show an inline confirmation")
+        XCTAssertEqual(confirmation.label, "Saved for your next move.")
+        let savedScreenshot = XCTAttachment(screenshot: app.screenshot())
+        savedScreenshot.name = reduceMotion ? "Saved workout with Reduce Motion" : "Saved workout confirmation"
+        savedScreenshot.lifetime = .keepAlways
+        add(savedScreenshot)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)")
+        XCTAssertTrue(row.firstMatch.waitForExistence(timeout: 10),
+                      "The pasted link should create one visible library row")
+
+        UIPasteboard.general.string = link
+        let paste = app.buttons["libraryPasteLinkButton"]
+        XCTAssertTrue(paste.waitForExistence(timeout: 5))
+        paste.tap()
+        XCTAssertTrue(app.staticTexts["Already in your library."].waitForExistence(timeout: 5),
+                      "Pasting the same video should explain that it is already saved")
+        XCTAssertEqual(confirmation.label, "Already in your library.")
+        XCTAssertEqual(row.count, 1, "Pasting the same video should not create another row")
+        XCTAssertTrue(app.buttons["folder-all"].isSelected,
+                      "A duplicate paste should keep All selected so the existing row stays visible")
+
+        UIPasteboard.general.string = "this is not a TikTok link"
+        paste.tap()
+        let error = app.alerts["Could not update workouts"]
+        XCTAssertTrue(error.waitForExistence(timeout: 5),
+                      "Invalid clipboard text should show the native paste error")
+        XCTAssertFalse(app.staticTexts["Saved for your next move."].exists,
+                       "An invalid paste should not retain a save confirmation")
+        XCTAssertFalse(app.staticTexts["Already in your library."].exists,
+                       "An invalid paste should clear the previous confirmation text")
+        error.buttons["OK"].tap()
+        XCTAssertFalse(error.exists, "Dismissing the error should return to the library")
+        XCTAssertEqual(row.count, 1, "An invalid paste should keep the saved workout")
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(row.firstMatch.waitForExistence(timeout: 10),
+                      "The saved workout should survive relaunch")
+        XCTAssertFalse(app.staticTexts["Saved for your next move."].exists,
+                       "Loading an existing workout must not announce a new save")
+        XCTAssertFalse(app.staticTexts["Already in your library."].exists,
+                       "A prior duplicate message should not survive relaunch")
     }
 
     @MainActor

@@ -15,7 +15,7 @@ The [asset catalog](../Assets/Assets.xcassets/) contains the [1024 × 1024 app i
 | [YarmsCanvas](../Assets/Assets.xcassets/YarmsCanvas.colorset/Contents.json) | Screen and notes-editor backgrounds |
 | [YarmsSurface](../Assets/Assets.xcassets/YarmsSurface.colorset/Contents.json) | Cards, notes container, bottom action area |
 | [YarmsSoft](../Assets/Assets.xcassets/YarmsSoft.colorset/Contents.json) | Unselected chips, playback buttons, placeholders, subtle borders |
-| [YarmsBloom](../Assets/Assets.xcassets/YarmsBloom.colorset/Contents.json) | Optional decorative pink, never essential text or a selection cue |
+| [YarmsBloom](../Assets/Assets.xcassets/YarmsBloom.colorset/Contents.json) | Brief decorative bloom behind a successful-save checkmark, never essential text or a selection cue |
 
 The catalog JSON is the authority for color values; the [design language](Design-Language.md#color-choose-by-purpose) has the single human-readable reference table. Avoid copying hex values into Swift or other guides. `YarmsAction` is deliberately separate from the text accent so white labels remain readable in dark mode. Changing one requires checking the actual foreground/background pairing in light, dark, and increased-contrast appearances. [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) exposes the shared roles and action styles, while [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) contains reusable folder, workout-card, and empty-state content.
 
@@ -33,6 +33,10 @@ The catalog JSON is the authority for color values; the [design language](Design
 | Destructive actions | Confirm workout/folder deletion; explain what data remains |
 
 Use semantic system fonts so Dynamic Type can scale. Keep visible text/VoiceOver meaning alongside symbols and colors. Verify light/dark/increased-contrast appearances, long titles/folder names, missing metadata, large text, keyboard focus, and scrolling using the [test/device checklist](Testing.md). Do not describe simulator layout assertions as a full accessibility audit.
+
+## Motion
+
+Shared controls use a small, brief press compression; folder selection, counts, folder badges, and arriving thumbnails have local transitions. Inline save confirmations retain their text after a one-shot pink bloom. Reduce Motion disables these custom animations while preserving static feedback. The [motion contract](Design-Language.md#icons-and-motion) defines timing, triggers, and exclusions; `YarmsMotion` and `YarmsSaveConfirmation` keep those choices consistent. Navigation, playback, and the Share extension retain their native behavior and timing.
 
 ## Graphics in repository documentation
 

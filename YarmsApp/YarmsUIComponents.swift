@@ -3,12 +3,15 @@ import SwiftUI
 /// Informational metadata, deliberately lighter than an interactive folder filter.
 struct FolderBadge: View {
     let name: String?
+    @Environment(\.yarmsReduceMotion) private var reduceMotion
 
     var body: some View {
         Label(name ?? "Unfiled", systemImage: name == nil ? "tray" : "folder")
             .font(.caption)
             .foregroundStyle(YarmsTheme.accent)
             .fixedSize(horizontal: false, vertical: true)
+            .contentTransition(.opacity)
+            .animation(YarmsMotion.transition(reduceMotion: reduceMotion), value: name)
             .accessibilityLabel("Folder: \(name ?? "Unfiled")")
     }
 }
@@ -19,13 +22,20 @@ struct FolderFilter: View {
     let isSelected: Bool
     let action: () -> Void
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.yarmsReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: YarmsTheme.Spacing.sm) {
-                if isSelected { Image(systemName: "checkmark").font(.caption.weight(.semibold)) }
+                Image(systemName: "checkmark")
+                    .font(.caption.weight(.semibold))
+                    .opacity(isSelected ? 1 : 0)
+                    .frame(width: 12)
+                    .accessibilityHidden(true)
                 Text(title)
-                Text("\(count)").monospacedDigit()
+                Text("\(count)")
+                    .monospacedDigit()
+                    .contentTransition(reduceMotion ? .identity : .numericText())
             }
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, YarmsTheme.Spacing.lg)
@@ -37,7 +47,9 @@ struct FolderFilter: View {
                 Capsule().strokeBorder(YarmsTheme.accent, lineWidth: contrast == .increased ? 1.5 : 0)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(YarmsPlainButtonStyle())
+        .animation(YarmsMotion.transition(reduceMotion: reduceMotion), value: isSelected)
+        .animation(YarmsMotion.transition(reduceMotion: reduceMotion), value: count)
         .accessibilityLabel("\(title), \(count) \(count == 1 ? "workout" : "workouts")")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -47,6 +59,7 @@ struct WorkoutCardContent: View {
     let workout: Workout
     let folderName: String?
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.yarmsReduceMotion) private var reduceMotion
 
     var body: some View {
         let layout = typeSize.isAccessibilitySize
@@ -83,9 +96,11 @@ struct WorkoutCardContent: View {
     }
 
     private var thumbnail: some View {
-        AsyncImage(url: workout.thumbnailURL) { phase in
+        AsyncImage(url: workout.thumbnailURL,
+                   transaction: Transaction(animation: YarmsMotion.transition(reduceMotion: reduceMotion))) { phase in
             if let image = phase.image {
                 image.resizable().scaledToFill()
+                    .transition(.opacity)
             } else {
                 Image(systemName: "figure.strengthtraining.traditional")
                     .font(.title2)
@@ -109,6 +124,62 @@ struct WorkoutCardContent: View {
         [workout.title ?? "TikTok workout", workout.creator,
          workout.title == nil ? sourceReference : nil, "Folder: \(folderName ?? "Unfiled")"]
             .compactMap { $0 }.joined(separator: ", ")
+    }
+}
+
+/// A persistent inline result. Only a new successful event briefly blooms behind its checkmark.
+struct YarmsSaveConfirmation: View {
+    let message: String?
+    let eventID: Int
+    let celebrates: Bool
+    let placeholder: String
+    @Environment(\.yarmsReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .subheadline) private var symbolSize = 22
+
+    init(message: String?, eventID: Int, celebrates: Bool = true,
+         placeholder: String = "Saved for your next move.") {
+        self.message = message
+        self.eventID = eventID
+        self.celebrates = celebrates
+        self.placeholder = placeholder
+    }
+
+    var body: some View {
+        HStack(spacing: YarmsTheme.Spacing.xs) {
+            ZStack {
+                Circle()
+                    .fill(Color("YarmsBloom"))
+                    .frame(width: symbolSize, height: symbolSize)
+                    .phaseAnimator([0, 1, 2], trigger: eventID) { bloom, phase in
+                        bloom
+                            .scaleEffect(phase == 1 ? 1.4 : 0.45)
+                            .opacity(phase == 1 && celebrates && !reduceMotion && message != nil ? 0.55 : 0)
+                    } animation: { phase in
+                        guard celebrates && message != nil else { return nil }
+                        return phase == 1
+                            ? YarmsMotion.feedback(reduceMotion: reduceMotion)
+                            : YarmsMotion.transition(reduceMotion: reduceMotion)
+                    }
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(YarmsTheme.accent)
+                    .opacity(message == nil ? 0 : 1)
+            }
+            .frame(width: symbolSize * 1.4, height: symbolSize)
+            .accessibilityHidden(true)
+
+            ZStack(alignment: .leading) {
+                Text(placeholder)
+                    .hidden()
+                if let message {
+                    Text(message)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .combine)
+        .accessibilityHidden(message == nil)
     }
 }
 
@@ -140,6 +211,41 @@ struct YarmsEmptyState: View {
 
 #Preview("Components · dark, large text") {
     componentExamples.preferredColorScheme(.dark).dynamicTypeSize(.accessibility3)
+}
+
+#Preview("Save confirmation · action and Reduce Motion") {
+    SaveConfirmationPreview()
+}
+
+private struct SaveConfirmationPreview: View {
+    @State private var message: String?
+    @State private var eventID = 0
+    @State private var reduceMotion = false
+    @State private var celebrates = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: YarmsTheme.Spacing.lg) {
+            Toggle("Reduce Motion", isOn: $reduceMotion)
+            Button("Save example") {
+                message = "Saved on this iPhone."
+                celebrates = true
+                eventID += 1
+            }
+            .buttonStyle(YarmsActionButtonStyle())
+            Button("Show duplicate") {
+                message = "Already in your library."
+                celebrates = false
+                eventID += 1
+            }
+            .buttonStyle(YarmsSecondaryButtonStyle())
+            Button("Clear status") { message = nil }
+                .buttonStyle(YarmsSecondaryButtonStyle())
+            YarmsSaveConfirmation(message: message, eventID: eventID, celebrates: celebrates)
+        }
+        .padding(YarmsTheme.Spacing.lg)
+        .background(YarmsTheme.canvas)
+        .environment(\.yarmsReduceMotion, reduceMotion)
+    }
 }
 
 @MainActor private var componentExamples: some View {

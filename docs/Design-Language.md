@@ -1,6 +1,6 @@
 # yarms design language
 
-**Status: adopted foundation v0.3, September 30, 2026.** Cool-tone pink is the primary brand direction, reflecting the intended user’s preference. Pair it with calm native iPhone structure, playful details, and gentle invitations to save and try workouts. The adaptive palette includes light, dark, and increased-contrast variants; the app follows the system appearance. Shared tokens and components style the library, workout player, notes, and empty states. Native sheets, menus, alerts, and the Share extension retain system presentation. Feedback from the intended user will refine the shade and experience.
+**Status: adopted foundation with gentle motion, October 1, 2026.** Cool-tone pink is the primary brand direction, reflecting the intended user’s preference. Pair it with calm native iPhone structure, playful details, and gentle invitations to save and try workouts. The adaptive palette includes light, dark, and increased-contrast variants; the app follows the system appearance. Shared tokens and components style the library, workout player, notes, and empty states. Native sheets, menus, alerts, and the Share extension retain system presentation. Feedback from the intended user will refine the shade and experience.
 
 ## Product character
 
@@ -92,7 +92,13 @@ The 44-point target is a yarms baseline for all custom controls. A compact glyph
 
 Use SF Symbols with consistent weight relative to adjacent text. A folder represents a named folder; a tray represents Unfiled everywhere. Keep labels on ambiguous actions. Icon-only controls need an accessible action name, such as “Back 10 seconds,” and a selected trait where appropriate.
 
-Prefer system transitions. Custom state changes should be brief and purposeful; use 150–250 ms as a starting range, then verify on device. Honor Reduce Motion and avoid looping decoration, bouncing cards, animated gradients, or an animated loading placeholder. Haptics, if later added, should acknowledge meaningful actions and never be the only feedback.
+Prefer system transitions. `YarmsMotion` supplies 160 ms ease-out press feedback and 220 ms ease-in-out local transitions. Custom buttons compress to 98% while pressed without overshoot; the outer hit target stays at least 44 points. Folder chips reserve the checkmark space so selection does not shuffle their labels and touch targets. Their selection and counts transition locally, folder badges fade when changed, and thumbnail images fade into their existing frame when they arrive.
+
+A successful new save shows an inline checkmark and one small pink bloom behind it (160 ms in, 220 ms out). The confirmation text remains available after the flourish, needs no dismissal, and clears when the context changes or another attempt begins. Duplicate pastes say “Already in your library” without a celebration and select All so the existing workout remains visible. Notes show “Saved on this iPhone” only after persistence succeeds and clear that status on the next edit; repeated saves of an unchanged, already-confirmed note do not replay the flourish. Loading existing records and scrolling a confirmation back into view do not trigger a celebration.
+
+Read the system Reduce Motion preference through `yarmsReduceMotion`. When enabled, custom scaling, bloom, count motion, and fades are disabled; words, checkmarks, selection, and pressed color feedback remain. Its internal override is for previews and isolated debug UI tests, and cannot turn off the real system preference. See Apple's [Reduce Motion environment documentation](https://developer.apple.com/documentation/swiftui/environmentvalues/accessibilityreducemotion).
+
+Keep animations local to controls and confirmation symbols. Search typing, full library result changes, background metadata text updates, playback time, navigation, keyboard movement, and the Share extension use their existing behavior. No looping decoration, bouncing cards, animated gradients, loading shimmer, sounds, haptics, added completion delays, or startup choreography. Motion never represents workout completion.
 
 ## Component contracts
 
@@ -150,8 +156,8 @@ Use **Apple's native controls + yarms semantic tokens + shared content component
 
 | Source | Responsibility |
 | --- | --- |
-| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Adaptive color roles, spacing, radii, target/content sizes, primary and secondary action styles |
-| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | `FolderBadge`, `FolderFilter`, `WorkoutCardContent`, `YarmsEmptyState`, and light/dark large-text component previews |
+| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Adaptive color roles, spacing, radii, target/content sizes, motion timing, Reduce Motion policy, and action styles |
+| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | `FolderBadge`, `FolderFilter`, `WorkoutCardContent`, `YarmsSaveConfirmation`, `YarmsEmptyState`, and interactive/light/dark/large-text previews |
 | [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) | Save/search/folder composition, adaptive folder sheet, navigation, move/delete/backup operations |
 | [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout/player composition, notes, compact transport controls, and bottom fallback |
 | [ShareViewController.swift](../YarmsShare/ShareViewController.swift) | Native progress indicator and scalable “Saving to yarms…” status during capture |
@@ -160,7 +166,7 @@ Keep these two small shared Swift files alongside the app's existing sources so 
 
 Use an existing token or component before adding a new one. Extend component previews for new states, and keep the existing UI contracts for saving, selected folders, notes, deletion, and the visible full-width TikTok fallback. System PasteButton retains its native size, wording, and paste permission behavior. The illustrated concept's custom full-width Paste treatment is intentionally represented with a native Paste control in the app.
 
-The Share extension uses system colors rather than linking app-only assets. Its spinner reports work in progress; completion still occurs only after the shared inbox write succeeds. Native alerts and Files pickers remain system-managed. No custom animations or haptics were introduced.
+The Share extension uses system colors rather than linking app-only assets. Its spinner reports work in progress; completion still occurs only after the shared inbox write succeeds, without a celebration delay. Native navigation, sheets, alerts, and Files pickers remain system-managed. Custom motion is confined to the main app’s shared controls and inline feedback; no haptics were introduced.
 
 ## Decision checklist
 

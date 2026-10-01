@@ -33,9 +33,17 @@ To run one XCTest class, add `'-only-testing:YarmsTests/LibraryTests'` or `'-onl
 | [BackupImportSecurityTests.swift](../YarmsTests/BackupImportSecurityTests.swift) | Discarding untrusted thumbnail/resolution/alias claims and rejecting conflicting aliases. |
 | [BackupExportSizeTests.swift](../YarmsTests/BackupExportSizeTests.swift) | Export from a valid library larger than the import limit. |
 | [BackupScalingBenchmarkTests.swift](../YarmsTests/BackupScalingBenchmarkTests.swift) | Opt-in restore scaling for 1,000 versus 4,000 aliases of one video. |
-| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Eight simulator UI flows: Paste and search, workout layout and notes persistence, backup menu/export, folders, accessibility-size folder picker and Paste access, and deletion confirmation. |
+| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Ten simulator UI flows: Paste and search, workout layout and notes editing/save/persistence feedback, backup menu/export, folders, accessibility-size folder picker and Paste access, deletion confirmation, and new/duplicate/invalid paste feedback in normal and reduced motion. |
 
 Each UI test starts with a distinct `-YarmsUITestStoreID` UUID, selecting a temporary library and file inbox. That mode does not read the normal Keychain queue; an invalid ID fails closed rather than selecting the normal library. This keeps UI tests separate from an installed personal library. The simulated link is not a live TikTok post, so the UI suite does not prove production playback or metadata availability.
+
+## Motion verification
+
+The confirmation regressions check a successful new paste, an existing-video paste without duplication, an invalid paste clearing prior success feedback, and relaunch without celebrating existing records. The notes flow checks successful-save feedback, clearing on edit, resaving, and persistence. Existing folder, deletion, and large-text flows remain coverage for control reachability and state changes.
+
+`-YarmsUITestReduceMotion` enables the app’s shared reduced-motion policy only in a debug build with `-YarmsUITestStoreID`. It does not change the simulator’s system preferences. This keeps UI tests deterministic; it is not proof of system-setting integration or animation comfort. The app normally reads the native Reduce Motion environment, and the internal preview/test override cannot disable an enabled system preference.
+
+Use the interactive **Save confirmation · action and Reduce Motion** preview to compare save, duplicate, clearing, and rapid repeated actions. On a device, toggle the actual accessibility setting and check that custom scaling, bloom, count transitions, and fades disappear while static feedback remains. Check normal/dark appearance and large text; confirm the bloom stays behind its checkmark, confirmation text remains readable, and controls do not shift. Scroll away/back and background/foreground the app without a new share: neither should replay a celebration. Verify that typing, playback time updates, and ordinary result-list changes stay steady. Confirm a failed persistence operation never claims success; simulator invalid-input coverage alone does not prove every filesystem failure path.
 
 ## Opt-in checks
 
