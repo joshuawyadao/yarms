@@ -111,7 +111,15 @@ On October 1, 2026, the signed iPhone 18 Pro Max / iOS 27.0 run passed the Keych
 
 The device UI runner could not write `UIPasteboard.general` while backgrounded. A temporary test copy supplied an invented fixed link through `devicectl device pasteboard copy` after each app launch, retaining the app code and UI assertions. The ordinary simulator clipboard fixture is not a reliable physical-device setup. The phone also locked during setup; a run waiting for unlock is not a completed test. Temporary test runners were removed afterward to release a free-profile app slot.
 
-These passes do not establish native Reduce Motion integration, VoiceOver speech/navigation, live TikTok playback, extension-to-app sharing, or a completed Files backup round trip. Track those as separate checks; the signed Keychain unit test alone does not exercise the Share extension.
+Those initial passes did not establish native Reduce Motion integration, VoiceOver speech/navigation, live TikTok playback, extension-to-app sharing, or a completed Files backup round trip. Track those as separate checks; the signed Keychain unit test alone does not exercise the Share extension.
+
+### Native accessibility device evidence
+
+On October 2, 2026, the signed iPhone 18 Pro Max / iOS 27.0 passed both targeted native accessibility tests with the actual system Reduce Motion setting enabled. A temporary diagnostic recorder confirmed that UIKit, SwiftUI, and the app's effective motion policy all reported the native setting. The earlier normal-motion save flow recorded all three as disabled. Neither run used the app's Reduce Motion test override.
+
+Native VoiceOver navigation checked the completion headline → supporting message → Done order, then verified that dismissal returned focus to Finish workout. In both motion settings, iOS delivered successful announcement-completion notifications for “Saved for your next move.”, “Already in your library.”, and “Saved on this iPhone”. Notes focus stayed on Save notes, and saving unchanged notes again produced no additional completion notification during the observation window. These are device/API observations; human listening quality and visual motion comfort remain separate checks.
+
+The temporary tests used isolated synthetic libraries and waited for a host clipboard-readiness file before Paste. The initial expired test-runner profile was renewed through Xcode; a code-signature check alone does not establish that a provisioning profile is unexpired. A controller interruption allowed one save flow to finish but prevented the following modal fixture from being supplied in time; that incomplete run was recovered and cleaned up. The subsequent uninterrupted reduced-motion run passed both tests. After each attempt, the clean app was installed over the diagnostic copy, the test runner was removed, and the original appearance and VoiceOver settings were verified restored. No personal-library copy or fresh byte comparison was performed during this follow-up.
 
 ### Files round-trip evidence
 
