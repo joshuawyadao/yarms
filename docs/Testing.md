@@ -99,4 +99,47 @@ Use an invented test link where possible, and use a real publicly available post
 4. Export a backup through Files, restore it on another installation or clean library, and check folders, links, notes, and duplicate handling. Backup files contain personal notes; keep test data synthetic and handle real exports privately.
 5. Inspect light, dark, and increased-contrast appearances; large text; long titles and folder names; missing metadata; keyboard focus; scrolling; and VoiceOver labels and actions on the library and workout screens. At accessibility text sizes and with long or many folder names, check the folder picker and confirm Paste remains reachable after a search with no matches.
 
-On September 28, 2026, verification recorded an unresolved `Invalid frame dimension (negative or non-finite).` diagnostic on iOS 27 when the notes editor gained focus. The September 30 UI integration run also recorded this diagnostic on iOS 26.5. The recorded player layout assertions and note save/relaunch checks passed, and the diagnostic did not identify an app source location. Recheck keyboard focus and layout on a physical device before attributing or changing geometry.
+### Physical smoke evidence
+
+On October 1, 2026, the signed iPhone 18 Pro Max / iOS 27.0 run passed the Keychain save/load/remove test and three focused UI flows: notes editing/save/relaunch, completion with unsaved-draft preservation and button/swipe dismissal, and maximum-text completion using the app's Reduce Motion override. The scoped notes contrast and completion contrast audits passed; screenshots showed readable copy and reachable Done controls. The personal library matched its pre-test bytes afterward.
+
+The device UI runner could not write `UIPasteboard.general` while backgrounded. A temporary test copy supplied an invented fixed link through `devicectl device pasteboard copy` after each app launch, retaining the app code and UI assertions. The ordinary simulator clipboard fixture is not a reliable physical-device setup. The phone also locked during setup; a run waiting for unlock is not a completed test. Temporary test runners were removed afterward to release a free-profile app slot.
+
+These passes do not establish native Reduce Motion integration, VoiceOver speech/navigation, live TikTok playback, extension-to-app sharing, or a completed Files backup round trip. Track those as separate checks; the signed Keychain unit test alone does not exercise the Share extension.
+
+### Notes keyboard warning diagnosis
+
+The `Invalid frame dimension (negative or non-finite).` diagnostic occurs when the Notes keyboard first appears. It was seen on iOS 26.5 and 27.0 before the motion changes; physical notes and completion tests still passed. On October 2, 2026, a temporary focused UI harness checked keyboard appearance, typing, and fresh app launches, and counted this exact warning separately from XCTest success.
+
+| Controlled experiment | Result |
+| --- | --- |
+| Full workout screen, two editor-focus runs on iOS 26.5 | UI assertions passed; one frame warning |
+| Same screen with only the keyboard toolbar removed | UI assertions passed; no frame warning |
+| Native `NavigationStack` + `TextEditor` + keyboard toolbar, without Yarms layout or WebKit | Typing and Done dismissal passed; one frame warning |
+| Minimal screen with the toolbar spacer removed | Same warning |
+| Minimal screen with one `ToolbarItem` instead of `ToolbarItemGroup`, iOS 26.5 and 27.0 | Typing and Done dismissal passed; same warning on both runtimes |
+
+This isolates a native SwiftUI keyboard-toolbar trigger without the app's player sizing, notes container, safe-area tray, or animation code. It does not establish Apple's internal cause, and no speculative player-frame fix was applied. Keep the accessible keyboard Done action. A future visible keyboard/layout regression must still be investigated even if its console warning has the same text.
+
+The minimal view used for the final experiment is equivalent to:
+
+```swift
+struct KeyboardDiagnosticScreen: View {
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        NavigationStack {
+            TextEditor(text: $text)
+                .focused($focused)
+                .toolbar {
+                    ToolbarItem(placement: .keyboard) {
+                        Button("Done") { focused = false }
+                    }
+                }
+        }
+    }
+}
+```
+
+Use a disposable app/test copy for this diagnostic; do not replace the production screen. Focus the editor, assert that the keyboard appears, type and verify text, tap Done, and assert keyboard dismissal. A clean diagnostic requires both successful UI assertions and zero matching runtime warnings; simply suppressing or ignoring the warning is not a fix.

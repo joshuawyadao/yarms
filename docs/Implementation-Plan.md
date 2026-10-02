@@ -8,8 +8,8 @@ Close the remaining Yarms device-validation gaps with reproducible evidence. Dia
 
 ## Action items
 - [x] Review the current app, test isolation, device-test results, and Architecture.md, Data-and-Privacy.md, Repository-Map.md, Development.md, and Testing.md.
-- [ ] Commit the resolved plan and record the initial phone settings and library fingerprint before device mutations.
-- [ ] Build a repeatable Notes-focus warning check, minimize the trigger, and distinguish app layout from framework behavior with controlled experiments.
+- [x] Commit the resolved plan and record the initial phone settings. A new personal-library safety copy awaits explicit approval; continue independent work with synthetic data.
+- [x] Build a repeatable Notes-focus warning check, minimize the trigger, and distinguish app layout from framework behavior with controlled experiments. A minimal native toolbar reproduces the warning on iOS 26.5 and 27.0; no speculative app-layout change is warranted.
 - [ ] Fix confirmed app defects and add regressions at the relevant UI or integration boundary; preserve existing assertions and remove diagnostic instrumentation.
 - [ ] Verify native Reduce Motion and VoiceOver navigation, modal focus/dismissal, and save announcements; record human listening evidence separately from automated checks.
 - [ ] Verify a real public TikTok video's playback, Finish pause, no automatic resume, and unavailable-video fallback; test Share Sheet delivery and deduplication without changing the personal library.
