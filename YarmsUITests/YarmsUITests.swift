@@ -389,7 +389,7 @@ final class YarmsUITests: XCTestCase {
         app.launch()
 
         let picker = app.buttons["folderPickerButton"]
-        scrollUntilHittable(picker, in: app)
+        scrollFolderPickerIntoView(picker, in: app)
         XCTAssertTrue(picker.waitForExistence(timeout: 10),
                       "Large text should offer a labeled folder picker")
         XCTAssertTrue(picker.isHittable, "The folder picker should remain reachable at large text")
@@ -407,7 +407,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(emptyFolder.waitForExistence(timeout: 5),
                       "Selecting the empty folder should filter the library")
 
-        scrollUntilHittable(picker, in: app, towardTop: true)
+        scrollFolderPickerIntoView(picker, in: app, towardTop: true)
         picker.tap()
         XCTAssertTrue(folder.waitForExistence(timeout: 5))
         XCTAssertTrue(folder.isSelected, "The picker should announce the selected folder")
@@ -615,6 +615,27 @@ final class YarmsUITests: XCTestCase {
             if element.exists && element.isHittable { return }
             if towardTop { app.swipeDown() } else { app.swipeUp() }
         }
+    }
+
+    @MainActor
+    private func scrollFolderPickerIntoView(_ picker: XCUIElement, in app: XCUIApplication,
+                                          towardTop: Bool = false) {
+        // iOS 27 can dock search at the bottom. A partly covered picker may
+        // report isHittable even when its center is behind the search field.
+        for _ in 0..<4 {
+            if picker.exists {
+                let navigation = app.navigationBars.firstMatch
+                let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
+                let search = app.searchFields.firstMatch
+                let bottom = search.exists && search.frame.minY > app.frame.midY
+                    ? search.frame.minY - 8 : app.frame.maxY - 8
+                if picker.isHittable && picker.frame.minY >= top && picker.frame.maxY < bottom { return }
+                if picker.frame.maxY >= bottom { app.swipeUp(); continue }
+                if picker.frame.minY < top { app.swipeDown(); continue }
+            }
+            if towardTop { app.swipeDown() } else { app.swipeUp() }
+        }
+        XCTFail("The complete folder picker should scroll clear of navigation and search before tapping")
     }
 
     @MainActor
