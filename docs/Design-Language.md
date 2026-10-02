@@ -137,7 +137,7 @@ The populated library should be easy to scan without interpreting badges. Use co
 
 Hierarchy: back navigation and contextual actions → title, creator, folder → portrait player → Finish workout → optional notes. Keep transport controls and the full-width external fallback in the bottom safe-area tray. Maintain the player's portrait framing and useful width; avoid wasting space on decorative headings. The notes editor and its focused text must remain reachable with the keyboard open. Short screens, landscape, and large text need device review rather than blindly applying a fixed height.
 
-The Finish workout button is available even when an embedded video cannot play, so someone who followed along externally can use it. Opening the celebration dismisses the keyboard and requests a pause from a ready embedded player. Dismissing it returns to the current workout without auto-resuming or changing notes. It uses medium/large native sheet sizes, or a full-height sheet at accessibility text sizes; content can scroll and Done remains reachable.
+The Finish workout button is available even when an embedded video cannot play, so someone who followed along externally can use it. Opening the celebration dismisses the keyboard and requests a pause from a ready embedded player. Dismissing it returns to the current workout without auto-resuming or changing notes, and restores VoiceOver focus to Finish workout. It uses medium/large native sheet sizes, or a full-height sheet at accessibility text sizes; content can scroll and Done remains reachable.
 
 ### Language and trust
 

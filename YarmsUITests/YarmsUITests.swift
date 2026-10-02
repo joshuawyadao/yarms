@@ -177,6 +177,69 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testVoiceOverCompletionRestoresFocusToFinish() throws {
+        #if compiler(>=6.4)
+        guard #available(iOS 27.0, *) else {
+            throw XCTSkip("Native VoiceOver navigation testing requires iOS 27.")
+        }
+        let voiceOver = XCUIDevice.shared.voiceOverService
+        let wasEnabled = voiceOver.isEnabled
+        // XCTest teardown also runs after a fatal assertion; Swift defer alone
+        // cannot restore a device setting when XCTest aborts the test method.
+        addTeardownBlock {
+            try await MainActor.run {
+                let service = XCUIDevice.shared.voiceOverService
+                if wasEnabled { try service.enable() } else { try service.disable() }
+            }
+        }
+        if wasEnabled { try voiceOver.disable() }
+
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        scrollFinishAbovePlaybackTray(in: app)
+
+        try voiceOver.enable()
+        let finish = app.buttons["finishWorkoutButton"]
+        finish.tap()
+        XCTAssertTrue(try voiceOver.currentSpeech().utterance.contains("Finish workout"))
+        finish.doubleTap()
+
+        let title = app.staticTexts["workoutCompletionTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        // Start traversal at a known element; iOS may remember the last focused
+        // sheet element between test runs.
+        title.tap()
+        var speech = [try voiceOver.currentSpeech().utterance]
+        for _ in 0..<8 {
+            if speech.last?.contains("Done") == true { break }
+            speech.append(try voiceOver.moveForward().utterance)
+        }
+        let headlineIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Good Job BUNS!") }, "Speech: \(speech)")
+        let messageIndex = try XCTUnwrap(speech.firstIndex { $0.contains("You showed up and moved today") }, "Speech: \(speech)")
+        let doneIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Done") }, "Speech: \(speech)")
+        XCTAssertLessThan(headlineIndex, messageIndex)
+        XCTAssertLessThan(messageIndex, doneIndex)
+        XCTAssertFalse(speech.contains { $0.contains("Notes (optional)") || $0.contains("Open in TikTok") },
+                       "VoiceOver navigation must stay inside the completion sheet")
+
+        app.buttons["workoutCompletionDoneButton"].doubleTap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5))
+        var restoredSpeech = ""
+        let focusReturned = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            restoredSpeech = (try? voiceOver.currentSpeech().utterance) ?? ""
+            return restoredSpeech.contains("Finish workout")
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [focusReturned], timeout: 5), .completed,
+                      "Dismissal should restore the invoking control, not restart navigation: \(restoredSpeech)")
+        #else
+        throw XCTSkip("Native VoiceOver navigation testing requires Xcode 27 / Swift 6.4.")
+        #endif
+    }
+
+    @MainActor
     func testWorkoutCompletionAtMaximumTextWithReduceMotion() throws {
         let app = isolatedApp()
         let videoID = pasteUniqueWorkout(into: app)

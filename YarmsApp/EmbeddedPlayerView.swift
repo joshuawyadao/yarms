@@ -16,6 +16,7 @@ struct EmbeddedPlayerView: View {
     @State private var showingDeleteWorkout = false
     @State private var showingWorkoutCompletion = false
     @FocusState private var notesFocused: Bool
+    @AccessibilityFocusState(for: .voiceOver) private var finishButtonFocused: Bool
 
     let workout: Workout
     let folders: [WorkoutFolder]
@@ -86,6 +87,7 @@ struct EmbeddedPlayerView: View {
                     }
                     .buttonStyle(YarmsSecondaryButtonStyle())
                     .accessibilityIdentifier("finishWorkoutButton")
+                    .accessibilityFocused($finishButtonFocused)
 
                     DisclosureGroup(isExpanded: $notesOpen) {
                         TextEditor(text: $noteText)
@@ -148,7 +150,9 @@ struct EmbeddedPlayerView: View {
         }
         .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showingWorkoutCompletion) {
+        .sheet(isPresented: $showingWorkoutCompletion, onDismiss: {
+            finishButtonFocused = true
+        }) {
             WorkoutCompletionView()
                 .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
                 .presentationDragIndicator(.visible)
