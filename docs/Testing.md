@@ -163,6 +163,8 @@ Two physical attempts on October 3 launched the installed TikTok app with the pu
 
 The temporary TikTok harness permits only the public sample's concrete video ID. Its gate would reject a shortened link even though the production parser supports short links; that limitation was not reached and must not be reported as an application defect. When checking installation, `devicectl device info apps` needs `--include-default-apps` to include App Store apps; the default inventory lists developer apps only. A short manual TikTok share/re-share check remains, along with the previously noted human listening and animation-comfort judgments.
 
+On October 6, 2026, a temporary assisted harness built successfully. It retains the isolated library/inbox, marked invalid-input gate, concrete public-sample guard, and fresh before/after normal-library audit. After opening the sample in TikTok, it waits for an explicit per-pass completion signal from the user before checking first import and duplicate acknowledgement. Native Share/More/Yarms taps are the manual boundary; the harness avoids the TikTok accessibility queries that previously timed out. Initial execution stopped before device changes because of a transient connection failure, followed by a locked-device preflight. Physical assisted sharing remains pending.
+
 ### Notes keyboard warning diagnosis
 
 The `Invalid frame dimension (negative or non-finite).` diagnostic occurs when the Notes keyboard first appears. It was seen on iOS 26.5 and 27.0 before the motion changes; physical notes and completion tests still passed. On October 2, 2026, a temporary focused UI harness checked keyboard appearance, typing, and fresh app launches, and counted this exact warning separately from XCTest success.
