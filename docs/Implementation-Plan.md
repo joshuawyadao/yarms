@@ -12,7 +12,7 @@ Make Yarms' motion, accessibility and sharing regressions repeatable from a docu
 [x] Add host-side tests covering discovery, selection, unsuccessful tests, timeout/interruption, ownership of cleanup and cleanup failure. Extend sharing tests to check original identity/source/notes/folder preservation across replay and relaunch without duplicating existing count-only tests.
 [x] Run the maintained host tests in Repository Verify and use the same runner for CI Verify; preserve the unsigned generic build check.
 [x] Update Testing, Development and Repository Map with runnable commands, artifact locations and the distinction between deterministic replay and native provider evidence.
-[ ] Validate host tests, repository checks, the targeted sharing suite and the full simulator scheme; verify automatic simulator cleanup and read-only production source scope.
+[ ] Diagnose the full dark run's native VoiceOver setup failure (no speech available immediately after enabling/tapping Finish); reproduce the focused flow, fix the evidenced timing issue without weakening focus assertions, then rerun the full scheme. Host tests, the unsigned generic build and all 26 sharing tests passed; the first full run had 95 passes, one failure and two skips, with successful cleanup.
 [ ] Commit and push the implementation, open a draft PR, attach it to this chat and request Codex review.
 [ ] Run Brooks review on the PR, record a concise review ledger, address actionable feedback and CI failures, and verify final checks and mergeability. Leave the PR unmerged.
 
