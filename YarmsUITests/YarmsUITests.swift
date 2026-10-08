@@ -256,9 +256,11 @@ final class YarmsUITests: XCTestCase {
         app.launch()
 
         let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
-        scrollUntilHittable(row, in: app)
-        XCTAssertTrue(row.waitForExistence(timeout: 10), "The saved workout should load at maximum text size")
-        row.tap()
+        guard tapVisibleLibraryRow(row, in: app) else { return }
+        guard app.staticTexts["workoutHeading"].waitForExistence(timeout: 10) else {
+            XCTFail("Tapping the visible workout row should open its detail before testing completion")
+            return
+        }
         let title = app.staticTexts["workoutCompletionTitle"]
         XCTAssertFalse(title.exists, "Loading a workout should not open completion")
 
@@ -622,6 +624,45 @@ final class YarmsUITests: XCTestCase {
             if element.exists && element.isHittable { return }
             if towardTop { app.swipeDown() } else { app.swipeUp() }
         }
+    }
+
+    @MainActor
+    private func tapVisibleLibraryRow(_ row: XCUIElement, in app: XCUIApplication) -> Bool {
+        // A large row can be hittable while XCTest's computed tap is beside the
+        // home indicator. Tap a safe visible portion; the entire row need not fit.
+        var viewport = CGRect.zero
+        for _ in 0..<6 {
+            let frame = app.frame
+            let navigation = app.navigationBars.firstMatch
+            var top = navigation.exists ? navigation.frame.maxY + 8 : frame.minY + 8
+            var bottom = frame.maxY - 60
+            let search = app.searchFields.firstMatch
+            if search.exists {
+                if search.frame.midY < frame.midY { top = max(top, search.frame.maxY + 8) }
+                else { bottom = min(bottom, search.frame.minY - 8) }
+            }
+            viewport = CGRect(x: frame.minX + 16, y: top,
+                              width: frame.width - 32, height: max(0, bottom - top))
+            let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+            if row.exists {
+                let visible = row.frame.intersection(viewport)
+                if !visible.isNull && visible.width >= 44 && visible.height >= 44 && row.isHittable {
+                    origin.withOffset(CGVector(dx: visible.midX - frame.minX,
+                                               dy: visible.midY - frame.minY)).tap()
+                    return true
+                }
+            }
+            guard viewport.height >= 44 else { break }
+            let towardTop = row.exists && row.frame.midY < viewport.midY
+            let startY = viewport.minY + viewport.height * (towardTop ? 0.2 : 0.8)
+            let endY = viewport.minY + viewport.height * (towardTop ? 0.8 : 0.2)
+            origin.withOffset(CGVector(dx: viewport.midX - frame.minX, dy: startY - frame.minY))
+                .press(forDuration: 0.1,
+                       thenDragTo: origin.withOffset(CGVector(dx: viewport.midX - frame.minX,
+                                                              dy: endY - frame.minY)))
+        }
+        XCTFail("Workout row should expose a safe 44-point tap region; row: \(row.exists ? row.frame : .zero), viewport: \(viewport)")
+        return false
     }
 
     @MainActor

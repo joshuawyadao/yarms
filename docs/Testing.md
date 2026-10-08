@@ -27,6 +27,8 @@ The [CI workflow](../.github/workflows/ci.yml) runs repository verification on U
 
 On October 8, 2026, the maintained command completed the full dark-mode scheme on a fresh iPhone 18 Pro / iOS 27 simulator without intervention: 96 passed and two expected skips (signed-device Keychain and the opt-in benchmark), including all 13 UI flows and native VoiceOver. Xcode exited successfully, the owned simulator was deleted and DerivedData was removed. Repository verification and all 25 runner host tests passed; the focused synthetic sharing suite passed all 26 tests. The runner gives appearance setup up to 120 seconds because a fresh hosted-CI simulator exceeded the earlier 30-second allowance before tests started.
 
+The maximum-text completion test taps a safely visible portion of an oversized library row and verifies detail navigation before checking Finish. This addresses an iOS 26.2 CI recording where XCTest's computed row tap landed beside the home indicator and the app remained in the library. The revised focused test passed on a fresh iPhone 17 Pro / iOS 26.5 simulator with successful cleanup; the Finish/tray, complete celebration copy, Done and contrast assertions remain active.
+
 For direct Xcode use, choose an installed simulator:
 
 ```sh
