@@ -212,6 +212,16 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaises(runner.CommandTimeout):
             runner.Executor().run([sys.executable, "-c", "import time; time.sleep(30)"], 0.05)
 
+    def test_exited_parent_still_terminates_owned_group(self):
+        process = mock.Mock(pid=12345)
+        process.poll.return_value = 0
+        process.wait.return_value = 0
+        with mock.patch.object(runner.os, "killpg") as kill_group:
+            runner.Executor._stop(process)
+        self.assertEqual(kill_group.call_args_list,
+                         [mock.call(12345, signal.SIGTERM), mock.call(12345, signal.SIGKILL)])
+        self.assertEqual(process.wait.call_count, 2)
+
     def test_main_restores_signal_handlers_after_failure(self):
         original = {signum: signal.getsignal(signum) for signum in (signal.SIGINT, signal.SIGTERM)}
         with mock.patch.object(runner, "execute", return_value=1):

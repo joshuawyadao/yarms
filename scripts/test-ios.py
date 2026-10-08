@@ -97,16 +97,21 @@ class Executor:
     @staticmethod
     def _stop(process):
         with blocked_termination_signals():
-            if process.poll() is not None:
-                return
             try:
                 os.killpg(process.pid, signal.SIGTERM)
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait(timeout=5)
             except ProcessLookupError:
                 pass
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+            # The direct child may have exited while descendants still hold its
+            # stdout pipe. Always finish the owned group after a failed command.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.wait(timeout=5)
 
 
 def require_command(executor, command, timeout, log=None):
