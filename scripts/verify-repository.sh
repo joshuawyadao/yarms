@@ -33,6 +33,8 @@ required = (
     "YarmsApp/Yarms.entitlements",
     "YarmsShare/Yarms.entitlements",
     "YarmsUITests/YarmsUITests.swift",
+    "scripts/test-ios.py",
+    "scripts/tests/test_test_ios.py",
 )
 errors = [f"Missing {name}" for name in required if not (root / name).is_file()]
 
@@ -103,6 +105,8 @@ if errors:
     raise SystemExit(1)
 print("Public repository files and local links: OK")
 PY
+
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -v
 
 git diff --check
 git diff --cached --check

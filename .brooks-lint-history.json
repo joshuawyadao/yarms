@@ -207,5 +207,16 @@
       "suggestion": 0
     },
     "scope": "PR #14 CI follow-up: large-text UI test scrolls before offscreen element assertions; every original assertion retained; no production changes"
+  },
+  {
+    "date": "2026-10-08",
+    "mode": "PR Review",
+    "score": 100,
+    "findings": {
+      "critical": 0,
+      "warning": 0,
+      "suggestion": 0
+    },
+    "scope": "Gentle motion/accessibility branch and reusable regression automation vs origin/main; large related diff sampled. App/UI, runner ownership/interrupt/result handling, CI and replay preservation tests reviewed; no outstanding findings after preparation fixes."
   }
 ]

@@ -15,7 +15,7 @@ Yarms is an iPhone app built from the checked-in [Xcode project](../Yarms.xcodep
      CODE_SIGNING_ALLOWED=NO build
    ```
 
-The repository verifier checks required public files, the shared scheme, project references, Keychain entitlements, extension version settings, prohibited private or generated files, local Markdown links, and whitespace errors. It needs `python3` and Git. Simulator and device test commands are in [Testing](Testing.md).
+The repository verifier checks required public files, the shared scheme, project references, Keychain entitlements, extension version settings, prohibited private or generated files, local Markdown links, whitespace errors and the portable test runner's host tests. It needs `python3` and Git. Run `python3 scripts/test-ios.py` for the full scheme on a disposable simulator, or `--suite feedback` / `--suite sharing` for focused checks. Options, retained results, cleanup and signed-device boundaries are in [Testing](Testing.md).
 
 ## Install on an iPhone
 

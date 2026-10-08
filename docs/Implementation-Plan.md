@@ -8,10 +8,10 @@ Make Yarms' motion, accessibility and sharing regressions repeatable from a docu
 
 ## Action items
 [x] Inspect Testing, Development, Repository Map, the existing XCTest suite, CI and the ignored phone replay harness; identify reusable lifecycle and duplicate-preservation checks.
-[ ] Add `scripts/test-ios.py` with available iPhone/runtime discovery, a new simulator per run, explicit suite/appearance choices, serial ad-hoc-signed tests, time limits, logs/xcresult/summary, and cleanup that cannot silently pass after failure.
-[ ] Add host-side tests covering discovery, selection, unsuccessful tests, timeout/interruption, ownership of cleanup and cleanup failure. Extend sharing tests to check original identity/source/notes/folder preservation across replay and relaunch without duplicating existing count-only tests.
-[ ] Run the maintained host tests in Repository Verify and use the same runner for CI Verify; preserve the unsigned generic build check.
-[ ] Update Testing, Development and Repository Map with runnable commands, artifact locations and the distinction between deterministic replay and native provider evidence.
+[x] Add `scripts/test-ios.py` with available iPhone/runtime discovery, a new simulator per run, explicit suite/appearance choices, serial ad-hoc-signed tests, time limits, logs/xcresult/summary, and cleanup that cannot silently pass after failure.
+[x] Add host-side tests covering discovery, selection, unsuccessful tests, timeout/interruption, ownership of cleanup and cleanup failure. Extend sharing tests to check original identity/source/notes/folder preservation across replay and relaunch without duplicating existing count-only tests.
+[x] Run the maintained host tests in Repository Verify and use the same runner for CI Verify; preserve the unsigned generic build check.
+[x] Update Testing, Development and Repository Map with runnable commands, artifact locations and the distinction between deterministic replay and native provider evidence.
 [ ] Validate host tests, repository checks, the targeted sharing suite and the full simulator scheme; verify automatic simulator cleanup and read-only production source scope.
 [ ] Commit and push the implementation, open a draft PR, attach it to this chat and request Codex review.
 [ ] Run Brooks review on the PR, record a concise review ledger, address actionable feedback and CI failures, and verify final checks and mergeability. Leave the PR unmerged.

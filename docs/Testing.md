@@ -4,6 +4,25 @@ The shared **Yarms** scheme includes `YarmsTests` and `YarmsUITests`. Run from t
 
 ## Local and CI-matching commands
 
+Run the maintained automation from the repository root:
+
+```sh
+./scripts/verify-repository.sh
+python3 scripts/test-ios.py
+python3 scripts/test-ios.py --suite feedback --appearance dark
+python3 scripts/test-ios.py --suite sharing
+```
+
+The [runner](../scripts/test-ios.py) creates a disposable iPhone simulator on the latest available iOS runtime (iOS 18 or newer). Each run owns its simulator, temporary test libraries and build directory. It shuts down and deletes that simulator and removes its build directory on success, failure, timeout or a handled interruption. It never selects a physical phone or reuses an existing simulator. An uncatchable process termination can prevent cleanup; use the simulator ID in the run report with `xcrun simctl shutdown ID` and `xcrun simctl delete ID` to finish cleanup.
+
+`full` runs the shared scheme. `feedback` runs the six notes/save/completion/VoiceOver regressions, including reduced motion and maximum text. `sharing` runs capture and library tests, including synthetic replay of enriched short links and known aliases; it checks preserved workout identity, source, notes and folder assignments after reopening the store. These checks use the real file inbox and import code with injected test storage. They do not exercise the shared Keychain entitlement, live redirect resolution or TikTok's Share/More selection. The earlier signed-phone captured-source replay remains separate local evidence.
+
+Use `--runtime` and `--device-type` with installed CoreSimulator identifiers to pin a compatible pair, and `--timeout-seconds` to bound the test process. `--help` lists all options. A fresh ignored `.build/test-runs/` directory retains `report.json`, `summary.json`, `xcodebuild.log` and `Tests.xcresult`; the command prints its location before testing. Missing/empty results, test failures and cleanup errors all produce a nonzero exit status. Open the result bundle in Xcode to inspect failures and synthetic screenshots. The [host tests](../scripts/tests/test_test_ios.py) cover selection and failure cleanup without requiring Xcode and run as part of repository verification.
+
+The [CI workflow](../.github/workflows/ci.yml) runs repository verification on Ubuntu, preserves the unsigned generic simulator build check, and invokes the same full runner on macOS with serial ad-hoc-signed tests. CI retains result artifacts for seven days even after a failed test run. A passing simulator suite does not certify physical speech, motion comfort, playback/audio quality or native third-party sharing.
+
+For direct Xcode use, choose an installed simulator:
+
 ```sh
 ./scripts/verify-repository.sh
 xcodebuild -project Yarms.xcodeproj -scheme Yarms \
@@ -14,7 +33,7 @@ xcodebuild -project Yarms.xcodeproj -scheme Yarms \
   -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
 ```
 
-Replace `iPhone 17 Pro` with an installed simulator. The [CI workflow](../.github/workflows/ci.yml) runs `verify-repository.sh` on Ubuntu, builds the simulator app with signing disabled, and chooses an available iPhone simulator on macOS for unit and UI tests with ad-hoc signing (`CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=-`). It disables parallel testing, saves an `.xcresult` bundle, and prints test summaries on success and failure. The test command above mirrors its signing mode without prescribing CI's runner-specific simulator ID or output location. If a test fails, run it again with `-resultBundlePath /tmp/YarmsTests.xcresult` using a fresh path, then inspect it in Xcode or with `xcrun xcresulttool`.
+Replace `iPhone 17 Pro` with an installed simulator. The direct command uses the same serial testing and ad-hoc signing mode as CI. If a test fails, run it again with `-resultBundlePath /tmp/YarmsTests.xcresult` using a fresh path, then inspect it in Xcode or with `xcrun xcresulttool`. Direct commands leave the selected simulator in place; the maintained runner handles ownership and cleanup automatically.
 
 To run one XCTest class, add `'-only-testing:YarmsTests/LibraryTests'` or `'-only-testing:YarmsUITests/YarmsUITests'` before `test`. The Xcode Test navigator is another way to run a selected case. When editing a feature, run its focused class and then the full scheme before proposing a merge.
 
@@ -23,7 +42,7 @@ To run one XCTest class, add `'-only-testing:YarmsTests/LibraryTests'` or `'-onl
 | Test file | Main coverage |
 | --- | --- |
 | [FoundationTests.swift](../YarmsTests/FoundationTests.swift) | TikTok URL parsing, local file inbox, damaged inbox files, and isolated UI test container selection. |
-| [ShortcutCaptureTests.swift](../YarmsTests/ShortcutCaptureTests.swift) | Shared-text capture, invalid text, and deduplication across file and share inboxes. |
+| [ShortcutCaptureTests.swift](../YarmsTests/ShortcutCaptureTests.swift) | Shared-text capture, invalid text, deduplication across file and share inboxes, and enriched-source/alias replay preserving identity, notes and folders after reload. |
 | [KeychainInboxTests.swift](../YarmsTests/KeychainInboxTests.swift) | Real shared-Keychain save, load, and removal on a signed iPhone; intentionally skips on simulators. |
 | [LibraryTests.swift](../YarmsTests/LibraryTests.swift) | Inbox import and crash recovery, search, metadata enrichment, short-link coalescing, notes, folders, deletion, and library-version compatibility. |
 | [MetadataTests.swift](../YarmsTests/MetadataTests.swift) | oEmbed parsing, short-link resolution, failed requests, and redirect host restrictions through controlled URL loading. |

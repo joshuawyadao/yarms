@@ -33,7 +33,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | File | Area |
 | --- | --- |
 | [FoundationTests.swift](../YarmsTests/FoundationTests.swift) | Links, file inbox, UI-test storage. |
-| [ShortcutCaptureTests.swift](../YarmsTests/ShortcutCaptureTests.swift) | Shared text and pending-link import. |
+| [ShortcutCaptureTests.swift](../YarmsTests/ShortcutCaptureTests.swift) | Shared text, pending-link import and replay preserving enriched workout data. |
 | [KeychainInboxTests.swift](../YarmsTests/KeychainInboxTests.swift) | Signed-device Keychain access. |
 | [LibraryTests.swift](../YarmsTests/LibraryTests.swift) | Store, folders, search, notes, deletion. |
 | [MetadataTests.swift](../YarmsTests/MetadataTests.swift) | oEmbed and redirect behavior. |
@@ -43,7 +43,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [BackupImportSecurityTests.swift](../YarmsTests/BackupImportSecurityTests.swift) | Imported-claim trust boundaries. |
 | [BackupExportSizeTests.swift](../YarmsTests/BackupExportSizeTests.swift) | Large-library export. |
 | [BackupScalingBenchmarkTests.swift](../YarmsTests/BackupScalingBenchmarkTests.swift) | Opt-in restore scaling. |
-| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Twelve simulator user flows, including completion-modal presentation/dismissal, save/error feedback with reduced motion, note persistence, accessibility-size folder selection, and Paste access. |
+| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Thirteen simulator user flows, including completion-modal presentation/dismissal and VoiceOver focus, save/error feedback with reduced motion, note persistence, accessibility-size folder selection, and Paste access. |
 
 ## Project, resources, and automation
 
@@ -54,7 +54,8 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [YarmsShare/Info.plist](../YarmsShare/Info.plist) | Share extension identity, activation for URL/text input, and version settings. |
 | [Assets/Assets.xcassets](../Assets/Assets.xcassets/) | App icon PNG and asset catalog metadata; `AccentColor`, `YarmsAction`, `YarmsBloom`, `YarmsCanvas`, `YarmsSoft`, and `YarmsSurface` color sets. See [Design and Assets](Design-and-Assets.md). |
 | [generate-project.rb](../scripts/generate-project.rb) | Optional Ruby `xcodeproj` updater for Swift source membership and scheme; also has new-project bootstrap logic. |
-| [verify-repository.sh](../scripts/verify-repository.sh) | Public-file, scheme, signing-config, link, privacy-file, and whitespace checks. |
+| [verify-repository.sh](../scripts/verify-repository.sh) | Public-file, scheme, signing-config, link, privacy-file, whitespace checks and test-runner host tests. |
+| [test-ios.py](../scripts/test-ios.py) and [host tests](../scripts/tests/test_test_ios.py) | Disposable simulator lifecycle, full/feedback/sharing suites, retained result summaries and cleanup. |
 | [ci.yml](../.github/workflows/ci.yml) | GitHub Actions repository verification, simulator build, and unit/UI test jobs. |
 | [.gitignore](../.gitignore) | Excludes local credentials, build products, personal data, and editor files. |
 | [.brooks-lint-history.json](../.brooks-lint-history.json) | Checked-in history for the repository's Brooks lint tooling. |
