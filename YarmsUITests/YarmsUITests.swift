@@ -203,8 +203,15 @@ final class YarmsUITests: XCTestCase {
 
         try voiceOver.enable()
         let finish = app.buttons["finishWorkoutButton"]
-        finish.tap()
-        XCTAssertTrue(try voiceOver.currentSpeech().utterance.contains("Finish workout"))
+        // Navigate with VoiceOver's supported focus commands. Synthesized taps
+        // do not guarantee an accessibility focus or a speech event.
+        var invokingSpeech: [String] = []
+        for _ in 0..<24 {
+            invokingSpeech.append(try voiceOver.moveForward().utterance)
+            if invokingSpeech.last?.contains("Finish workout") == true { break }
+        }
+        XCTAssertTrue(invokingSpeech.last?.contains("Finish workout") == true,
+                      "Native navigation should reach Finish workout before activation: \(invokingSpeech)")
         finish.doubleTap()
 
         let title = app.staticTexts["workoutCompletionTitle"]
