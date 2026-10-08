@@ -42,7 +42,8 @@ class FakeExecutor:
                  interrupt=False, cleanup_failure=False, summary=True,
                  create_timeout=False, create_output=None, recover_created=True,
                  shutdown_failure=False, device_state="Booted", listed_name=None,
-                 list_devices_failure=False, ambiguous_owned=False, owned_id=SIM_ID):
+                 list_devices_failure=False, ambiguous_owned=False, owned_id=SIM_ID,
+                 launch_failure=False):
         self.commands = []
         self.test_code = test_code
         self.passed = passed
@@ -60,11 +61,16 @@ class FakeExecutor:
         self.list_devices_failure = list_devices_failure
         self.ambiguous_owned = ambiguous_owned
         self.owned_id = owned_id
+        self.launch_failure = launch_failure
         self.created_name = None
         self.shutdown_attempted = False
 
     def run(self, command, timeout, log=None):
         self.commands.append(command)
+        if command == ["xcode-select", "-p"]:
+            return 0, "/Applications/Xcode.app/Contents/Developer\n"
+        if command[:3] == ["open", "-g", "-a"]:
+            return (1, "DeviceHub launch failed") if self.launch_failure else (0, "")
         if command[:4] == ["xcrun", "simctl", "list", "--json"]:
             if command == ["xcrun", "simctl", "list", "--json", "devices"]:
                 if self.list_devices_failure and self.shutdown_attempted:
@@ -120,12 +126,16 @@ class RunnerTests(unittest.TestCase):
         self.args = argparse.Namespace(suite="full", appearance="light", runtime=None,
                                        device_type=None, timeout_seconds=1500)
 
-    def run_case(self, fake):
-        code = runner.execute(self.args, fake, self.base, host="Darwin")
+    def run_case(self, fake, **kwargs):
+        code = self.execute_case(self.args, fake, self.base, **kwargs)
         roots = list(self.base.iterdir())
         self.assertEqual(len(roots), 1)
         report = json.loads((roots[0] / "report.json").read_text())
         return code, report, roots[0]
+
+    def execute_case(self, args, fake, base, **kwargs):
+        app_probe = kwargs.pop("app_probe", lambda _path: False)
+        return runner.execute(args, fake, base, host="Darwin", app_probe=app_probe, **kwargs)
 
     def test_discovery_chooses_latest_available_compatible_iphone(self):
         self.assertEqual(runner.select_profile(CATALOG), (RUNTIME_27, IPHONE))
@@ -151,6 +161,55 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(sum(command == ["xcrun", "simctl", "list", "--json"]
                              for command in fake.commands), 1)
 
+    def test_voiceover_frontend_launches_before_simulator_creation(self):
+        checked = []
+        fake = FakeExecutor()
+        expected = Path("/Applications/Xcode.app/Contents/Applications/DeviceHub.app")
+        code, report, _ = self.run_case(fake, app_probe=lambda path: checked.append(path) or True)
+        self.assertEqual(code, 0)
+        self.assertEqual(report["voiceOverFrontend"], "launched")
+        self.assertEqual(checked, [expected])
+        launch = ["open", "-g", "-a", str(expected)]
+        self.assertIn(launch, fake.commands)
+        self.assertLess(fake.commands.index(launch),
+                        next(index for index, command in enumerate(fake.commands)
+                             if command[:3] == ["xcrun", "simctl", "create"]))
+
+    def test_voiceover_frontend_unavailable_keeps_test_behavior(self):
+        fake = FakeExecutor()
+        code, report, _ = self.run_case(fake)
+        self.assertEqual(code, 0)
+        self.assertEqual(report["voiceOverFrontend"], "unavailable")
+        self.assertNotIn("open", [command[0] for command in fake.commands])
+
+    def test_voiceover_frontend_not_needed_for_older_runtime_or_sharing(self):
+        for label, runtime, suite in (("older", RUNTIME_18, "full"),
+                                      ("sharing", RUNTIME_27, "sharing")):
+            with self.subTest(label=label):
+                args = argparse.Namespace(**vars(self.args))
+                args.runtime = runtime
+                args.suite = suite
+                fake = FakeExecutor()
+                base = self.base / label
+                self.assertEqual(self.execute_case(args, fake, base, app_probe=lambda _path: True), 0)
+                report = json.loads((next(base.iterdir()) / "report.json").read_text())
+                self.assertEqual(report["voiceOverFrontend"], "notRequired")
+                self.assertNotIn(["xcode-select", "-p"], fake.commands)
+                self.assertFalse(any(command[0] == "open" for command in fake.commands))
+
+    def test_voiceover_frontend_launch_failure_fails_before_create(self):
+        fake = FakeExecutor(launch_failure=True)
+        code, report, _ = self.run_case(fake, app_probe=lambda _path: True)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["voiceOverFrontend"], "failed")
+        self.assertIn("DeviceHub launch failed", report["error"])
+        self.assertFalse(any(command[:3] == ["xcrun", "simctl", "create"] for command in fake.commands))
+
+    def test_private_voiceover_profile_requires_frontend(self):
+        with mock.patch.dict(runner.SUITE_FILTERS, {"private": ("YarmsUITests/YarmsUITests/testVoiceOverCompletionRestoresFocusToFinish",)}):
+            self.assertTrue(runner.needs_voiceover_frontend(RUNTIME_27, "private"))
+            self.assertFalse(runner.needs_voiceover_frontend(RUNTIME_18, "private"))
+
     def test_profiles_filter_only_requested_tests(self):
         full = runner.test_command(SIM_ID, "full", self.base / "dd", self.base / "r")
         sharing = runner.test_command(SIM_ID, "sharing", self.base / "dd", self.base / "r")
@@ -159,6 +218,7 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(sum(item.startswith("-only-testing:") for item in sharing), 2)
         self.assertEqual(sum(item.startswith("-only-testing:") for item in feedback), 6)
         self.assertIn("-parallel-testing-enabled", full)
+        self.assertEqual(full[full.index("-collect-test-diagnostics") + 1], "never")
         self.assertIn("CODE_SIGN_IDENTITY=-", full)
 
     def test_success_has_artifacts_and_deletes_only_owned_simulator(self):
@@ -203,7 +263,7 @@ class RunnerTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 base = self.base / mode
                 fake = FakeExecutor(**{mode: True})
-                self.assertEqual(runner.execute(self.args, fake, base, host="Darwin"), 1)
+                self.assertEqual(self.execute_case(self.args, fake, base), 1)
                 self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
 
     def test_timed_out_create_recovers_only_exact_owned_name(self):
@@ -272,8 +332,8 @@ class RunnerTests(unittest.TestCase):
                 return super().run(command, timeout, log)
 
         fake = SignalingExecutor()
-        self.assertEqual(runner.execute(self.args, fake, self.base, host="Darwin",
-                                        interrupt_state=state), 1)
+        self.assertEqual(self.execute_case(self.args, fake, self.base,
+                                           interrupt_state=state), 1)
         report = json.loads((next(self.base.iterdir()) / "report.json").read_text())
         self.assertTrue(fake.assert_cleaning)
         if hasattr(signal, "pthread_sigmask"):
@@ -309,7 +369,7 @@ class RunnerTests(unittest.TestCase):
                            ("empty", FakeExecutor(passed=0))):
             with self.subTest(name=name):
                 base = self.base / name
-                self.assertEqual(runner.execute(self.args, fake, base, host="Darwin"), 1)
+                self.assertEqual(self.execute_case(self.args, fake, base), 1)
                 report = json.loads((next(base.iterdir()) / "report.json").read_text())
                 self.assertEqual(report["status"], "failed")
 
@@ -330,7 +390,7 @@ class RunnerTests(unittest.TestCase):
         for index, fake in enumerate(cases):
             with self.subTest(index=index):
                 base = self.base / str(index)
-                self.assertEqual(runner.execute(self.args, fake, base, host="Darwin"), 1)
+                self.assertEqual(self.execute_case(self.args, fake, base), 1)
                 report = json.loads((next(base.iterdir()) / "report.json").read_text())
                 self.assertEqual(report["status"], "failed")
                 self.assertTrue(any(error.startswith("shutdown:") for error in report["cleanupErrors"]))

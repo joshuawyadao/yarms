@@ -160,11 +160,33 @@ def select_profile(catalog, runtime_id=None, device_type_id=None):
     return runtime["identifier"], compatible[0]["identifier"]
 
 
+def needs_voiceover_frontend(runtime_id, suite):
+    match = re.search(r"\.iOS-(\d+)(?:-\d+)*$", runtime_id)
+    if not match or int(match.group(1)) < 27:
+        return False
+    return suite == "full" or any(
+        item.endswith("/testVoiceOverCompletionRestoresFocusToFinish")
+        for item in SUITE_FILTERS[suite]
+    )
+
+
+def prepare_voiceover_frontend(executor, app_probe):
+    developer_path = require_command(executor, ["xcode-select", "-p"], 30).strip()
+    if not developer_path or not Path(developer_path).is_absolute():
+        raise RunError("xcode-select returned no absolute developer path")
+    app_path = Path(developer_path).parent / "Applications" / "DeviceHub.app"
+    if not app_probe(app_path):
+        return "unavailable"
+    require_command(executor, ["open", "-g", "-a", str(app_path)], 30)
+    return "launched"
+
+
 def test_command(simulator_id, suite, derived_data, result_bundle):
     command = [
         "xcodebuild", "-project", "Yarms.xcodeproj", "-scheme", "Yarms",
         "-sdk", "iphonesimulator", "-destination", f"platform=iOS Simulator,id={simulator_id}",
-        "-parallel-testing-enabled", "NO", "-derivedDataPath", str(derived_data),
+        "-parallel-testing-enabled", "NO", "-collect-test-diagnostics", "never",
+        "-derivedDataPath", str(derived_data),
         "-resultBundlePath", str(result_bundle), "CODE_SIGNING_ALLOWED=YES",
         "CODE_SIGN_IDENTITY=-",
     ]
@@ -225,8 +247,9 @@ def write_report(path, report):
     temporary.replace(path)
 
 
-def execute(args, executor=None, run_base=None, host=None, interrupt_state=None):
+def execute(args, executor=None, run_base=None, host=None, interrupt_state=None, app_probe=None):
     executor = executor or Executor()
+    app_probe = app_probe or (lambda path: path.is_dir())
     run_base = Path(run_base) if run_base else ROOT / ".build" / "test-runs"
     run_id = uuid.uuid4().hex
     run_root = run_base / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{run_id}"
@@ -238,6 +261,7 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None)
         "appearance": args.appearance, "runtime": None, "deviceType": None,
         "simulatorID": None, "simulatorName": simulator_name,
         "testExitCode": None, "testCounts": None, "error": None, "cleanupErrors": [],
+        "voiceOverFrontend": "notRequired",
     }
     write_report(report_path, report)
     print(f"Report: {report_path}", flush=True)
@@ -250,6 +274,11 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None)
         runtime, device_type = select_profile(catalog, args.runtime, args.device_type)
         report.update(runtime=runtime, deviceType=device_type)
         write_report(report_path, report)
+        if needs_voiceover_frontend(runtime, args.suite):
+            report["voiceOverFrontend"] = "failed"
+            write_report(report_path, report)
+            report["voiceOverFrontend"] = prepare_voiceover_frontend(executor, app_probe)
+            write_report(report_path, report)
         created = require_command(executor, ["xcrun", "simctl", "create", simulator_name, device_type, runtime], 60)
         created = validated_simulator_id(created.strip())
         owned_id = find_owned_simulator(executor, simulator_name)
