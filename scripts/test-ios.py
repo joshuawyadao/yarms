@@ -87,7 +87,8 @@ class Executor:
                 raise
             return process.returncode, stdout or ""
         except subprocess.TimeoutExpired as exc:
-            raise CommandTimeout(f"Timed out after {timeout}s: {command[0]}") from exc
+            label = " ".join(command[:3]) if command[:2] == ["xcrun", "simctl"] else command[0]
+            raise CommandTimeout(f"Timed out after {timeout}s: {label}") from exc
         finally:
             if log:
                 output.close()
@@ -289,7 +290,7 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None,
         write_report(report_path, report)
         require_command(executor, ["xcrun", "simctl", "boot", simulator_id], 60)
         require_command(executor, ["xcrun", "simctl", "bootstatus", simulator_id, "-b"], 180)
-        require_command(executor, ["xcrun", "simctl", "ui", simulator_id, "appearance", args.appearance], 30)
+        require_command(executor, ["xcrun", "simctl", "ui", simulator_id, "appearance", args.appearance], 120)
         result_bundle = run_root / "Tests.xcresult"
         code, _ = executor.run(test_command(simulator_id, args.suite, derived_data, result_bundle), args.timeout_seconds, run_root / "xcodebuild.log")
         report["testExitCode"] = code

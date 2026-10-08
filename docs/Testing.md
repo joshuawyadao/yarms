@@ -25,6 +25,8 @@ Routine runs omit Xcode's optional verbose diagnostic collection with `-collect-
 
 The [CI workflow](../.github/workflows/ci.yml) runs repository verification on Ubuntu, preserves the unsigned generic simulator build check, and invokes the same full runner on macOS with serial ad-hoc-signed tests. CI retains result artifacts for seven days even after a failed test run. A passing simulator suite does not certify physical speech, motion comfort, playback/audio quality or native third-party sharing.
 
+On October 8, 2026, the maintained command completed the full dark-mode scheme on a fresh iPhone 18 Pro / iOS 27 simulator without intervention: 96 passed and two expected skips (signed-device Keychain and the opt-in benchmark), including all 13 UI flows and native VoiceOver. Xcode exited successfully, the owned simulator was deleted and DerivedData was removed. Repository verification and all 25 runner host tests passed; the focused synthetic sharing suite passed all 26 tests. The runner gives appearance setup up to 120 seconds because a fresh hosted-CI simulator exceeded the earlier 30-second allowance before tests started.
+
 For direct Xcode use, choose an installed simulator:
 
 ```sh
