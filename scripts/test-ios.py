@@ -246,7 +246,7 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None)
     try:
         if (host or platform.system()) != "Darwin":
             raise RunError("Xcode simulator tests require macOS")
-        catalog = parse_json(require_command(executor, ["xcrun", "simctl", "list", "--json", "runtimes", "devicetypes"], 30), "simctl catalog")
+        catalog = parse_json(require_command(executor, ["xcrun", "simctl", "list", "--json"], 30), "simctl catalog")
         runtime, device_type = select_profile(catalog, args.runtime, args.device_type)
         report.update(runtime=runtime, deviceType=device_type)
         write_report(report_path, report)

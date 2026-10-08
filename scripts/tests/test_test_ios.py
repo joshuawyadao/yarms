@@ -66,7 +66,7 @@ class FakeExecutor:
     def run(self, command, timeout, log=None):
         self.commands.append(command)
         if command[:4] == ["xcrun", "simctl", "list", "--json"]:
-            if "devices" in command:
+            if command == ["xcrun", "simctl", "list", "--json", "devices"]:
                 if self.list_devices_failure and self.shutdown_attempted:
                     return 1, "device listing failed"
                 devices = [{"name": "Personal iPhone", "udid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"}]
@@ -77,7 +77,9 @@ class FakeExecutor:
                         devices.append({"name": self.created_name,
                                         "udid": "cccccccc-cccc-cccc-cccc-cccccccccccc", "state": "Shutdown"})
                 return 0, json.dumps({"devices": {RUNTIME_27: devices}})
-            return 0, json.dumps(CATALOG)
+            if command == ["xcrun", "simctl", "list", "--json"]:
+                return 0, json.dumps(CATALOG)
+            return 2, "simctl list accepts at most one filter"
         if command[:3] == ["xcrun", "simctl", "create"]:
             self.created_name = command[3]
             if self.create_timeout:
@@ -137,6 +139,17 @@ class RunnerTests(unittest.TestCase):
         catalog["runtimes"][1]["supportedDeviceTypes"] = [{"identifier": IPAD}]
         with self.assertRaises(runner.RunError):
             runner.select_profile(catalog)
+
+    def test_discovery_uses_supported_unfiltered_list_grammar(self):
+        fake = FakeExecutor()
+        with self.assertRaises(runner.RunError):
+            runner.require_command(fake, ["xcrun", "simctl", "list", "--json", "runtimes", "devicetypes"], 30)
+        code, report, _ = self.run_case(fake)
+        self.assertEqual(code, 0)
+        self.assertEqual(report["status"], "passed")
+        self.assertIn(["xcrun", "simctl", "list", "--json"], fake.commands)
+        self.assertEqual(sum(command == ["xcrun", "simctl", "list", "--json"]
+                             for command in fake.commands), 1)
 
     def test_profiles_filter_only_requested_tests(self):
         full = runner.test_command(SIM_ID, "full", self.base / "dd", self.base / "r")
