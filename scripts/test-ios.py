@@ -172,13 +172,31 @@ def test_command(simulator_id, suite, derived_data, result_bundle):
     return command + ["test"]
 
 
+def validated_simulator_id(value):
+    try:
+        parsed = uuid.UUID(value)
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise RunError("simctl did not return a simulator UUID") from exc
+    if str(parsed) != value.lower():
+        raise RunError("simctl did not return a canonical simulator UUID")
+    return value
+
+
 def find_owned_simulator(executor, name):
     devices = parse_json(require_command(executor, ["xcrun", "simctl", "list", "--json", "devices"], 30), "simctl devices")
     matches = [device for group in devices.get("devices", {}).values() for device in group
                if isinstance(device, dict) and device.get("name") == name]
     if len(matches) > 1:
         raise RunError("Multiple simulators have the ownership name; refusing cleanup")
-    return matches[0].get("udid") if matches else None
+    return validated_simulator_id(matches[0].get("udid")) if matches else None
+
+
+def owned_simulator_is_shutdown(executor, simulator_id, name):
+    devices = parse_json(require_command(executor, ["xcrun", "simctl", "list", "--json", "devices"], 30), "simctl devices")
+    matches = [device for group in devices.get("devices", {}).values() for device in group
+               if isinstance(device, dict) and device.get("udid") == simulator_id
+               and device.get("name") == name]
+    return len(matches) == 1 and matches[0].get("state") == "Shutdown"
 
 
 def summarize(executor, result_bundle, summary_file):
@@ -196,7 +214,7 @@ def summarize(executor, result_bundle, summary_file):
             skipped = int(summary.get("testsSkipped", 0))
     except (KeyError, TypeError, ValueError) as exc:
         raise RunError("XCTest summary has no usable test counts") from exc
-    if passed < 1 or failed < 0 or skipped < 0:
+    if passed < 0 or failed < 0 or skipped < 0 or passed + failed == 0:
         raise RunError("XCTest summary has invalid test counts")
     return {"passed": passed, "failed": failed, "skipped": skipped}
 
@@ -233,14 +251,11 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None)
         report.update(runtime=runtime, deviceType=device_type)
         write_report(report_path, report)
         created = require_command(executor, ["xcrun", "simctl", "create", simulator_name, device_type, runtime], 60)
-        created = created.strip()
-        try:
-            parsed_id = uuid.UUID(created)
-        except ValueError as exc:
-            raise RunError("simctl create did not return a simulator UUID") from exc
-        if str(parsed_id) != created.lower():
-            raise RunError("simctl create did not return a simulator UUID")
-        simulator_id = created
+        created = validated_simulator_id(created.strip())
+        owned_id = find_owned_simulator(executor, simulator_name)
+        if owned_id is None or owned_id.lower() != created.lower():
+            raise RunError("simctl create UUID does not match the fresh owned simulator")
+        simulator_id = owned_id
         report["simulatorID"] = simulator_id
         write_report(report_path, report)
         require_command(executor, ["xcrun", "simctl", "boot", simulator_id], 60)
@@ -275,7 +290,14 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None)
                     try:
                         require_command(executor, ["xcrun", "simctl", action, simulator_id], 60)
                     except (Exception, KeyboardInterrupt) as exc:
-                        report["cleanupErrors"].append(f"{action}: {exc}")
+                        already_shutdown = False
+                        if action == "shutdown":
+                            try:
+                                already_shutdown = owned_simulator_is_shutdown(executor, simulator_id, simulator_name)
+                            except (Exception, KeyboardInterrupt):
+                                pass
+                        if not already_shutdown:
+                            report["cleanupErrors"].append(f"{action}: {exc}")
             try:
                 if derived_data.exists():
                     shutil.rmtree(derived_data)

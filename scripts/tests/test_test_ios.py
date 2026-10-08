@@ -40,7 +40,9 @@ CATALOG = {
 class FakeExecutor:
     def __init__(self, *, test_code=0, passed=4, failed=0, timeout=False,
                  interrupt=False, cleanup_failure=False, summary=True,
-                 create_timeout=False, create_output=None, recover_created=True):
+                 create_timeout=False, create_output=None, recover_created=True,
+                 shutdown_failure=False, device_state="Booted", listed_name=None,
+                 list_devices_failure=False, ambiguous_owned=False, owned_id=SIM_ID):
         self.commands = []
         self.test_code = test_code
         self.passed = passed
@@ -52,15 +54,28 @@ class FakeExecutor:
         self.create_timeout = create_timeout
         self.create_output = create_output
         self.recover_created = recover_created
+        self.shutdown_failure = shutdown_failure
+        self.device_state = device_state
+        self.listed_name = listed_name
+        self.list_devices_failure = list_devices_failure
+        self.ambiguous_owned = ambiguous_owned
+        self.owned_id = owned_id
         self.created_name = None
+        self.shutdown_attempted = False
 
     def run(self, command, timeout, log=None):
         self.commands.append(command)
         if command[:4] == ["xcrun", "simctl", "list", "--json"]:
             if "devices" in command:
+                if self.list_devices_failure and self.shutdown_attempted:
+                    return 1, "device listing failed"
                 devices = [{"name": "Personal iPhone", "udid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"}]
                 if self.created_name and self.recover_created:
-                    devices.append({"name": self.created_name, "udid": SIM_ID})
+                    devices.append({"name": (self.listed_name if self.shutdown_attempted else None) or self.created_name,
+                                    "udid": self.owned_id, "state": self.device_state})
+                    if self.ambiguous_owned:
+                        devices.append({"name": self.created_name,
+                                        "udid": "cccccccc-cccc-cccc-cccc-cccccccccccc", "state": "Shutdown"})
                 return 0, json.dumps({"devices": {RUNTIME_27: devices}})
             return 0, json.dumps(CATALOG)
         if command[:3] == ["xcrun", "simctl", "create"]:
@@ -83,6 +98,11 @@ class FakeExecutor:
                                   "skippedTests": 1, "totalTestCount": self.passed + self.failed + 1})
         if self.cleanup_failure and command[:3] == ["xcrun", "simctl", "delete"]:
             return 1, "delete failed"
+        if self.shutdown_failure and command[:3] == ["xcrun", "simctl", "shutdown"]:
+            self.shutdown_attempted = True
+            return 149, "Unable to shutdown device in current state: Shutdown"
+        if command[:3] == ["xcrun", "simctl", "shutdown"]:
+            self.shutdown_attempted = True
         return 0, ""
 
 
@@ -158,6 +178,13 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(report["status"], "failed")
         self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
 
+    def test_single_failed_test_preserves_zero_pass_failure_counts(self):
+        code, report, _ = self.run_case(FakeExecutor(test_code=65, passed=0, failed=1))
+        self.assertEqual(code, 1)
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(report["testExitCode"], 65)
+        self.assertEqual(report["testCounts"], {"passed": 0, "failed": 1, "skipped": 1})
+
     def test_timeout_and_interrupt_still_clean_up(self):
         for mode in ("timeout", "interrupt"):
             with self.subTest(mode=mode):
@@ -179,6 +206,40 @@ class RunnerTests(unittest.TestCase):
         code, report, _ = self.run_case(fake)
         self.assertEqual(code, 1)
         self.assertIsNone(report["simulatorID"])
+        self.assertFalse(any(command[:3] in (["xcrun", "simctl", "shutdown"],
+                                                ["xcrun", "simctl", "delete"])
+                             for command in fake.commands))
+
+    def test_valid_foreign_create_id_is_never_mutated(self):
+        foreign_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        fake = FakeExecutor(create_output=foreign_id)
+        code, report, _ = self.run_case(fake)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["simulatorID"], SIM_ID)
+        self.assertIn("does not match", report["error"])
+        self.assertFalse(any(foreign_id in command for command in fake.commands
+                             if command[:3] in (["xcrun", "simctl", "boot"],
+                                                ["xcrun", "simctl", "shutdown"],
+                                                ["xcrun", "simctl", "delete"])))
+        self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
+
+    def test_ambiguous_owned_name_prevents_all_device_mutation(self):
+        fake = FakeExecutor(ambiguous_owned=True)
+        code, report, _ = self.run_case(fake)
+        self.assertEqual(code, 1)
+        self.assertIsNone(report["simulatorID"])
+        self.assertTrue(any("Multiple simulators" in error for error in report["cleanupErrors"]))
+        self.assertFalse(any(command[:3] in (["xcrun", "simctl", "boot"],
+                                                ["xcrun", "simctl", "shutdown"],
+                                                ["xcrun", "simctl", "delete"])
+                             for command in fake.commands))
+
+    def test_recovered_owned_name_requires_valid_uuid(self):
+        fake = FakeExecutor(create_timeout=True, owned_id="not-a-uuid")
+        code, report, _ = self.run_case(fake)
+        self.assertEqual(code, 1)
+        self.assertIsNone(report["simulatorID"])
+        self.assertTrue(any("UUID" in error for error in report["cleanupErrors"]))
         self.assertFalse(any(command[:3] in (["xcrun", "simctl", "shutdown"],
                                                 ["xcrun", "simctl", "delete"])
                              for command in fake.commands))
@@ -238,6 +299,29 @@ class RunnerTests(unittest.TestCase):
                 self.assertEqual(runner.execute(self.args, fake, base, host="Darwin"), 1)
                 report = json.loads((next(base.iterdir()) / "report.json").read_text())
                 self.assertEqual(report["status"], "failed")
+
+    def test_already_shutdown_owned_simulator_is_clean_cleanup(self):
+        fake = FakeExecutor(shutdown_failure=True, device_state="Shutdown")
+        code, report, _ = self.run_case(fake)
+        self.assertEqual(code, 0)
+        self.assertEqual(report["status"], "passed")
+        self.assertEqual(report["cleanupErrors"], [])
+        self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
+
+    def test_shutdown_error_requires_exact_owned_shutdown_state(self):
+        cases = (
+            FakeExecutor(shutdown_failure=True, device_state="Booted"),
+            FakeExecutor(shutdown_failure=True, device_state="Shutdown", listed_name="Foreign iPhone"),
+            FakeExecutor(shutdown_failure=True, device_state="Shutdown", list_devices_failure=True),
+        )
+        for index, fake in enumerate(cases):
+            with self.subTest(index=index):
+                base = self.base / str(index)
+                self.assertEqual(runner.execute(self.args, fake, base, host="Darwin"), 1)
+                report = json.loads((next(base.iterdir()) / "report.json").read_text())
+                self.assertEqual(report["status"], "failed")
+                self.assertTrue(any(error.startswith("shutdown:") for error in report["cleanupErrors"]))
+                self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
 
     def test_legacy_summary_count_keys_are_supported(self):
         class LegacyExecutor(FakeExecutor):
