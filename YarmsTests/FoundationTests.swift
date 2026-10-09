@@ -52,6 +52,7 @@ final class FoundationTests: XCTestCase {
         XCTAssertEqual(try inbox.load().map(\.link), [link])
     }
 
+    #if DEBUG
     func testUITestStoreUsesUniqueTemporaryContainerAndRejectsInvalidIdentifier() {
         let support = URL(fileURLWithPath: "/support")
         let temporary = URL(fileURLWithPath: "/temporary")
@@ -74,4 +75,5 @@ final class FoundationTests: XCTestCase {
             "A normal launch should keep the regular Application Support library"
         )
     }
+    #endif
 }
