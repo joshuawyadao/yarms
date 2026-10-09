@@ -10,10 +10,13 @@ struct EmbeddedPlayerView: View {
     @State private var noteText: String
     @State private var selectedFolderID: UUID?
     @State private var noteSaved = false
+    @State private var noteSaveEventID = 0
     @State private var message: String?
     @State private var messageTitle = "Could not save notes"
     @State private var showingDeleteWorkout = false
+    @State private var showingWorkoutCompletion = false
     @FocusState private var notesFocused: Bool
+    @AccessibilityFocusState(for: .voiceOver) private var finishButtonFocused: Bool
 
     let workout: Workout
     let folders: [WorkoutFolder]
@@ -73,6 +76,18 @@ struct EmbeddedPlayerView: View {
                             message: "Open this workout in TikTok to watch it."
                         )
                     }
+
+                    Button {
+                        notesFocused = false
+                        player.send(.pause)
+                        showingWorkoutCompletion = true
+                    } label: {
+                        Label("Finish workout", systemImage: "checkmark.seal")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(YarmsSecondaryButtonStyle())
+                    .accessibilityIdentifier("finishWorkoutButton")
+                    .accessibilityFocused($finishButtonFocused)
 
                     DisclosureGroup(isExpanded: $notesOpen) {
                         TextEditor(text: $noteText)
@@ -135,6 +150,14 @@ struct EmbeddedPlayerView: View {
         }
         .navigationTitle("Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingWorkoutCompletion, onDismiss: {
+            finishButtonFocused = true
+        }) {
+            WorkoutCompletionView()
+                .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(YarmsTheme.canvas)
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -190,11 +213,7 @@ struct EmbeddedPlayerView: View {
         HStack(spacing: YarmsTheme.Spacing.md) {
             Button("Save notes", action: saveNotes)
                 .buttonStyle(YarmsSecondaryButtonStyle())
-            if noteSaved {
-                Text("Saved on this iPhone")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            noteSaveConfirmation
         }
         .fixedSize(horizontal: true, vertical: false)
     }
@@ -203,12 +222,14 @@ struct EmbeddedPlayerView: View {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
             Button("Save notes", action: saveNotes)
                 .buttonStyle(YarmsSecondaryButtonStyle())
-            if noteSaved {
-                Text("Saved on this iPhone")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            noteSaveConfirmation
         }
+    }
+
+    private var noteSaveConfirmation: some View {
+        YarmsSaveConfirmation(message: noteSaved ? "Saved on this iPhone" : nil,
+                              eventID: noteSaveEventID, placeholder: "Saved on this iPhone")
+            .accessibilityIdentifier("noteSaveConfirmation")
     }
 
     private var workoutHeading: some View {
@@ -311,6 +332,8 @@ struct EmbeddedPlayerView: View {
     }
 
     private func saveNotes() {
+        let wasSaved = noteSaved
+        noteSaved = false
         messageTitle = "Could not save notes"
         guard let store = WorkoutStore.live() else {
             message = "yarms could not access its saved workouts."
@@ -319,6 +342,10 @@ struct EmbeddedPlayerView: View {
         do {
             if try store.updateNotes(noteText, for: workout.id) {
                 noteSaved = true
+                if !wasSaved {
+                    noteSaveEventID += 1
+                    YarmsAccessibility.announceSaveResult("Saved on this iPhone")
+                }
                 onNotesSaved()
             } else {
                 message = "This workout changed while you were editing. Reopen it and try again."
@@ -337,6 +364,7 @@ private struct CompactPlaybackButtonStyle: ButtonStyle {
             .frame(width: YarmsTheme.minimumTarget, height: YarmsTheme.minimumTarget)
             .background(YarmsTheme.soft, in: RoundedRectangle(cornerRadius: YarmsTheme.Radius.control))
             .opacity(configuration.isPressed ? 0.7 : 1)
+            .yarmsPressFeedback(isPressed: configuration.isPressed)
     }
 }
 

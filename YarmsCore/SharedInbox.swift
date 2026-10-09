@@ -12,10 +12,16 @@ protocol PendingLinkInbox {
 }
 
 struct SharedInbox: PendingLinkInbox {
+    #if DEBUG
     static let uiTestStoreArgument = "-YarmsUITestStoreID"
+    #endif
 
     static var isUITestStoreRequested: Bool {
+        #if DEBUG
         ProcessInfo.processInfo.arguments.contains(uiTestStoreArgument)
+        #else
+        false
+        #endif
     }
 
     static var liveContainer: URL? {
@@ -27,6 +33,7 @@ struct SharedInbox: PendingLinkInbox {
     }
 
     static func container(arguments: [String], applicationSupport: URL?, temporaryDirectory: URL) -> URL? {
+        #if DEBUG
         if let index = arguments.firstIndex(of: uiTestStoreArgument) {
             guard arguments.indices.contains(index + 1),
                   let identifier = UUID(uuidString: arguments[index + 1]) else { return nil }
@@ -34,6 +41,7 @@ struct SharedInbox: PendingLinkInbox {
                 .appendingPathComponent("YarmsUITests", isDirectory: true)
                 .appendingPathComponent(identifier.uuidString, isDirectory: true)
         }
+        #endif
         return applicationSupport?.appendingPathComponent("Yarms", isDirectory: true)
     }
 

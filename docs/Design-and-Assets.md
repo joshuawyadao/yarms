@@ -15,7 +15,7 @@ The [asset catalog](../Assets/Assets.xcassets/) contains the [1024 × 1024 app i
 | [YarmsCanvas](../Assets/Assets.xcassets/YarmsCanvas.colorset/Contents.json) | Screen and notes-editor backgrounds |
 | [YarmsSurface](../Assets/Assets.xcassets/YarmsSurface.colorset/Contents.json) | Cards, notes container, bottom action area |
 | [YarmsSoft](../Assets/Assets.xcassets/YarmsSoft.colorset/Contents.json) | Unselected chips, playback buttons, placeholders, subtle borders |
-| [YarmsBloom](../Assets/Assets.xcassets/YarmsBloom.colorset/Contents.json) | Optional decorative pink, never essential text or a selection cue |
+| [YarmsBloom](../Assets/Assets.xcassets/YarmsBloom.colorset/Contents.json) | Brief decorative bloom behind a successful-save checkmark, never essential text or a selection cue |
 
 The catalog JSON is the authority for color values; the [design language](Design-Language.md#color-choose-by-purpose) has the single human-readable reference table. Avoid copying hex values into Swift or other guides. `YarmsAction` is deliberately separate from the text accent so white labels remain readable in dark mode. Changing one requires checking the actual foreground/background pairing in light, dark, and increased-contrast appearances. [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) exposes the shared roles and action styles, while [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) contains reusable folder, workout-card, and empty-state content.
 
@@ -30,9 +30,16 @@ The catalog JSON is the authority for color values; the [design language](Design
 | Player sizing | 16:9 height-to-width portrait region; content capped at 600 points with 16-point horizontal padding |
 | Playback controls | Four 44 × 44 point buttons; readiness/error state controls availability; VoiceOver labels name each action |
 | Notes | Explicit Save action, keyboard Done button, and persisted text after reopening/relaunching |
+| Workout completion | Finish workout below the player opens a native, dismissible “Good Job BUNS!” sheet with a smiling pink heart; scrollable at large text, no completion history |
 | Destructive actions | Confirm workout/folder deletion; explain what data remains |
 
 Use semantic system fonts so Dynamic Type can scale. Keep visible text/VoiceOver meaning alongside symbols and colors. Verify light/dark/increased-contrast appearances, long titles/folder names, missing metadata, large text, keyboard focus, and scrolling using the [test/device checklist](Testing.md). Do not describe simulator layout assertions as a full accessibility audit.
+
+Save confirmations and the completion modal's supporting text use adaptive primary foreground for readable contrast on the pink canvas. Save-result announcements use low priority and originate in successful action handlers; they do not move VoiceOver focus or replay when a view redraws.
+
+## Motion
+
+Shared controls use a small, brief press compression; folder selection, counts, folder badges, and arriving thumbnails have local transitions. Inline save confirmations retain their text after a one-shot pink bloom. Reduce Motion disables these custom animations while preserving static feedback. The [motion contract](Design-Language.md#icons-and-motion) defines timing, triggers, and exclusions; `YarmsMotion` and `YarmsSaveConfirmation` keep those choices consistent. The explicit Finish workout action opens a native sheet with one short smiling-heart/sparkle animation; Reduce Motion shows the same art statically. It requests a pause from a ready embedded player without automatically resuming after dismissal. Other navigation, playback controls, and the Share extension retain their native behavior and timing.
 
 ## Graphics in repository documentation
 

@@ -30,7 +30,9 @@ jobs:
   ios:
     name: CI Verify
     runs-on: macos-15
-    timeout-minutes: 30
+    # Leave time around the 25-minute test bound for building, cold boot,
+    # cleanup and result upload.
+    timeout-minutes: 40
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,47 +43,44 @@ jobs:
         run: xcodebuild -quiet -project Yarms.xcodeproj -scheme Yarms -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 
       - name: Run iPhone unit and UI tests
-        run: |
-          SIMULATOR_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(device["udid"] for devices in data["devices"].values() for device in devices if "iPhone" in device["name"]))')
-          RESULT_BUNDLE="$RUNNER_TEMP/YarmsCI.xcresult"
-          if xcodebuild -quiet -project Yarms.xcodeproj -scheme Yarms -destination "platform=iOS Simulator,id=$SIMULATOR_ID" -resultBundlePath "$RESULT_BUNDLE" -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test; then
-            xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE"
-          else
-            test_status=$?
-            SUMMARY_PATH="$RUNNER_TEMP/YarmsCI-summary.json"
-            if xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE" > "$SUMMARY_PATH"; then
-              cat "$SUMMARY_PATH"
-              python3 - "$RESULT_BUNDLE" "$SUMMARY_PATH" <<'PY'
-          import json
-          import subprocess
-          import sys
+        run: python3 scripts/test-ios.py --suite full --timeout-seconds 1500
 
-          with open(sys.argv[2]) as summary_file:
-              failures = json.load(summary_file).get("testFailures", [])
-          for failure in failures:
-              test_id = failure.get("testIdentifierString")
-              if test_id:
-                  subprocess.run(["xcrun", "xcresulttool", "get", "test-results", "test-details",
-                                  "--path", sys.argv[1], "--test-id", test_id], check=False)
-                  result = subprocess.run(["xcrun", "xcresulttool", "get", "test-results", "activities",
-                                           "--path", sys.argv[1], "--test-id", test_id],
-                                          capture_output=True, text=True, check=False)
-                  if result.returncode == 0:
-                      activities = []
-                      def collect(value):
-                          if isinstance(value, dict):
-                              if "title" in value and "startTime" in value:
-                                  activities.append((value["startTime"], value["title"]))
-                              for child in value.values():
-                                  collect(child)
-                          elif isinstance(value, list):
-                              for child in value:
-                                  collect(child)
-                      collect(json.loads(result.stdout))
-                      print("Recent test activities for", test_id, flush=True)
-                      for _, title in sorted(activities)[-25:]:
-                          print(title, flush=True)
-          PY
-            fi
-            exit "$test_status"
-          fi
+      - name: Keep test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Yarms-test-results
+          path: |
+            .build/test-runs/*/report.json
+            .build/test-runs/*/summary.json
+            .build/test-runs/*/xcodebuild.log
+            .build/test-runs/*/Tests.xcresult
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Release Verify
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate Release app and Share extension
+        run: python3 scripts/release-ios.py check --timeout-seconds 900
+
+      - name: Keep Release verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Yarms-release-results
+          path: |
+            .build/releases/*/report.json
+            .build/releases/*/xcodebuild.log
+            .build/releases/*/release-notes.md
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7

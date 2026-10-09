@@ -56,6 +56,28 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(done.waitForExistence(timeout: 5), "Notes should offer a keyboard Done control")
         done.tap()
         app.buttons["Save notes"].tap()
+        let savedNote = app.staticTexts["noteSaveConfirmation"]
+        XCTAssertTrue(savedNote.waitForExistence(timeout: 5),
+                      "Saving notes should show a persistent inline confirmation")
+        XCTAssertEqual(savedNote.label, "Saved on this iPhone")
+        try assertFeedbackPassesContrastAudit(savedNote, message: "Saved on this iPhone", in: app)
+        let savedNotesScreenshot = XCTAttachment(screenshot: app.screenshot())
+        savedNotesScreenshot.name = "Notes with persistent save confirmation"
+        savedNotesScreenshot.lifetime = .keepAlways
+        add(savedNotesScreenshot)
+
+        editor.tap()
+        let addition = " plus mobility"
+        editor.typeText(addition)
+        XCTAssertFalse(app.staticTexts["Saved on this iPhone"].exists,
+                       "Editing after a save should clear the previous confirmation")
+        XCTAssertTrue((editor.value as? String)?.contains(addition) == true,
+                      "The edited note should contain the added text")
+        let editedNote = (editor.value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        done.tap()
+        app.buttons["Save notes"].tap()
+        XCTAssertTrue(savedNote.waitForExistence(timeout: 5),
+                      "Saving the edited note should confirm it again")
 
         app.terminate()
         app.launch()
@@ -75,6 +97,198 @@ final class YarmsUITests: XCTestCase {
         let reopenedValue = reopenedEditor.value as? String
         XCTAssertTrue(reopenedValue?.contains(note) == true,
                       "A saved note should survive app relaunch; observed \(String(describing: reopenedValue))")
+        XCTAssertEqual(reopenedValue, editedNote,
+                       "The complete resaved edit should survive app relaunch with normal whitespace trimming")
+    }
+
+    @MainActor
+    func testPasteConfirmationAndErrorState() throws {
+        try exercisePasteConfirmation(reduceMotion: false)
+    }
+
+    @MainActor
+    func testPasteConfirmationAndErrorStateWithReduceMotion() throws {
+        try exercisePasteConfirmation(reduceMotion: true)
+    }
+
+    @MainActor
+    func testWorkoutCompletionRequiresFinishAndPreservesDraftNotes() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let title = app.staticTexts["workoutCompletionTitle"]
+        XCTAssertTrue(app.staticTexts["workoutHeading"].waitForExistence(timeout: 5))
+        XCTAssertFalse(title.exists, "Opening a saved workout should not imply it was completed")
+
+        let notes = app.buttons["Notes (optional)"]
+        scrollUntilHittable(notes, in: app)
+        XCTAssertTrue(notes.isHittable, "Notes should be reachable below the player")
+        notes.tap()
+        let editor = app.textViews["Workout notes"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        let draft = "Unsaved completion draft"
+        editor.tap()
+        editor.typeText(draft)
+        XCTAssertTrue((editor.value as? String)?.contains(draft) == true)
+        let keyboardDone = app.buttons["Done"]
+        XCTAssertTrue(keyboardDone.waitForExistence(timeout: 5))
+        keyboardDone.tap()
+
+        let finish = app.buttons["finishWorkoutButton"]
+        scrollFinishAbovePlaybackTray(in: app)
+        XCTAssertTrue(finish.waitForExistence(timeout: 5), "Finish workout should be reachable above Notes")
+        XCTAssertTrue(finish.isHittable)
+        finish.tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 5),
+                      "Only an explicit Finish workout tap should open the completion sheet")
+        XCTAssertEqual(title.label, "Good Job BUNS!")
+        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        let completionDone = app.buttons["workoutCompletionDoneButton"]
+        XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
+        assertCompletionCopyIsVisible(title: title, message: message, above: completionDone, in: app)
+        try app.performAccessibilityAudit(for: .contrast)
+        let sheetScreenshot = XCTAttachment(screenshot: app.screenshot())
+        sheetScreenshot.name = "BUNS workout completion"
+        sheetScreenshot.lifetime = .keepAlways
+        add(sheetScreenshot)
+
+        XCTAssertTrue(completionDone.isHittable)
+        completionDone.tap()
+        XCTAssertFalse(title.exists, "Done should dismiss the completion sheet")
+        XCTAssertTrue(app.staticTexts["workoutHeading"].exists,
+                      "Dismissing completion should keep the workout open")
+        scrollUntilHittable(editor, in: app)
+        XCTAssertTrue((editor.value as? String)?.contains(draft) == true,
+                      "The completion sheet should preserve unsaved notes in the editor")
+
+        scrollFinishAbovePlaybackTray(in: app)
+        finish.tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 5),
+                      "A second explicit Finish workout tap should reopen the sheet")
+        title.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .press(forDuration: 0.1,
+                   thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)))
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5),
+                      "The completion sheet should also support native swipe dismissal")
+    }
+
+    @MainActor
+    func testVoiceOverCompletionRestoresFocusToFinish() throws {
+        #if compiler(>=6.4)
+        guard #available(iOS 27.0, *) else {
+            throw XCTSkip("Native VoiceOver navigation testing requires iOS 27.")
+        }
+        let voiceOver = XCUIDevice.shared.voiceOverService
+        let wasEnabled = voiceOver.isEnabled
+        // XCTest teardown also runs after a fatal assertion; Swift defer alone
+        // cannot restore a device setting when XCTest aborts the test method.
+        addTeardownBlock {
+            try await MainActor.run {
+                let service = XCUIDevice.shared.voiceOverService
+                if wasEnabled { try service.enable() } else { try service.disable() }
+            }
+        }
+        if wasEnabled { try voiceOver.disable() }
+
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        scrollFinishAbovePlaybackTray(in: app)
+
+        try voiceOver.enable()
+        let finish = app.buttons["finishWorkoutButton"]
+        // Navigate with VoiceOver's supported focus commands. Synthesized taps
+        // do not guarantee an accessibility focus or a speech event.
+        var invokingSpeech: [String] = []
+        for _ in 0..<24 {
+            invokingSpeech.append(try voiceOver.moveForward().utterance)
+            if invokingSpeech.last?.contains("Finish workout") == true { break }
+        }
+        XCTAssertTrue(invokingSpeech.last?.contains("Finish workout") == true,
+                      "Native navigation should reach Finish workout before activation: \(invokingSpeech)")
+        finish.doubleTap()
+
+        let title = app.staticTexts["workoutCompletionTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        // Start traversal at a known element; iOS may remember the last focused
+        // sheet element between test runs.
+        title.tap()
+        var speech = [try voiceOver.currentSpeech().utterance]
+        for _ in 0..<8 {
+            if speech.last?.contains("Done") == true { break }
+            speech.append(try voiceOver.moveForward().utterance)
+        }
+        let headlineIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Good Job BUNS!") }, "Speech: \(speech)")
+        let messageIndex = try XCTUnwrap(speech.firstIndex { $0.contains("You showed up and moved today") }, "Speech: \(speech)")
+        let doneIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Done") }, "Speech: \(speech)")
+        XCTAssertLessThan(headlineIndex, messageIndex)
+        XCTAssertLessThan(messageIndex, doneIndex)
+        XCTAssertFalse(speech.contains { $0.contains("Notes (optional)") || $0.contains("Open in TikTok") },
+                       "VoiceOver navigation must stay inside the completion sheet")
+
+        app.buttons["workoutCompletionDoneButton"].doubleTap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5))
+        var restoredSpeech = ""
+        let focusReturned = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            restoredSpeech = (try? voiceOver.currentSpeech().utterance) ?? ""
+            return restoredSpeech.contains("Finish workout")
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [focusReturned], timeout: 5), .completed,
+                      "Dismissal should restore the invoking control, not restart navigation: \(restoredSpeech)")
+        #else
+        throw XCTSkip("Native VoiceOver navigation testing requires Xcode 27 / Swift 6.4.")
+        #endif
+    }
+
+    @MainActor
+    func testWorkoutCompletionAtMaximumTextWithReduceMotion() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        app.terminate()
+        app.launchArguments += ["-YarmsUITestReduceMotion",
+                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        guard tapVisibleLibraryRow(row, in: app) else { return }
+        guard app.staticTexts["workoutHeading"].waitForExistence(timeout: 10) else {
+            XCTFail("Tapping the visible workout row should open its detail before testing completion")
+            return
+        }
+        let title = app.staticTexts["workoutCompletionTitle"]
+        XCTAssertFalse(title.exists, "Loading a workout should not open completion")
+
+        let finish = app.buttons["finishWorkoutButton"]
+        scrollFinishAbovePlaybackTray(in: app)
+        XCTAssertTrue(finish.waitForExistence(timeout: 5))
+        XCTAssertTrue(finish.isHittable, "Finish workout should remain reachable at maximum text size")
+        finish.tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        XCTAssertEqual(title.label, "Good Job BUNS!")
+        XCTAssertTrue(title.isHittable,
+                      "The completion headline should remain visible at maximum text size")
+        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        XCTAssertTrue(message.waitForExistence(timeout: 5))
+        let completionDone = app.buttons["workoutCompletionDoneButton"]
+        XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
+        XCTAssertTrue(completionDone.isHittable,
+                      "The sheet's Done action should remain reachable at maximum text size")
+        assertCompletionCopyIsVisible(title: title, message: message, above: completionDone, in: app)
+        try app.performAccessibilityAudit(for: .contrast)
+        let sheetScreenshot = XCTAttachment(screenshot: app.screenshot())
+        sheetScreenshot.name = "BUNS completion large text reduced motion"
+        sheetScreenshot.lifetime = .keepAlways
+        add(sheetScreenshot)
+        completionDone.tap()
+        XCTAssertFalse(title.exists)
+        XCTAssertTrue(app.staticTexts["workoutHeading"].exists,
+                      "Dismissing completion should remain on the workout")
     }
 
     @MainActor
@@ -184,7 +398,7 @@ final class YarmsUITests: XCTestCase {
         app.launch()
 
         let picker = app.buttons["folderPickerButton"]
-        scrollUntilHittable(picker, in: app)
+        scrollFolderPickerIntoView(picker, in: app)
         XCTAssertTrue(picker.waitForExistence(timeout: 10),
                       "Large text should offer a labeled folder picker")
         XCTAssertTrue(picker.isHittable, "The folder picker should remain reachable at large text")
@@ -202,7 +416,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(emptyFolder.waitForExistence(timeout: 5),
                       "Selecting the empty folder should filter the library")
 
-        scrollUntilHittable(picker, in: app, towardTop: true)
+        scrollFolderPickerIntoView(picker, in: app, towardTop: true)
         picker.tap()
         XCTAssertTrue(folder.waitForExistence(timeout: 5))
         XCTAssertTrue(folder.isSelected, "The picker should announce the selected folder")
@@ -237,6 +451,23 @@ final class YarmsUITests: XCTestCase {
         screenshot.lifetime = .keepAlways
         add(screenshot)
         XCTAssertTrue(paste.isHittable, "Paste should remain reachable at large text")
+
+        paste.tap()
+        let confirmation = app.staticTexts["librarySaveConfirmation"]
+        scrollUntilHittable(confirmation, in: app)
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5),
+                      "Large text should keep a paste result readable")
+        XCTAssertEqual(confirmation.label, "Already in your library.")
+        XCTAssertTrue(confirmation.isHittable, "The complete result should be reachable at large text")
+        // A partially visible label can be hittable. Scroll its complete frame into view;
+        // native search can hide the navigation bar, so use the app's visible bounds.
+        app.swipeDown()
+        XCTAssertTrue(app.frame.contains(confirmation.frame),
+                      "The complete wrapped result should scroll onto the screen")
+        let feedbackScreenshot = XCTAttachment(screenshot: app.screenshot())
+        feedbackScreenshot.name = "Large text with inline paste feedback"
+        feedbackScreenshot.lifetime = .keepAlways
+        add(feedbackScreenshot)
     }
 
     @MainActor
@@ -294,6 +525,98 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    private func exercisePasteConfirmation(reduceMotion: Bool) throws {
+        let app = isolatedApp()
+        if reduceMotion {
+            app.launchArguments.append("-YarmsUITestReduceMotion")
+        }
+        let videoID = "9\(Int(Date().timeIntervalSince1970 * 1000))"
+        let link = "https://www.tiktok.com/@yarms-test/video/\(videoID)"
+        UIPasteboard.general.string = link
+        app.launch()
+
+        let confirmation = app.staticTexts["librarySaveConfirmation"]
+        XCTAssertTrue(app.buttons["emptyPasteLinkButton"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Saved for your next move."].exists,
+                       "Opening an empty library should not claim a save")
+
+        app.buttons["emptyPasteLinkButton"].tap()
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 10),
+                      "A newly pasted workout should show an inline confirmation")
+        XCTAssertEqual(confirmation.label, "Saved for your next move.")
+        try assertFeedbackPassesContrastAudit(confirmation, message: "Saved for your next move.", in: app)
+        let savedScreenshot = XCTAttachment(screenshot: app.screenshot())
+        savedScreenshot.name = reduceMotion ? "Saved workout with Reduce Motion" : "Saved workout confirmation"
+        savedScreenshot.lifetime = .keepAlways
+        add(savedScreenshot)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)")
+        XCTAssertTrue(row.firstMatch.waitForExistence(timeout: 10),
+                      "The pasted link should create one visible library row")
+
+        UIPasteboard.general.string = link
+        let paste = app.buttons["libraryPasteLinkButton"]
+        XCTAssertTrue(paste.waitForExistence(timeout: 5))
+        paste.tap()
+        XCTAssertTrue(app.staticTexts["Already in your library."].waitForExistence(timeout: 5),
+                      "Pasting the same video should explain that it is already saved")
+        XCTAssertEqual(confirmation.label, "Already in your library.")
+        try assertFeedbackPassesContrastAudit(confirmation, message: "Already in your library.", in: app)
+        XCTAssertEqual(row.count, 1, "Pasting the same video should not create another row")
+        XCTAssertTrue(app.buttons["folder-all"].isSelected,
+                      "A duplicate paste should keep All selected so the existing row stays visible")
+
+        UIPasteboard.general.string = "this is not a TikTok link"
+        paste.tap()
+        let error = app.alerts["Could not update workouts"]
+        XCTAssertTrue(error.waitForExistence(timeout: 5),
+                      "Invalid clipboard text should show the native paste error")
+        XCTAssertFalse(app.staticTexts["Saved for your next move."].exists,
+                       "An invalid paste should not retain a save confirmation")
+        XCTAssertFalse(app.staticTexts["Already in your library."].exists,
+                       "An invalid paste should clear the previous confirmation text")
+        error.buttons["OK"].tap()
+        XCTAssertFalse(error.exists, "Dismissing the error should return to the library")
+        XCTAssertEqual(row.count, 1, "An invalid paste should keep the saved workout")
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(row.firstMatch.waitForExistence(timeout: 10),
+                      "The saved workout should survive relaunch")
+        XCTAssertFalse(app.staticTexts["Saved for your next move."].exists,
+                       "Loading an existing workout must not announce a new save")
+        XCTAssertFalse(app.staticTexts["Already in your library."].exists,
+                       "A prior duplicate message should not survive relaunch")
+    }
+
+    @MainActor
+    private func assertFeedbackPassesContrastAudit(_ feedback: XCUIElement, message: String,
+                                                   in app: XCUIApplication) throws {
+        XCTAssertTrue(feedback.exists && feedback.isHittable,
+                      "The save result must be visible before its contrast audit")
+        XCTAssertEqual(feedback.label, message)
+        let feedbackIdentifier = feedback.identifier
+        // Audit this save result only. Existing metadata on the surrounding screen has
+        // independent contrast findings; an unknown result without an element must fail.
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            guard let element = issue.element else { return false }
+            let isFeedback = element.label == message ||
+                (!feedbackIdentifier.isEmpty && element.identifier == feedbackIdentifier)
+            return !isFeedback
+        }
+    }
+
+    @MainActor
+    private func assertCompletionCopyIsVisible(title: XCUIElement, message: XCUIElement,
+                                               above done: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(app.frame.contains(title.frame), "The complete headline should be onscreen")
+        XCTAssertTrue(app.frame.contains(message.frame), "The complete supporting message should be onscreen")
+        XCTAssertLessThan(title.frame.maxY, done.frame.minY,
+                          "The headline should clear the fixed Done action")
+        XCTAssertLessThan(message.frame.maxY, done.frame.minY,
+                          "The supporting message should clear the fixed Done action")
+    }
+
+    @MainActor
     private func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication,
                                     towardTop: Bool = false) {
         // A List row can be absent from the accessibility tree until scrolled into view.
@@ -301,6 +624,81 @@ final class YarmsUITests: XCTestCase {
             if element.exists && element.isHittable { return }
             if towardTop { app.swipeDown() } else { app.swipeUp() }
         }
+    }
+
+    @MainActor
+    private func tapVisibleLibraryRow(_ row: XCUIElement, in app: XCUIApplication) -> Bool {
+        // A large row can be hittable while XCTest's computed tap is beside the
+        // home indicator. Tap a safe visible portion; the entire row need not fit.
+        var viewport = CGRect.zero
+        for _ in 0..<6 {
+            let frame = app.frame
+            let navigation = app.navigationBars.firstMatch
+            var top = navigation.exists ? navigation.frame.maxY + 8 : frame.minY + 8
+            var bottom = frame.maxY - 60
+            let search = app.searchFields.firstMatch
+            if search.exists {
+                if search.frame.midY < frame.midY { top = max(top, search.frame.maxY + 8) }
+                else { bottom = min(bottom, search.frame.minY - 8) }
+            }
+            viewport = CGRect(x: frame.minX + 16, y: top,
+                              width: frame.width - 32, height: max(0, bottom - top))
+            let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+            if row.exists {
+                let visible = row.frame.intersection(viewport)
+                if !visible.isNull && visible.width >= 44 && visible.height >= 44 && row.isHittable {
+                    origin.withOffset(CGVector(dx: visible.midX - frame.minX,
+                                               dy: visible.midY - frame.minY)).tap()
+                    return true
+                }
+            }
+            guard viewport.height >= 44 else { break }
+            let towardTop = row.exists && row.frame.midY < viewport.midY
+            let startY = viewport.minY + viewport.height * (towardTop ? 0.2 : 0.8)
+            let endY = viewport.minY + viewport.height * (towardTop ? 0.8 : 0.2)
+            origin.withOffset(CGVector(dx: viewport.midX - frame.minX, dy: startY - frame.minY))
+                .press(forDuration: 0.1,
+                       thenDragTo: origin.withOffset(CGVector(dx: viewport.midX - frame.minX,
+                                                              dy: endY - frame.minY)))
+        }
+        XCTFail("Workout row should expose a safe 44-point tap region; row: \(row.exists ? row.frame : .zero), viewport: \(viewport)")
+        return false
+    }
+
+    @MainActor
+    private func scrollFolderPickerIntoView(_ picker: XCUIElement, in app: XCUIApplication,
+                                          towardTop: Bool = false) {
+        // iOS 27 can dock search at the bottom. A partly covered picker may
+        // report isHittable even when its center is behind the search field.
+        for _ in 0..<4 {
+            if picker.exists {
+                let navigation = app.navigationBars.firstMatch
+                let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
+                let search = app.searchFields.firstMatch
+                let bottom = search.exists && search.frame.minY > app.frame.midY
+                    ? search.frame.minY - 8 : app.frame.maxY - 8
+                if picker.isHittable && picker.frame.minY >= top && picker.frame.maxY < bottom { return }
+                if picker.frame.maxY >= bottom { app.swipeUp(); continue }
+                if picker.frame.minY < top { app.swipeDown(); continue }
+            }
+            if towardTop { app.swipeDown() } else { app.swipeUp() }
+        }
+        XCTFail("The complete folder picker should scroll clear of navigation and search before tapping")
+    }
+
+    @MainActor
+    private func scrollFinishAbovePlaybackTray(in app: XCUIApplication) {
+        let finish = app.buttons["finishWorkoutButton"]
+        let playbackTray = app.buttons["Back 10 seconds"]
+        scrollUntilHittable(finish, in: app)
+        for _ in 0..<4 {
+            if finish.exists && playbackTray.exists &&
+               finish.frame.maxY < playbackTray.frame.minY - 8 { return }
+            app.swipeUp()
+        }
+        XCTAssertTrue(finish.exists && playbackTray.exists &&
+                      finish.frame.maxY < playbackTray.frame.minY - 8,
+                      "Finish workout should be fully above the fixed playback tray before tapping")
     }
 
     @MainActor

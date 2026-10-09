@@ -7,8 +7,8 @@ Use this map to find an owner before editing. The [README](../README.md) is the 
 | File | Responsibility |
 | --- | --- |
 | [YarmsApp.swift](../YarmsApp/YarmsApp.swift) | SwiftUI app entry point and root library window. |
-| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Shared semantic color roles, spacing, radii, size limits, and action button styles. |
-| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | Folder badge/filter, workout card content, empty state, and component previews. |
+| [YarmsTheme.swift](../YarmsApp/YarmsTheme.swift) | Shared semantic color roles, spacing, radii, size limits, motion/accessibility policy, low-priority save announcements, and action button styles. |
+| [YarmsUIComponents.swift](../YarmsApp/YarmsUIComponents.swift) | Folder badge/filter, workout card content, save confirmation, completion modal, empty state, and component previews. |
 | [LibraryShellView.swift](../YarmsApp/LibraryShellView.swift) | Library and folder screens; paste, search, row deletion, and backup presentation. |
 | [EmbeddedPlayerView.swift](../YarmsApp/EmbeddedPlayerView.swift) | Workout screen, portrait embedded player and controls, notes editor, and workout deletion. |
 | [TikTokPlayerBridge.swift](../YarmsApp/TikTokPlayerBridge.swift) | WebKit host, player messages, commands, and playback state. |
@@ -20,7 +20,7 @@ Use this map to find an owner before editing. The [README](../README.md) is the 
 | [WorkoutBackupDocument.swift](../YarmsApp/WorkoutBackupDocument.swift) | Files document wrapper used for export; import UI loads through `WorkoutBackup.load`. |
 | [SaveTikTokWorkoutIntent.swift](../YarmsApp/SaveTikTokWorkoutIntent.swift) | Optional App Intent/Shortcut capture path. |
 | [TikTokLink.swift](../YarmsCore/TikTokLink.swift) | TikTok link recognition, validation, and canonical player URL. |
-| [SharedInbox.swift](../YarmsCore/SharedInbox.swift) | File-based pending links and isolated UI-test storage selection. |
+| [SharedInbox.swift](../YarmsCore/SharedInbox.swift) | File-based pending links and Debug-only isolated UI-test storage selection. |
 | [KeychainInbox.swift](../YarmsCore/KeychainInbox.swift) | Pending links in the app/extension shared Keychain access group. |
 | [ShareViewController.swift](../YarmsShare/ShareViewController.swift) | Share Sheet input loading, link validation, Keychain save, and user feedback. |
 
@@ -33,7 +33,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | File | Area |
 | --- | --- |
 | [FoundationTests.swift](../YarmsTests/FoundationTests.swift) | Links, file inbox, UI-test storage. |
-| [ShortcutCaptureTests.swift](../YarmsTests/ShortcutCaptureTests.swift) | Shared text and pending-link import. |
+| [ShortcutCaptureTests.swift](../YarmsTests/ShortcutCaptureTests.swift) | Shared text, pending-link import and replay preserving enriched workout data. |
 | [KeychainInboxTests.swift](../YarmsTests/KeychainInboxTests.swift) | Signed-device Keychain access. |
 | [LibraryTests.swift](../YarmsTests/LibraryTests.swift) | Store, folders, search, notes, deletion. |
 | [MetadataTests.swift](../YarmsTests/MetadataTests.swift) | oEmbed and redirect behavior. |
@@ -43,7 +43,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [BackupImportSecurityTests.swift](../YarmsTests/BackupImportSecurityTests.swift) | Imported-claim trust boundaries. |
 | [BackupExportSizeTests.swift](../YarmsTests/BackupExportSizeTests.swift) | Large-library export. |
 | [BackupScalingBenchmarkTests.swift](../YarmsTests/BackupScalingBenchmarkTests.swift) | Opt-in restore scaling. |
-| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Eight simulator user flows, including accessibility-size folder selection and Paste access. |
+| [YarmsUITests.swift](../YarmsUITests/YarmsUITests.swift) | Thirteen simulator user flows, including completion-modal presentation/dismissal and VoiceOver focus, save/error feedback with reduced motion, note persistence, accessibility-size folder selection, and Paste access. |
 
 ## Project, resources, and automation
 
@@ -54,8 +54,12 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [YarmsShare/Info.plist](../YarmsShare/Info.plist) | Share extension identity, activation for URL/text input, and version settings. |
 | [Assets/Assets.xcassets](../Assets/Assets.xcassets/) | App icon PNG and asset catalog metadata; `AccentColor`, `YarmsAction`, `YarmsBloom`, `YarmsCanvas`, `YarmsSoft`, and `YarmsSurface` color sets. See [Design and Assets](Design-and-Assets.md). |
 | [generate-project.rb](../scripts/generate-project.rb) | Optional Ruby `xcodeproj` updater for Swift source membership and scheme; also has new-project bootstrap logic. |
-| [verify-repository.sh](../scripts/verify-repository.sh) | Public-file, scheme, signing-config, link, privacy-file, and whitespace checks. |
-| [ci.yml](../.github/workflows/ci.yml) | GitHub Actions repository verification, simulator build, and unit/UI test jobs. |
+| [verify-repository.sh](../scripts/verify-repository.sh) | Public-file, scheme, signing-config, link, privacy-file, whitespace checks and test-runner host tests. |
+| [test-ios.py](../scripts/test-ios.py) and [host tests](../scripts/tests/test_test_ios.py) | Disposable simulator lifecycle, full/feedback/sharing suites, retained result summaries and cleanup. |
+| [release-ios.py](../scripts/release-ios.py) and [host tests](../scripts/tests/test_release_ios.py) | Release settings/artifact validation, versioned archives, signature checks, and retained evidence. |
+| [xcode_support.py](../scripts/xcode_support.py) | Shared bounded process-group execution and interrupt handling for Xcode commands. |
+| [test_release_storage.py](../scripts/tests/test_release_storage.py) | Compiles actual shared inbox code in Debug and Release to check test-storage isolation. |
+| [ci.yml](../.github/workflows/ci.yml) | GitHub Actions repository verification, simulator build, unit/UI tests, and unsigned Release validation. |
 | [.gitignore](../.gitignore) | Excludes local credentials, build products, personal data, and editor files. |
 | [.brooks-lint-history.json](../.brooks-lint-history.json) | Checked-in history for the repository's Brooks lint tooling. |
 
@@ -68,7 +72,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [CONTRIBUTING.md](../CONTRIBUTING.md), [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md), [SECURITY.md](../SECURITY.md), [LICENSE](../LICENSE) | Contribution process, community rules, private vulnerability reporting, and MIT license. |
 | [.github/ISSUE_TEMPLATE/](../.github/ISSUE_TEMPLATE/) and [pull_request_template.md](../.github/pull_request_template.md) | Bug/feature forms, issue-template config, and PR reporting prompts. |
 | [Architecture.md](Architecture.md), [Data-and-Privacy.md](Data-and-Privacy.md), [Design-Language.md](Design-Language.md), [Design-and-Assets.md](Design-and-Assets.md), [User-Guide.md](User-Guide.md) | Current system, data, UI design rules, assets, and user task references. |
-| [Development.md](Development.md), [Testing.md](Testing.md), [Repository-Map.md](Repository-Map.md) | Setup, verification, and this file index. |
+| [Development.md](Development.md), [Testing.md](Testing.md), [Release.md](Release.md), [Repository-Map.md](Repository-Map.md) | Setup, verification, and this file index. |
 | [Shortcut-Sharing.md](Shortcut-Sharing.md), [Storage-Migration.md](Storage-Migration.md) | Share Sheet behavior and upgrade/backup steps. |
 | [MVP-Roadmap.md](MVP-Roadmap.md), [MVP-Progress.md](MVP-Progress.md), [Implementation-Plan.md](Implementation-Plan.md) | Milestone history and current implementation plan. |
 
