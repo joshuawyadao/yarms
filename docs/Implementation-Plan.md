@@ -15,7 +15,7 @@ Add automated Release validation and a repeatable, versioned archive command for
 - [x] Add an unsigned Release CI job and document the commands and signing limits.
 - [x] Run repository checks, relevant Debug regressions, a real Release build, and a real versioned archive.
 - [x] Record actual validation and checkpoint the completed implementation.
-- [ ] Push the completed changes to the current branch.
+- [x] Push the completed changes to `codex/gentle-app-motion` (publication confirmed through `d366bf6`).
 
 ## Open questions
 - None. Signed archives use the caller's local signing configuration; unsigned validation remains available without account changes.
