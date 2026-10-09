@@ -17,6 +17,10 @@ Yarms is an iPhone app built from the checked-in [Xcode project](../Yarms.xcodep
 
 The repository verifier checks required public files, the shared scheme, project references, Keychain entitlements, extension version settings, prohibited private or generated files, local Markdown links, whitespace errors and the portable test runner's host tests. It needs `python3` and Git. Run `python3 scripts/test-ios.py` for the full scheme on a disposable simulator, or `--suite feedback` / `--suite sharing` for focused checks. Options, retained results, cleanup and signed-device boundaries are in [Testing](Testing.md).
 
+## Validate Release builds and create archives
+
+Run `python3 scripts/release-ios.py check` for an unsigned Release app and Share extension check. Use the [Release guide](Release.md) for versioned archives, local signing requirements, retained reports, and release notes. The archive command sets version and build inputs for that invocation without changing the project.
+
 ## Install on an iPhone
 
 1. Connect the iPhone to a Mac with Xcode, open the project, and select the **Yarms** scheme and that device.

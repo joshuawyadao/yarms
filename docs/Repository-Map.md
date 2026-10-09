@@ -20,7 +20,7 @@ Use this map to find an owner before editing. The [README](../README.md) is the 
 | [WorkoutBackupDocument.swift](../YarmsApp/WorkoutBackupDocument.swift) | Files document wrapper used for export; import UI loads through `WorkoutBackup.load`. |
 | [SaveTikTokWorkoutIntent.swift](../YarmsApp/SaveTikTokWorkoutIntent.swift) | Optional App Intent/Shortcut capture path. |
 | [TikTokLink.swift](../YarmsCore/TikTokLink.swift) | TikTok link recognition, validation, and canonical player URL. |
-| [SharedInbox.swift](../YarmsCore/SharedInbox.swift) | File-based pending links and isolated UI-test storage selection. |
+| [SharedInbox.swift](../YarmsCore/SharedInbox.swift) | File-based pending links and Debug-only isolated UI-test storage selection. |
 | [KeychainInbox.swift](../YarmsCore/KeychainInbox.swift) | Pending links in the app/extension shared Keychain access group. |
 | [ShareViewController.swift](../YarmsShare/ShareViewController.swift) | Share Sheet input loading, link validation, Keychain save, and user feedback. |
 
@@ -56,7 +56,10 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [generate-project.rb](../scripts/generate-project.rb) | Optional Ruby `xcodeproj` updater for Swift source membership and scheme; also has new-project bootstrap logic. |
 | [verify-repository.sh](../scripts/verify-repository.sh) | Public-file, scheme, signing-config, link, privacy-file, whitespace checks and test-runner host tests. |
 | [test-ios.py](../scripts/test-ios.py) and [host tests](../scripts/tests/test_test_ios.py) | Disposable simulator lifecycle, full/feedback/sharing suites, retained result summaries and cleanup. |
-| [ci.yml](../.github/workflows/ci.yml) | GitHub Actions repository verification, simulator build, and unit/UI test jobs. |
+| [release-ios.py](../scripts/release-ios.py) and [host tests](../scripts/tests/test_release_ios.py) | Release settings/artifact validation, versioned archives, signature checks, and retained evidence. |
+| [xcode_support.py](../scripts/xcode_support.py) | Shared bounded process-group execution and interrupt handling for Xcode commands. |
+| [test_release_storage.py](../scripts/tests/test_release_storage.py) | Compiles actual shared inbox code in Debug and Release to check test-storage isolation. |
+| [ci.yml](../.github/workflows/ci.yml) | GitHub Actions repository verification, simulator build, unit/UI tests, and unsigned Release validation. |
 | [.gitignore](../.gitignore) | Excludes local credentials, build products, personal data, and editor files. |
 | [.brooks-lint-history.json](../.brooks-lint-history.json) | Checked-in history for the repository's Brooks lint tooling. |
 
@@ -69,7 +72,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | [CONTRIBUTING.md](../CONTRIBUTING.md), [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md), [SECURITY.md](../SECURITY.md), [LICENSE](../LICENSE) | Contribution process, community rules, private vulnerability reporting, and MIT license. |
 | [.github/ISSUE_TEMPLATE/](../.github/ISSUE_TEMPLATE/) and [pull_request_template.md](../.github/pull_request_template.md) | Bug/feature forms, issue-template config, and PR reporting prompts. |
 | [Architecture.md](Architecture.md), [Data-and-Privacy.md](Data-and-Privacy.md), [Design-Language.md](Design-Language.md), [Design-and-Assets.md](Design-and-Assets.md), [User-Guide.md](User-Guide.md) | Current system, data, UI design rules, assets, and user task references. |
-| [Development.md](Development.md), [Testing.md](Testing.md), [Repository-Map.md](Repository-Map.md) | Setup, verification, and this file index. |
+| [Development.md](Development.md), [Testing.md](Testing.md), [Release.md](Release.md), [Repository-Map.md](Repository-Map.md) | Setup, verification, and this file index. |
 | [Shortcut-Sharing.md](Shortcut-Sharing.md), [Storage-Migration.md](Storage-Migration.md) | Share Sheet behavior and upgrade/backup steps. |
 | [MVP-Roadmap.md](MVP-Roadmap.md), [MVP-Progress.md](MVP-Progress.md), [Implementation-Plan.md](Implementation-Plan.md) | Milestone history and current implementation plan. |
 

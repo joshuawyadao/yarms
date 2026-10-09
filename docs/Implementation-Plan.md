@@ -7,14 +7,14 @@ Add automated Release validation and a repeatable, versioned archive command for
 - Out: TestFlight or App Store upload, export, account setup, phone installation, and merging the pull request.
 
 ## Action items
-[ ] Restrict temporary UI-test storage controls to Debug and verify both compilation modes.
-[ ] Share the existing bounded subprocess executor without changing simulator-runner behavior.
-[ ] Add a Release checker for effective settings, bundle metadata, extension embedding, and compiled test markers.
-[ ] Add a versioned archive command with explicit version/build inputs, signed and unsigned modes, retained logs/report, and short release notes.
-[ ] Cover configuration, artifact, signing, failure, and command boundaries with meaningful host tests.
-[ ] Add an unsigned Release CI job and document the commands and signing limits.
-[ ] Run repository checks, relevant Debug regressions, a real Release build, and a real versioned archive.
-[ ] Record actual validation and any local signing limitation, then commit and push the completed changes.
+- [x] Restrict temporary UI-test storage controls to Debug and verify both compilation modes.
+- [x] Share the existing bounded subprocess executor without changing simulator-runner behavior.
+- [x] Add a Release checker for effective settings, bundle metadata, extension embedding, and compiled test markers.
+- [x] Add a versioned archive command with explicit version/build inputs, signed and unsigned modes, retained logs/report, and short release notes.
+- [x] Cover configuration, artifact, signing, failure, and command boundaries with meaningful host tests.
+- [x] Add an unsigned Release CI job and document the commands and signing limits.
+- [ ] Run repository checks, relevant Debug regressions, a real Release build, and a real versioned archive.
+- [ ] Record actual validation and any local signing limitation, then commit and push the completed changes.
 
 ## Open questions
 - None. Signed archives use the caller's local signing configuration; unsigned validation remains available without account changes.

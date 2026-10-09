@@ -35,6 +35,11 @@ required = (
     "YarmsUITests/YarmsUITests.swift",
     "scripts/test-ios.py",
     "scripts/tests/test_test_ios.py",
+    "scripts/xcode_support.py",
+    "scripts/release-ios.py",
+    "scripts/tests/test_release_ios.py",
+    "scripts/tests/test_release_storage.py",
+    "docs/Release.md",
 )
 errors = [f"Missing {name}" for name in required if not (root / name).is_file()]
 

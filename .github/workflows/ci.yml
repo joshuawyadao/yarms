@@ -58,3 +58,29 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
+
+  release:
+    name: Release Verify
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate Release app and Share extension
+        run: python3 scripts/release-ios.py check --timeout-seconds 900
+
+      - name: Keep Release verification evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Yarms-release-results
+          path: |
+            .build/releases/*/report.json
+            .build/releases/*/xcodebuild.log
+            .build/releases/*/release-notes.md
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
