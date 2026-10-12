@@ -1,4 +1,5 @@
 import argparse
+import builtins
 import contextlib
 import importlib.util
 import io
@@ -137,6 +138,19 @@ class RunnerTests(unittest.TestCase):
     def execute_case(self, args, fake, base, **kwargs):
         app_probe = kwargs.pop("app_probe", lambda _path: False)
         return runner.execute(args, fake, base, host="Darwin", app_probe=app_probe, **kwargs)
+
+    def main_case(self, fake, base):
+        execute = runner.execute
+        def execute_fixture(args, interrupt_state):
+            return execute(args, fake, base, host="Darwin", interrupt_state=interrupt_state,
+                           app_probe=lambda _path: False)
+        original_handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+        with mock.patch.object(runner, "execute", side_effect=execute_fixture):
+            code = runner.main([])
+        self.assertEqual({sig: signal.getsignal(sig) for sig in original_handlers}, original_handlers)
+        root = next(base.iterdir())
+        report = json.loads((root / "report.json").read_text())
+        return code, report, root
 
     def test_discovery_chooses_latest_available_compatible_iphone(self):
         self.assertEqual(runner.select_profile(CATALOG), (RUNTIME_27, IPHONE))
@@ -341,6 +355,72 @@ class RunnerTests(unittest.TestCase):
             self.assertTrue(fake.assert_masked)
         self.assertEqual(report["status"], "failed")
         self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
+
+    def test_sigint_during_final_report_write_rewrites_failed_result(self):
+        fake = FakeExecutor()
+        original_write = runner.write_report
+        written_statuses = []
+        def signal_during_final_write(path, report):
+            written_statuses.append(report["status"])
+            if report["status"] != "running" and written_statuses.count("passed") == 1:
+                if hasattr(signal, "pthread_sigmask"):
+                    active = signal.pthread_sigmask(signal.SIG_BLOCK, set())
+                    self.assertTrue({signal.SIGINT, signal.SIGTERM}.issubset(active))
+                os.kill(os.getpid(), signal.SIGINT)
+            original_write(path, report)
+        with mock.patch.object(runner, "write_report", side_effect=signal_during_final_write):
+            code, report, root = self.main_case(fake, self.base)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("Interrupted by signal", report["error"])
+        self.assertEqual(report["testCounts"], {"passed": 4, "failed": 0, "skipped": 1})
+        self.assertEqual(written_statuses[-2:], ["passed", "failed"])
+        self.assertFalse((root / "DerivedData").exists())
+        self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
+        self.assertIn("Result: failed", self.console.getvalue().splitlines()[-2])
+
+    def test_sigterm_during_final_report_preserves_prior_test_failure(self):
+        fake = FakeExecutor(test_code=65, passed=0, failed=1)
+        original_write = runner.write_report
+        sent = False
+        def signal_during_final_write(path, report):
+            nonlocal sent
+            if report["status"] == "failed" and not sent:
+                sent = True
+                os.kill(os.getpid(), signal.SIGTERM)
+            original_write(path, report)
+        with mock.patch.object(runner, "write_report", side_effect=signal_during_final_write):
+            code, report, root = self.main_case(fake, self.base)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("XCTest failed", report["error"])
+        self.assertIn("Interrupted by signal", report["error"])
+        self.assertEqual(report["testCounts"], {"passed": 0, "failed": 1, "skipped": 1})
+        self.assertFalse((root / "DerivedData").exists())
+        self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
+        self.assertIn("Result: failed", self.console.getvalue().splitlines()[-2])
+
+    def test_sigint_during_final_console_print_rewrites_failed_result(self):
+        fake = FakeExecutor()
+        original_print = builtins.print
+        sent = False
+        def signal_during_final_print(*args, **kwargs):
+            nonlocal sent
+            original_print(*args, **kwargs)
+            if args and str(args[0]).startswith("Result: ") and not sent:
+                sent = True
+                if hasattr(signal, "pthread_sigmask"):
+                    active = signal.pthread_sigmask(signal.SIG_BLOCK, set())
+                    self.assertTrue({signal.SIGINT, signal.SIGTERM}.issubset(active))
+                os.kill(os.getpid(), signal.SIGINT)
+        with mock.patch("builtins.print", side_effect=signal_during_final_print):
+            code, report, root = self.main_case(fake, self.base)
+        self.assertEqual(code, 1)
+        self.assertEqual(report["status"], "failed")
+        self.assertIn("Interrupted by signal", report["error"])
+        self.assertFalse((root / "DerivedData").exists())
+        self.assertIn(["xcrun", "simctl", "delete", SIM_ID], fake.commands)
+        self.assertIn("Result: failed", self.console.getvalue().splitlines()[-2])
 
     @unittest.skipUnless(hasattr(os, "killpg"), "process groups require POSIX")
     def test_executor_timeout_reaps_its_child(self):

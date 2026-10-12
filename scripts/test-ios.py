@@ -159,6 +159,19 @@ def write_report(path, report):
     temporary.replace(path)
 
 
+def print_final_result(report, report_path):
+    counts = report["testCounts"]
+    details = [f"Result: {report['status']}"]
+    if counts:
+        details.append(f"tests {counts['passed']} passed, {counts['failed']} failed, {counts['skipped']} skipped")
+    if report["error"]:
+        details.append(f"error: {report['error'][:500]}")
+    if report["cleanupErrors"]:
+        details.append(f"cleanup: {'; '.join(report['cleanupErrors'])[:500]}")
+    print("; ".join(details), flush=True)
+    print(f"Report: {report_path}", flush=True)
+
+
 def execute(args, executor=None, run_base=None, host=None, interrupt_state=None, app_probe=None):
     executor = executor or Executor()
     app_probe = app_probe or (lambda path: path.is_dir())
@@ -244,20 +257,23 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None,
                     shutil.rmtree(derived_data)
             except OSError as exc:
                 report["cleanupErrors"].append(f"DerivedData: {exc}")
-        if interrupt_state and interrupt_state.interrupted and not report["error"]:
-            report["error"] = "Interrupted by signal"
-        report["status"] = "passed" if not report["error"] and not report["cleanupErrors"] else "failed"
-        write_report(report_path, report)
-        counts = report["testCounts"]
-        details = [f"Result: {report['status']}"]
-        if counts:
-            details.append(f"tests {counts['passed']} passed, {counts['failed']} failed, {counts['skipped']} skipped")
-        if report["error"]:
-            details.append(f"error: {report['error'][:500]}")
-        if report["cleanupErrors"]:
-            details.append(f"cleanup: {'; '.join(report['cleanupErrors'])[:500]}")
-        print("; ".join(details), flush=True)
-        print(f"Report: {report_path}", flush=True)
+            if interrupt_state and interrupt_state.interrupted and not report["error"]:
+                report["error"] = "Interrupted by signal"
+            report["status"] = "passed" if not report["error"] and not report["cleanupErrors"] else "failed"
+            write_report(report_path, report)
+            print_final_result(report, report_path)
+        if interrupt_state and interrupt_state.interrupted:
+            previous_error = report["error"]
+            previous_status = report["status"]
+            if not report["error"]:
+                report["error"] = "Interrupted by signal"
+            elif "Interrupted by signal" not in report["error"]:
+                report["error"] += "; Interrupted by signal"
+            report["status"] = "failed"
+            if report["error"] != previous_error or report["status"] != previous_status:
+                with blocked_termination_signals():
+                    write_report(report_path, report)
+                    print_final_result(report, report_path)
     return 0 if report["status"] == "passed" else 1
 
 

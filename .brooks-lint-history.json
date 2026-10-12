@@ -251,5 +251,16 @@
       "suggestion": 0
     },
     "scope": "PR #15 Codex Release cleanup fixes: primary+cleanup diagnostic preservation and interrupt-safe terminal evidence; actual SIGINT/SIGTERM tests, handler restoration and owned cleanup reviewed;21 Release/47 host tests passed; no new actionable findings."
+  },
+  {
+    "date": "2026-10-12",
+    "mode": "PR Review",
+    "score": 100,
+    "findings": {
+      "critical": 0,
+      "warning": 0,
+      "suggestion": 0
+    },
+    "scope": "PR #15 simulator final-report/console interrupt follow-up; prior errors/counts, owned cleanup and nonzero exit preserved; actual SIGINT/SIGTERM regressions reviewed;28 runner/50 host tests passed; no actionable findings."
   }
 ]
