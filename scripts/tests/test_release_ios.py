@@ -1,11 +1,15 @@
 """Release gate tests with synthetic Xcode settings and bundle products."""
 
 import importlib.util
+import io
 import json
+import os
 import plistlib
+import signal
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -134,6 +138,28 @@ class ReleaseCLITests(unittest.TestCase):
 
     def run_release(self, args, fake):
         return release.execute(args, fake, self.root, source_root=self.root)
+
+    def run_main(self, fake):
+        validate = release.validate_settings
+        def validate_fixture(settings, args, source_root=release.ROOT):
+            return validate(settings, args, self.root)
+        output = io.StringIO()
+        with mock.patch.object(release, "validate_settings", side_effect=validate_fixture):
+            with redirect_stdout(output):
+                exit_code = release.main(["check"], fake, self.root)
+        return exit_code, json.loads(output.getvalue())
+
+    def assert_interrupted_report(self, result):
+        report = json.loads(Path(result["report"]).read_text())
+        notes = Path(result["report"]).with_name("release-notes.md").read_text()
+        self.assertEqual(report["status"], "failed")
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("Interrupted by signal", report["error"])
+        self.assertIn("Release validation: failed", notes)
+        self.assertIn("Interrupted by signal", notes)
+        self.assertFalse((Path(report["run_directory"]) / "DerivedData").exists())
+        self.assertFalse(report["derived_data_retained"])
+        return report, notes
 
     def test_check_builds_unsigned_release_and_retains_report(self):
         fake = FakeExecutor()
@@ -321,6 +347,55 @@ class ReleaseCLITests(unittest.TestCase):
         self.assertEqual(json.loads(Path(report["run_directory"], "report.json").read_text())["error"],
                          report["error"])
         self.assertIn(report["error"], Path(report["run_directory"], "release-notes.md").read_text())
+
+    def test_sigint_during_cleanup_finishes_and_fails_release(self):
+        original_handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+        original_remove = release.shutil.rmtree
+        def interrupt_during_cleanup(path):
+            if hasattr(signal, "pthread_sigmask"):
+                active = signal.pthread_sigmask(signal.SIG_BLOCK, set())
+                self.assertTrue({signal.SIGINT, signal.SIGTERM}.issubset(active))
+            os.kill(os.getpid(), signal.SIGINT)
+            return original_remove(path)
+        with mock.patch.object(release.shutil, "rmtree", side_effect=interrupt_during_cleanup) as remove:
+            exit_code, result = self.run_main(FakeExecutor(create_derived_data=True))
+        self.assertEqual(exit_code, 1)
+        remove.assert_called_once()
+        self.assert_interrupted_report(result)
+        self.assertEqual({sig: signal.getsignal(sig) for sig in original_handlers}, original_handlers)
+
+    def test_sigterm_during_first_final_report_write_rewrites_failure(self):
+        original_handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+        original_write = release._write_json_atomic
+        written_statuses = []
+        def interrupt_during_report(path, value):
+            written_statuses.append(value["status"])
+            if len(written_statuses) == 2:
+                if hasattr(signal, "pthread_sigmask"):
+                    active = signal.pthread_sigmask(signal.SIG_BLOCK, set())
+                    self.assertTrue({signal.SIGINT, signal.SIGTERM}.issubset(active))
+                os.kill(os.getpid(), signal.SIGTERM)
+            return original_write(path, value)
+        with mock.patch.object(release, "_write_json_atomic", side_effect=interrupt_during_report):
+            exit_code, result = self.run_main(FakeExecutor(create_derived_data=True))
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(written_statuses, ["running", "passed", "failed"])
+        self.assert_interrupted_report(result)
+        self.assertEqual({sig: signal.getsignal(sig) for sig in original_handlers}, original_handlers)
+
+    def test_signal_during_cleanup_keeps_prior_build_failure(self):
+        original_handlers = {sig: signal.getsignal(sig) for sig in (signal.SIGINT, signal.SIGTERM)}
+        original_remove = release.shutil.rmtree
+        def interrupt_during_cleanup(path):
+            os.kill(os.getpid(), signal.SIGTERM)
+            return original_remove(path)
+        with mock.patch.object(release.shutil, "rmtree", side_effect=interrupt_during_cleanup):
+            exit_code, result = self.run_main(FakeExecutor(build_failure=True, create_derived_data=True))
+        self.assertEqual(exit_code, 1)
+        report, notes = self.assert_interrupted_report(result)
+        self.assertIn("xcodebuild exited 65", report["error"])
+        self.assertIn("xcodebuild exited 65", notes)
+        self.assertEqual({sig: signal.getsignal(sig) for sig in original_handlers}, original_handlers)
 
     def test_early_configuration_failure_keeps_readable_failure_report(self):
         report = self.run_release(release.parse_args(["archive", "--version", "1.0.0",

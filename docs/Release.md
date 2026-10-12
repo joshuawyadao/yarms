@@ -40,6 +40,8 @@ A failed Xcode command or failed artifact check returns a nonzero exit status an
 
 If removing DerivedData also fails, the report and release notes retain the original build, artifact or signing failure alongside the cleanup diagnostic. A cleanup-only failure still fails validation and records that build data was retained.
 
+The CLI defers SIGINT/SIGTERM through owned cleanup and the initial terminal report/notes writes. A signal received during that phase produces retained failed evidence and a nonzero exit without erasing an earlier diagnostic. The prior signal handlers are restored after finalization. Five focused cleanup/error/signal regressions passed in the final 47-test host suite.
+
 An unsigned success verifies Release compilation and packaging; signing is explicitly unchecked. A signed success additionally verifies both code signatures, actual team identifiers, application identifiers, and the resolved shared Keychain entitlement. It does not certify profile expiry, distribution eligibility, App Store acceptance, or cross-process Keychain behavior on a phone. Keep the [signed-device checks](Testing.md#signed-iphone-checks) and final distribution review before releasing through TestFlight or the App Store.
 
 ## Local validation record

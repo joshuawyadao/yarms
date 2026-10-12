@@ -436,7 +436,7 @@ def release_notes(args, report, notes_text):
     return "\n".join(lines) + "\n"
 
 
-def execute(args, executor=None, release_root=None, source_root=ROOT):
+def execute(args, executor=None, release_root=None, source_root=ROOT, interrupt_state=None):
     global RELEASES
     if release_root is not None:
         RELEASES = Path(release_root)
@@ -474,26 +474,39 @@ def execute(args, executor=None, release_root=None, source_root=ROOT):
         report["status"] = "failed"
         report["error"] = "Interrupted" if isinstance(exc, KeyboardInterrupt) else str(exc)
     finally:
-        derived = run_dir / "DerivedData"
-        try:
-            if derived.exists():
-                if derived.is_symlink():
-                    raise RunError("Owned DerivedData path unexpectedly became a symlink")
-                with blocked_termination_signals():
+        if interrupt_state:
+            interrupt_state.cleaning = True
+        with blocked_termination_signals():
+            derived = run_dir / "DerivedData"
+            try:
+                if derived.exists():
+                    if derived.is_symlink():
+                        raise RunError("Owned DerivedData path unexpectedly became a symlink")
                     shutil.rmtree(derived)
-            report["derived_data_retained"] = False
-            if report.get("artifact") and args.mode == "check":
-                report["artifact"]["retained"] = False
-        except (OSError, RunError) as exc:
+                report["derived_data_retained"] = False
+                if report.get("artifact") and args.mode == "check":
+                    report["artifact"]["retained"] = False
+            except (OSError, RunError) as exc:
+                report["status"] = "failed"
+                cleanup_error = f"Could not clean owned DerivedData: {exc}"
+                report["error"] = (f"{report['error']}; {cleanup_error}"
+                                   if report["error"] else cleanup_error)
+                report["derived_data_retained"] = True
+            report["finished_at"] = utc_now()
+            _write_json_atomic(run_dir / "report.json", report)
+            (run_dir / "release-notes.md").write_text(release_notes(args, report, notes_text),
+                                                      encoding="utf-8")
+        if interrupt_state and interrupt_state.interrupted:
             report["status"] = "failed"
-            cleanup_error = f"Could not clean owned DerivedData: {exc}"
-            report["error"] = (f"{report['error']}; {cleanup_error}"
-                               if report["error"] else cleanup_error)
-            report["derived_data_retained"] = True
-        report["finished_at"] = utc_now()
-        _write_json_atomic(run_dir / "report.json", report)
-        (run_dir / "release-notes.md").write_text(release_notes(args, report, notes_text),
-                                                  encoding="utf-8")
+            interruption = "Interrupted by signal"
+            if not report["error"]:
+                report["error"] = interruption
+            elif interruption not in report["error"]:
+                report["error"] += f"; {interruption}"
+            with blocked_termination_signals():
+                _write_json_atomic(run_dir / "report.json", report)
+                (run_dir / "release-notes.md").write_text(release_notes(args, report, notes_text),
+                                                          encoding="utf-8")
     return report
 
 
@@ -504,7 +517,7 @@ def main(argv=None, executor=None, release_root=None):
     for sig in previous:
         signal.signal(sig, state.handle)
     try:
-        report = execute(args, executor, release_root)
+        report = execute(args, executor, release_root, interrupt_state=state)
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
