@@ -12,7 +12,11 @@ Yarms keeps TikTok workout links, folders, and your notes on your iPhone. It has
 
 You can also copy a TikTok video link and tap **Paste** in Yarms. The paste action stays available when the library is empty or a search has no results. [Sharing from TikTok](Shortcut-Sharing.md) explains the handoff and optional Shortcut action.
 
-The library offers a gentle invitation to choose a saved workout or save a new one. Saving a link does not mark a workout complete; Yarms does not track workout completion.
+The library offers a gentle invitation to choose a saved workout or save a new one. Saving a link does not mark a workout complete. You can celebrate finishing from the workout screen; Yarms does not store a completion history.
+
+After a new save, an inline checkmark says **Saved for your next move**. Its small pink flourish ends on its own; the text stays until you change context. Pasting an already-saved video says **Already in your library** and selects All so you can find it. Opening your existing library does not celebrate old saves.
+
+With VoiceOver, Yarms also requests a brief spoken save result after a new or duplicate paste, importing new shared links, or saving notes. It lets existing speech finish and keeps focus on your current control. Scrolling back to the confirmation does not repeat the announcement, and saving an unchanged, already-confirmed note stays quiet.
 
 A saved link survives metadata or network failure. Saving the same recognized video again does not create another workout. Short links can appear separately until Yarms resolves them to the same video.
 
@@ -38,7 +42,15 @@ Open a workout to see its title, creator, folder, and portrait video. Once TikTo
 
 **Open in TikTok** is always available on the workout screen. It opens the saved or resolved link through iOS, which may use TikTok or the browser. Private, removed, or restricted posts may still be unavailable there.
 
-Scroll to **Notes (optional)**, enter your notes, dismiss the keyboard with **Done** if needed, then tap **Save notes**. Done only dismisses the keyboard; notes require Save. To clear a note, delete its text and save again. Notes stay with the local workout and are included in backups.
+Scroll to **Notes (optional)**, enter your notes, dismiss the keyboard with **Done** if needed, then tap **Save notes**. Done only dismisses the keyboard; notes require Save. To clear a note, delete its text and save again. Notes stay with the local workout and are included in backups. **Saved on this iPhone** confirms a successful save; editing again clears that confirmation until you save the new text.
+
+## Finish a workout
+
+When you are finished, scroll below the video and tap **Finish workout**. A modal says **Good Job BUNS!** with a smiling pink heart and one short sparkle animation. Tap **Done** or swipe down whenever you want to return to the workout; there is no timer to wait through.
+
+Opening the celebration dismisses the keyboard and asks the embedded player to pause if it is ready. Closing it does not start playback or save/change your notes. The button also works when the video is unavailable or you followed along in TikTok. You decide when you are finished: saving a link, opening a workout, or reaching the end of a clip never opens the celebration automatically.
+
+This is an encouraging moment, not a workout log: it does not store completion dates, counts, or streaks. You can use it again after another session.
 
 ## Delete a saved workout
 
@@ -62,6 +74,10 @@ Restore is additive: it does not replace your library or remove items that are a
 Import is limited to **10 MB** (10,485,760 bytes). Export keeps the whole library even above that limit, but warns that this version cannot import the resulting file. Do not remove or replace the old installation when its only backup is too large to restore. Current builds read older schema 1 backups; older builds reject new schema 2 backups.
 
 For the former App Group build, follow [Storage migration](Storage-Migration.md) **before upgrading**. For another iPhone, install Yarms separately and transfer a private backup through Files; there is no automatic Yarms sync.
+
+## Gentle motion
+
+Buttons, folder choices, and save confirmations use brief animation. Save feedback stays inline. The workout-completion modal opens only when you choose Finish workout and can be dismissed immediately. To remove custom motion, enable **Settings → Accessibility → Motion → Reduce Motion** on your iPhone; checkmarks, confirmation text, selected folders, and the static completion heart remain available.
 
 ## Troubleshooting
 

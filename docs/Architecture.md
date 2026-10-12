@@ -106,7 +106,7 @@ See [Data and privacy](Data-and-Privacy.md) for the schema, size limits, sanitiz
 
 ## Verification and current limits
 
-[Testing](Testing.md) is the canonical guide for automated coverage, commands, benchmarks, and signed-device checks. Simulator tests exercise local protocol behavior; they do not prove TikTok's live availability or cross-process Share Sheet signing. The known iOS 27 notes-focus frame warning remains documented there and needs further investigation.
+[Testing](Testing.md) is the canonical guide for automated coverage, commands, benchmarks, and signed-device checks. Simulator tests exercise local protocol behavior; they do not prove TikTok's live availability or cross-process Share Sheet signing. The Notes-focus frame warning also reproduces in a minimal native SwiftUI text editor with a keyboard toolbar on iOS 26.5 and 27.0; the controlled experiments and limits are documented there. No player-geometry change was justified by that diagnostic.
 
 ## Vocabulary
 

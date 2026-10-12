@@ -11,6 +11,7 @@ Start with the guide for your task. These pages describe the checked-in app; mil
 | [User guide](User-Guide.md) | Saving, folders, search, playback, notes, deletion, backups, and everyday troubleshooting |
 | [Sharing from TikTok](Shortcut-Sharing.md) | Enabling Save to yarms, the pending-link handoff, and optional Shortcut compatibility |
 | [Development and setup](Development.md) | Prerequisites, simulator builds, signing, installation, and project regeneration |
+| [Release builds and archives](Release.md) | Automated Release checks, versioned archives, signing boundaries, and retained evidence |
 | [Upgrade from an earlier build](Storage-Migration.md) | Export-before-upgrade steps for the former App Group library |
 
 ## Understand and maintain

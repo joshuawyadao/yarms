@@ -77,6 +77,9 @@ struct LibraryShellView: View {
     @State private var showingImporter = false
     @State private var pendingBackup: WorkoutBackup?
     @State private var confirmingRestore = false
+    @State private var saveConfirmation: String?
+    @State private var saveEventID = 0
+    @State private var celebratesSave = false
 
     private var visibleWorkouts: [Workout] {
         workouts.filter { selectedFolder.includes($0) && $0.matches(searchText) }
@@ -207,9 +210,17 @@ struct LibraryShellView: View {
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
                 importBackup(result)
             }
-            .onAppear { refresh() }
+            .onAppear {
+                saveConfirmation = nil
+                refresh(showNewShares: true)
+            }
+            .onChange(of: searchText) { _, _ in saveConfirmation = nil }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { refresh(showNewShares: true) }
+                if phase == .active {
+                    refresh(showNewShares: true)
+                } else {
+                    saveConfirmation = nil
+                }
             }
         }
     }
@@ -279,6 +290,9 @@ struct LibraryShellView: View {
             .padding(YarmsTheme.Spacing.lg)
             .background(YarmsTheme.surface,
                         in: RoundedRectangle(cornerRadius: YarmsTheme.Radius.surface))
+            YarmsSaveConfirmation(message: saveConfirmation, eventID: saveEventID,
+                                  celebrates: celebratesSave)
+                .accessibilityIdentifier("librarySaveConfirmation")
         }
         .padding(.top, YarmsTheme.Spacing.lg)
         .padding(.bottom, YarmsTheme.Spacing.sm)
@@ -412,12 +426,14 @@ struct LibraryShellView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(minHeight: YarmsTheme.minimumTarget)
         }
+        .buttonStyle(YarmsPlainButtonStyle())
         .accessibilityIdentifier("newFolderButton")
     }
 
     private func folderChip(_ title: String, count: Int, selection: FolderSelection,
                             identifier: String) -> some View {
         FolderFilter(title: title, count: count, isSelected: selectedFolder == selection) {
+            saveConfirmation = nil
             selectedFolder = selection
         }
         .accessibilityIdentifier(identifier)
@@ -451,6 +467,7 @@ struct LibraryShellView: View {
     private func folderChoice(_ title: String, symbol: String, count: Int,
                               selection: FolderSelection, identifier: String) -> some View {
         Button {
+            saveConfirmation = nil
             selectedFolder = selection
             showingFolderPicker = false
         } label: {
@@ -510,6 +527,7 @@ struct LibraryShellView: View {
     }
 
     private func saveFolder() {
+        saveConfirmation = nil
         guard let store = WorkoutStore.live() else {
             showMessage("Could not update folders", "yarms could not access its saved workouts.")
             return
@@ -532,6 +550,7 @@ struct LibraryShellView: View {
     }
 
     private func deleteSelectedFolder() {
+        saveConfirmation = nil
         defer { folderPendingDeletion = nil }
         guard let folder = folderPendingDeletion, let store = WorkoutStore.live() else { return }
         do {
@@ -549,6 +568,7 @@ struct LibraryShellView: View {
     }
 
     private func moveWorkout(_ workout: Workout, to folderID: UUID?) -> Bool {
+        saveConfirmation = nil
         guard let store = WorkoutStore.live() else {
             showMessage("Could not move workout", "yarms could not access its saved workouts.")
             return false
@@ -574,6 +594,7 @@ struct LibraryShellView: View {
     }
 
     private func pasteLink(_ pastedText: String?) {
+        saveConfirmation = nil
         guard let text = pastedText,
               let link = TikTokLink(text: text) else {
             showMessage("Could not update workouts", "Copy a TikTok video link, then try again.")
@@ -584,9 +605,13 @@ struct LibraryShellView: View {
             return
         }
         do {
-            try inbox.save(link)
+            let pending = try inbox.save(link)
             selectedFolder = .unfiled
-            refresh()
+            guard refresh() else { return }
+            let isNew = workouts.contains { $0.id == pending.id }
+            if !isNew { selectedFolder = .all }
+            confirmSave(isNew ? "Saved for your next move." : "Already in your library.",
+                        celebrates: isNew)
         } catch {
             showMessage("Could not update workouts", "yarms could not save that link.")
         }
@@ -599,7 +624,9 @@ struct LibraryShellView: View {
             return false
         }
         do {
-            let currentIDs = Set(workouts.map(\.id))
+            // Compare against persisted records so opening an existing library never
+            // looks like a fresh save. Only pending captures can trigger feedback.
+            let currentIDs = Set(try store.load().map(\.id))
             let imported = try store.importPending()
             folders = try store.loadFolders()
             selectedFolder = FolderSelection.afterImport(
@@ -613,11 +640,23 @@ struct LibraryShellView: View {
             workouts = imported
             enrichmentQueue.reset(with: workouts)
             scheduleEnrichment(using: store)
+            let addedCount = imported.filter { !currentIDs.contains($0.id) }.count
+            if showNewShares && addedCount > 0 {
+                confirmSave(addedCount == 1 ? "Saved for your next move." : "\(addedCount) workouts saved for later.",
+                            celebrates: true)
+            }
             return true
         } catch {
             showMessage("Could not update workouts", "yarms could not read its saved workouts.")
             return false
         }
+    }
+
+    private func confirmSave(_ text: String, celebrates: Bool) {
+        saveConfirmation = text
+        celebratesSave = celebrates
+        saveEventID += 1
+        YarmsAccessibility.announceSaveResult(text)
     }
 
     private func scheduleEnrichment(using store: WorkoutStore) {
@@ -647,6 +686,7 @@ struct LibraryShellView: View {
     }
 
     private func removeWorkout(_ workout: Workout) -> Bool {
+        saveConfirmation = nil
         guard let store = WorkoutStore.live() else { return false }
         do {
             guard try store.remove(workout.id) else {
@@ -699,6 +739,7 @@ struct LibraryShellView: View {
     }
 
     private func restoreBackup() {
+        saveConfirmation = nil
         guard let backup = pendingBackup, let store = WorkoutStore.live() else {
             showMessage("Could not restore backup", "yarms could not access its saved workouts.")
             return

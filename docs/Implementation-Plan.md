@@ -1,44 +1,32 @@
 # Plan
 
-Prepare the cool-pink UI update on `codex/ui-design-system` for review against current `main`. Preserve main's storage fixes and documentation structure, reconcile the design guidance, and shepherd a pull request through review and CI without merging it.
+Finish the review of the Release tooling and close the remaining phone-test evidence gaps, then add the user-requested gentle heart loop to the completion sheet. Fix the discovered entitlements-validation gap, preserve isolated test storage and a verified clean rollback, and keep human observations distinct from automated assertions.
 
 ## Scope
-- In: merge current main, reconcile documentation, validate the integrated app, open a draft PR, run Brooks and Codex review, address actionable feedback and CI failures, and push the completed branch.
-- Out: additional product features, redesign changes beyond review fixes, personal device data or artifacts, and the final PR merge.
+- In: Release entitlements gate and regression tests, review feedback and CI, canonical verification docs, existing isolated phone diagnostics, brief assisted phone checks, and a completion-art loop limited to the visible foreground sheet.
+- Out: PR merging under the review-cycle skill, TestFlight/App Store upload, personal-library exports, the human VoiceOver check declined by the user, and captures outside the already approved Share Sheet scope.
 
 ## Action items
-- [x] Inspect branch history, main's documentation and storage changes, the PR template, CI configuration, and existing UI coverage.
-- [x] Merge main while preserving both the design-system work and newer storage/test behavior; resolve README, Architecture, and active-plan conflicts from their source intent.
-- [x] Update the documentation index, repository map, Design and Assets, User Guide, Testing, README, and Architecture to reference the canonical Design Language and describe adaptive folder controls.
-- [x] Run repository checks and the integrated simulator suite; retain meaningful UI assertions and isolated synthetic test data. No new tests are needed for documentation reconciliation; add focused regressions only for executable review fixes.
-- [x] Commit and push the integration, open and attach a draft PR, and request Codex review.
-- [x] Run a scoped Brooks review, record findings in the review ledger and history, and address actionable review or CI findings with targeted validation.
-- [x] Record review, CI follow-up, and mergeability evidence; keep live readiness on PR #14 and leave the final merge to the user.
+- [x] Inspect current PR checks, relevant Release/Testing docs, and the retained phone-test controllers.
+- [x] Validate each target's effective entitlement file and shared Keychain declaration in Release checks.
+- [x] Add fail-closed regression cases for missing, redirected, malformed, and mismatched entitlements.
+- [x] Run repository/host checks and a real unsigned Release build; update docs/Release.md and review notes.
+- [x] Verify phone availability, signed candidate and clean rollback profiles, isolation, and bounded cleanup before installation.
+- [x] Build a fresh UUID-isolated diagnostic library and Keychain service, guard against symlinks, and require a nonce-fresh empty library/folder/queue baseline without overwriting old test storage.
+- [x] Complete two real native TikTok shares through the existing controller and record queue, duplicate, and library-audit results.
+- [x] Finish the deterministic fallback check; record the user’s positive motion feedback and explicit VoiceOver-check skip. The final human reply arrived after the controller's bounded timeout and clean rollback; no post-observation audit is claimed.
+- [x] Add a gentle heart loop to YarmsUIComponents.swift, keeping the entrance, static reduced-motion art and immediate dismissal, with no animation when backgrounded.
+- [x] Update docs/Design-Language.md, docs/Design-and-Assets.md and docs/Testing.md for the requested motion contract and actual phone outcomes.
+- [x] Repair the CI local-WebKit fixture’s observed five-second cold-start timeout with a bounded readiness wait and fail-fast setup, preserving playback assertions.
+- [x] Run the existing completion/dismissal, maximum-text reduced-motion and native-focus simulator regressions plus Release/host checks; review the loop’s lifecycle and accessibility. Thirteen focused behavior tests, 42 host tests and unsigned Release passed. The first native-focus attempt failed on an automation command before completion opened; no speech/focus assertion was weakened.
+- [x] Address Codex cleanup-error feedback: retain the original Release failure alongside a cleanup failure and assert both in the final report and notes. Eighteen focused host tests passed; save/push and acknowledgement are recorded in the PR review ledger.
+- [x] Address Codex interrupt feedback: defer an interrupt through the complete Release cleanup/reporting phase, retain terminal evidence and a failing exit status, and add real SIGINT/SIGTERM regressions. Twenty-one focused Release and all 47 host tests passed; save/push and acknowledgement are recorded in the PR review ledger.
+- [x] Address Codex's simulator-runner follow-up: keep final report/console emission inside interrupt-safe finalization, consume pending signals before returning, and prove late interrupts cannot retain success or exit zero. Real report/console signal regressions passed; all 28 runner and 50 host tests passed, with prior errors/counts and owned cleanup preserved. Save/push and acknowledgement are recorded in the PR review ledger.
+- [ ] Save and push each review fix, acknowledge Codex findings if present, and wait for final review/CI/mergeability gates.
+- [ ] Update docs/Testing.md with actual outcomes and leave PR #15 unmerged with current readiness reported.
 
 ## Open questions
-- None. The user authorized the PR workflow. Preserve the calm, playful cool-pink direction and native light/dark support; further design feedback follows the intended user's hands-on review.
+- None. Assisted phone observations are complete within the limits below. Final PR review and CI readiness are reported through the PR and review ledger.
 
-## Integration and review evidence
-
-- Resolved conflicts in README, Architecture, and this active plan. Preserved main's documentation navigation, diagrams, and current storage/test improvements; added design-language links and UI-specific guidance.
-- Scoped Brooks review: 100/100, no actionable findings across six production risks and the quick test check. The large but cohesive UI diff was sampled at its highest-risk presentation and interaction boundaries; generated project wiring was excluded.
-- Documentation links and repository checks pass. No additional test source changes were needed for integration. Integrated simulator suite on iPhone 17e / iOS 26.5: 89 passed, two expected skips (signed-device Keychain and opt-in restore benchmark), zero failures, including all eight UI tests. GitHub review/check status will be recorded before handoff.
-
-- Opened [PR #14](https://github.com/joshuawyadao/yarms/pull/14) against main after pushing the integration. Codex review completed for `13aaab7` with no issues raised and no inline review threads; no feedback fixes or reactions were needed.
-
-## CI follow-up plan
-
-CI run `36817024976` passed 88 tests and skipped two, but the new large-text test failed at its initial folder-picker existence assertion on iPhone 16 Pro / iOS 18.5. The same test passes locally on iOS 26.5. Its current order waits for an offscreen lazy-list row before attempting to scroll; CI is the available iOS 18.5 reproduction environment.
-
-- [x] Inspect the failed assertion, test activities, simulator versions, and lazy list composition. Codex review remains clear for the UI implementation.
-- [x] Make the large-text test locate offscreen controls through bounded scrolling before asserting existence and reachability. Preserve all folder, count, selection, search, and Paste assertions; do not change production layout unless runtime evidence requires it.
-- [x] Run the focused test on the available small iPhone simulator, check the diff, and review the test-only change.
-- [x] Prepare the fix and review evidence for the branch save; track CI's full iOS 18.5 suite and final review/mergeability state on PR #14.
-
-No product decision is needed. Check scroll order first; if it does not resolve CI, investigate Dynamic Type launch settings and folder setup rather than weakening assertions.
-
-## CI fix validation and handoff
-
-The focused large-text test passes on iPhone 17e / iOS 26.5 after moving bounded scrolling before existence checks for offscreen list content. It retains every folder, count, selection, search, and reachability assertion and adds a folder-creation setup assertion. The helper checks existence before hittability; production code is unchanged. A scoped review of this test change found no actionable issues (Brooks 100/100). Repository and whitespace checks pass.
-
-This file records repository changes and local evidence at the fix checkpoint. The iOS 18.5 full-suite result and final readiness are tracked in [PR #14's checks and review](https://github.com/joshuawyadao/yarms/pull/14); do not infer readiness from the local pass. The workflow must wait for those gates before handoff, and the final merge remains a separate user action.
+## Verification limits
+- The unchanged native VoiceOver focus test hit the same pre-modal `moveForward` automation error in two fresh iOS 27 attempts, including with Device Hub foregrounded. The human check was explicitly declined. Existing assertions remain intact; no current passing native-focus result is claimed.
