@@ -15,8 +15,9 @@ Finish the review of the Release tooling and close the remaining phone-test evid
 - [x] Build a fresh UUID-isolated diagnostic library and Keychain service, guard against symlinks, and require a nonce-fresh empty library/folder/queue baseline without overwriting old test storage.
 - [x] Complete two real native TikTok shares through the existing controller and record queue, duplicate, and library-audit results.
 - [ ] Finish the deterministic fallback check; record the user’s positive motion feedback and explicit VoiceOver-check skip.
-- [ ] Add a gentle heart loop to YarmsUIComponents.swift, keeping the entrance, static reduced-motion art and immediate dismissal, with no animation when backgrounded.
+- [x] Add a gentle heart loop to YarmsUIComponents.swift, keeping the entrance, static reduced-motion art and immediate dismissal, with no animation when backgrounded.
 - [ ] Update docs/Design-Language.md, docs/Design-and-Assets.md and docs/Testing.md for the requested motion contract and actual phone outcomes.
+- [ ] Repair the CI local-WebKit fixture’s observed five-second cold-start timeout with a bounded readiness wait and fail-fast setup, preserving playback assertions.
 - [ ] Run the existing completion/dismissal, maximum-text reduced-motion and native-focus simulator regressions plus Release/host checks; review the loop’s lifecycle and accessibility.
 - [ ] Save and push each review fix, acknowledge Codex findings if present, and wait for final review/CI/mergeability gates.
 - [ ] Update docs/Testing.md with actual outcomes and leave PR #15 unmerged with current readiness reported.
