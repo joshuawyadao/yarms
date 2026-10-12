@@ -1,30 +1,21 @@
 # Plan
 
-Add automated Release validation and a repeatable, versioned archive command for Yarms. Validate effective Xcode settings and the produced app and Share extension, retain readable build evidence, and keep signing inputs local.
+Finish the review of the Release tooling and close the remaining phone-test evidence gaps. Fix the discovered entitlements-validation gap, preserve isolated test storage and a verified clean rollback, and keep human observations distinct from automated assertions.
 
 ## Scope
-- In: Release checks, Debug-only test storage, archive tooling, host regression tests, CI, release instructions, and commit/push of this branch.
-- Out: TestFlight or App Store upload, export, account setup, phone installation, and merging the pull request.
+- In: Release entitlements gate and regression tests, review feedback and CI, canonical verification docs, existing isolated phone diagnostics, and brief assisted phone checks.
+- Out: PR merging under the review-cycle skill, TestFlight/App Store upload, personal-library exports, and captures outside the already approved Share Sheet scope.
 
 ## Action items
-- [x] Restrict temporary UI-test storage controls to Debug and verify both compilation modes.
-- [x] Share the existing bounded subprocess executor without changing simulator-runner behavior.
-- [x] Add a Release checker for effective settings, bundle metadata, extension embedding, and compiled test markers.
-- [x] Add a versioned archive command with explicit version/build inputs, signed and unsigned modes, retained logs/report, and short release notes.
-- [x] Cover configuration, artifact, signing, failure, and command boundaries with meaningful host tests.
-- [x] Add an unsigned Release CI job and document the commands and signing limits.
-- [x] Run repository checks, relevant Debug regressions, a real Release build, and a real versioned archive.
-- [x] Record actual validation and checkpoint the completed implementation.
-- [x] Push the completed changes to `codex/gentle-app-motion` (publication confirmed through `d366bf6`).
+- [x] Inspect current PR checks, relevant Release/Testing docs, and the retained phone-test controllers.
+- [ ] Validate each target's effective entitlement file and shared Keychain declaration in Release checks.
+- [ ] Add fail-closed regression cases for missing, redirected, malformed, and mismatched entitlements.
+- [ ] Run repository/host checks and a real unsigned Release build; update docs/Release.md and review notes.
+- [ ] Verify phone availability, signed candidate and clean rollback profiles, isolation, and bounded cleanup before installation.
+- [ ] Complete two real native TikTok shares through the existing controller and record queue, duplicate, and library-audit results.
+- [ ] Check fallback reachability and collect human VoiceOver/motion observations on the phone, retaining explicit evidence limits.
+- [ ] Save and push each review fix, acknowledge Codex findings if present, and wait for final review/CI/mergeability gates.
+- [ ] Update docs/Testing.md with actual outcomes and leave PR #15 unmerged with current readiness reported.
 
 ## Open questions
-- None. Signed archives use the caller's local signing configuration; unsigned validation remains available without account changes.
-
-## Validation
-
-- Repository verification: 40 host tests passed.
-- Debug storage and reduced-motion Paste smoke on a disposable iOS 27 simulator: 8 passed, successful cleanup.
-- Unsigned Release simulator build and app/Share artifact checks: passed.
-- Signed and unsigned version 1.0.0/build 2 archives from clean commit `d680d02`: passed; signed teams/default shared Keychain group verified; archives retained and DerivedData removed.
-- Apple-platform correctness review: no remaining blocking issues.
-- Distribution readiness, upload, and phone installation remain outside this task.
+- None for implementation. Phone checks require a reachable unlocked device and brief user feedback; independent review work continues while waiting.
