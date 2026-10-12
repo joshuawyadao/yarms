@@ -208,14 +208,17 @@ struct YarmsEmptyState: View {
     }
 }
 
-/// A self-reported workout finish deserves a brief, dismissible celebration.
+/// A self-reported workout finish deserves an encouraging, dismissible celebration.
 struct WorkoutCompletionView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.yarmsReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var hasAnimated = false
     @State private var heartSettled = false
     @State private var sparklesShown = false
+    @State private var isVisible = false
+    @State private var breathStart = Date()
 
     var body: some View {
         ScrollView {
@@ -246,6 +249,7 @@ struct WorkoutCompletionView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Button {
+                isVisible = false
                 dismiss()
             } label: {
                 Text("Done").frame(maxWidth: .infinity)
@@ -259,9 +263,20 @@ struct WorkoutCompletionView: View {
             .background(YarmsTheme.canvas)
         }
         .background(YarmsTheme.canvas)
-        .onAppear(perform: animateOnce)
+        .onAppear {
+            breathStart = Date()
+            isVisible = true
+            animateOnce()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active && isVisible { breathStart = Date() }
+        }
+        .onChange(of: reduceMotion) { _, isReduced in
+            if !isReduced && isVisible { breathStart = Date() }
+        }
         .onDisappear {
             // A fresh presentation starts from the resting entrance state.
+            isVisible = false
             hasAnimated = false
             heartSettled = false
             sparklesShown = false
@@ -285,10 +300,22 @@ struct WorkoutCompletionView: View {
         .scaleEffect(reduceMotion || sparklesShown ? 1 : 0.55)
         .opacity(reduceMotion || sparklesShown ? 1 : 0)
         .overlay {
-            SmilingHeart()
-                .frame(width: compact ? 62 : 94, height: compact ? 58 : 88)
-                .scaleEffect(reduceMotion || heartSettled ? 1 : 0.72)
-                .offset(y: reduceMotion || heartSettled ? 0 : 10)
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0,
+                                    paused: !isVisible || scenePhase != .active || reduceMotion)) { timeline in
+                // Start at rest through the brief entrance, then move only the
+                // decorative heart. Each restart begins at the resting pose.
+                let elapsed = max(0, timeline.date.timeIntervalSince(breathStart) - 0.45)
+                let phase = elapsed.truncatingRemainder(dividingBy: 2.8) / 2.8
+                let breath = reduceMotion || !isVisible || scenePhase != .active
+                    ? CGFloat.zero
+                    : CGFloat(0.5 - 0.5 * cos(2 * Double.pi * phase))
+                SmilingHeart()
+                    .frame(width: compact ? 62 : 94, height: compact ? 58 : 88)
+                    .scaleEffect(1 + breath * 0.03)
+                    .offset(y: -2 * breath)
+            }
+            .scaleEffect(reduceMotion || heartSettled ? 1 : 0.72)
+            .offset(y: reduceMotion || heartSettled ? 0 : 10)
         }
     }
 

@@ -67,7 +67,7 @@ final class PlayerBridgeTests: XCTestCase {
 
     @MainActor
     func testCommandsWaitForReadyEventFromWebKit() throws {
-        let page = makeLocalPlayerPage()
+        let page = try makeLocalPlayerPage()
 
         page.controller.send(.play)
         XCTAssertEqual(try page.commands(), [])
@@ -83,7 +83,7 @@ final class PlayerBridgeTests: XCTestCase {
 
     @MainActor
     func testPlaybackStateTransitionsThroughWebKitHandler() throws {
-        let page = makeLocalPlayerPage()
+        let page = try makeLocalPlayerPage()
         try page.emit(type: "onPlayerReady", value: NSNull())
         waitForState { page.controller.isReady }
 
@@ -106,7 +106,7 @@ final class PlayerBridgeTests: XCTestCase {
 
     @MainActor
     func testTimeAndDurationCanArriveInEitherOrderAndStayWithinBounds() throws {
-        let page = makeLocalPlayerPage()
+        let page = try makeLocalPlayerPage()
         try page.emit(type: "onCurrentTime", value: ["currentTime": 12, "duration": 40])
         waitForState { page.controller.currentTime == 12 && page.controller.duration == 40 }
         try page.emit(type: "onPlayerReady", value: NSNull())
@@ -123,7 +123,7 @@ final class PlayerBridgeTests: XCTestCase {
 
     @MainActor
     func testErrorStopsPlaybackAndRecordsFailure() throws {
-        let page = makeLocalPlayerPage()
+        let page = try makeLocalPlayerPage()
         try page.emit(type: "onPlayerReady", value: NSNull())
         waitForState { page.controller.isReady }
         try page.emit(type: "onStateChange", value: 1)
@@ -135,7 +135,7 @@ final class PlayerBridgeTests: XCTestCase {
 
     @MainActor
     func testSeekCommandsClampWithKnownAndUnknownDuration() throws {
-        let page = makeLocalPlayerPage()
+        let page = try makeLocalPlayerPage()
         page.controller.seek(by: 10)
         XCTAssertEqual(try page.commands(), [])
 
@@ -155,12 +155,17 @@ final class PlayerBridgeTests: XCTestCase {
     }
 
     @MainActor
-    private func makeLocalPlayerPage() -> LocalPlayerPage {
+    private func makeLocalPlayerPage() throws -> LocalPlayerPage {
         let page = LocalPlayerPage()
         let loaded = expectation(description: "local player page loaded")
         page.didLoad = { loaded.fulfill() }
         page.load()
-        wait(for: [loaded], timeout: 5)
+        let outcome = XCTWaiter.wait(for: [loaded], timeout: 45)
+        guard outcome == .completed else {
+            page.didLoad = nil
+            page.webView.stopLoading()
+            throw LocalPlayerPageSetupError.loadDidNotComplete(outcome)
+        }
         return page
     }
 
@@ -186,6 +191,17 @@ final class PlayerBridgeTests: XCTestCase {
             "origin": "https://www.tiktok.com",
             "message": ["x-tiktok-player": true, "type": type, "value": value]
         ]
+    }
+}
+
+private enum LocalPlayerPageSetupError: LocalizedError {
+    case loadDidNotComplete(XCTWaiter.Result)
+
+    var errorDescription: String? {
+        switch self {
+        case .loadDidNotComplete(let outcome):
+            return "Local player WebKit page did not finish loading (\(outcome); 45-second setup limit); player JavaScript was not initialized."
+        }
     }
 }
 

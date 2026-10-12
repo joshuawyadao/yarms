@@ -156,7 +156,12 @@ final class YarmsUITests: XCTestCase {
         sheetScreenshot.lifetime = .keepAlways
         add(sheetScreenshot)
 
-        XCTAssertTrue(completionDone.isHittable)
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(title.waitForExistence(timeout: 5),
+                      "Returning to the app should preserve the completion sheet")
+        XCTAssertTrue(completionDone.isHittable,
+                      "The looping artwork must leave Done immediately reachable after resume")
         completionDone.tap()
         XCTAssertFalse(title.exists, "Done should dismiss the completion sheet")
         XCTAssertTrue(app.staticTexts["workoutHeading"].exists,
