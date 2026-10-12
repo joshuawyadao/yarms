@@ -7,6 +7,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPTS = Path(__file__).resolve().parents[1]
@@ -49,7 +50,7 @@ def make_bundle(app, *, version, build, marker=None, bad_share=False):
 class FakeExecutor:
     def __init__(self, *, team="", bad_share=False, marker=None, build_failure=False,
                  signed=True, settings_mutator=None, timeout=False, interrupt=False,
-                 default_group=True, test_bundle=False):
+                 default_group=True, test_bundle=False, create_derived_data=False):
         self.commands = []
         self.team = team
         self.bad_share = bad_share
@@ -61,6 +62,7 @@ class FakeExecutor:
         self.interrupt = interrupt
         self.default_group = default_group
         self.test_bundle = test_bundle
+        self.create_derived_data = create_derived_data
 
     def run(self, command, timeout, log=None):
         self.commands.append(list(command))
@@ -72,6 +74,8 @@ class FakeExecutor:
             if "-derivedDataPath" in command:
                 self.derived = Path(command[command.index("-derivedDataPath") + 1])
             derived = self.derived
+            if self.create_derived_data:
+                derived.mkdir(parents=True, exist_ok=True)
             version = next((x.split("=", 1)[1] for x in command if x.startswith("MARKETING_VERSION=")), "1.0")
             build = next((x.split("=", 1)[1] for x in command if x.startswith("CURRENT_PROJECT_VERSION=")), "1")
             if "-showBuildSettings" in command:
@@ -284,6 +288,39 @@ class ReleaseCLITests(unittest.TestCase):
         self.assertEqual(report["status"], "failed")
         self.assertIn("exited 65", report["error"])
         self.assertTrue(Path(report["log"]).exists())
+
+    def test_primary_and_cleanup_failures_are_both_retained_in_report_and_notes(self):
+        fake = FakeExecutor(build_failure=True, create_derived_data=True)
+        with mock.patch.object(release.shutil, "rmtree",
+                               side_effect=PermissionError("fixture cleanup denied")) as remove:
+            report = self.run_release(release.parse_args(["check"]), fake)
+        remove.assert_called_once()
+        self.assertEqual(report["status"], "failed")
+        self.assertTrue(report["derived_data_retained"])
+        self.assertTrue((Path(report["run_directory"]) / "DerivedData").is_dir())
+        self.assertIn("xcodebuild exited 65", report["error"])
+        self.assertIn("Could not clean owned DerivedData: fixture cleanup denied", report["error"])
+        self.assertLess(report["error"].index("xcodebuild exited 65"),
+                        report["error"].index("Could not clean owned DerivedData"))
+        saved = json.loads(Path(report["run_directory"], "report.json").read_text())
+        self.assertEqual(saved["error"], report["error"])
+        self.assertTrue(saved["derived_data_retained"])
+        notes = Path(report["run_directory"], "release-notes.md").read_text()
+        self.assertIn("xcodebuild exited 65", notes)
+        self.assertIn("Could not clean owned DerivedData: fixture cleanup denied", notes)
+
+    def test_cleanup_only_failure_is_reported_clearly(self):
+        fake = FakeExecutor(create_derived_data=True)
+        with mock.patch.object(release.shutil, "rmtree",
+                               side_effect=PermissionError("fixture cleanup denied")) as remove:
+            report = self.run_release(release.parse_args(["check"]), fake)
+        remove.assert_called_once()
+        self.assertEqual(report["status"], "failed")
+        self.assertTrue(report["derived_data_retained"])
+        self.assertEqual(report["error"], "Could not clean owned DerivedData: fixture cleanup denied")
+        self.assertEqual(json.loads(Path(report["run_directory"], "report.json").read_text())["error"],
+                         report["error"])
+        self.assertIn(report["error"], Path(report["run_directory"], "release-notes.md").read_text())
 
     def test_early_configuration_failure_keeps_readable_failure_report(self):
         report = self.run_release(release.parse_args(["archive", "--version", "1.0.0",

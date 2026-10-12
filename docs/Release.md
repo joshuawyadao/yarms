@@ -38,6 +38,8 @@ Each invocation prints its retained report path. Its fresh directory contains `r
 
 A failed Xcode command or failed artifact check returns a nonzero exit status and preserves evidence. An interrupt or timeout stops the command's owned process group. Cleanup removes only that invocation's temporary DerivedData, while retaining reports, logs, and archives.
 
+If removing DerivedData also fails, the report and release notes retain the original build, artifact or signing failure alongside the cleanup diagnostic. A cleanup-only failure still fails validation and records that build data was retained.
+
 An unsigned success verifies Release compilation and packaging; signing is explicitly unchecked. A signed success additionally verifies both code signatures, actual team identifiers, application identifiers, and the resolved shared Keychain entitlement. It does not certify profile expiry, distribution eligibility, App Store acceptance, or cross-process Keychain behavior on a phone. Keep the [signed-device checks](Testing.md#signed-iphone-checks) and final distribution review before releasing through TestFlight or the App Store.
 
 ## Local validation record

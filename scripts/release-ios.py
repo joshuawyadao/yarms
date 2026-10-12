@@ -486,7 +486,9 @@ def execute(args, executor=None, release_root=None, source_root=ROOT):
                 report["artifact"]["retained"] = False
         except (OSError, RunError) as exc:
             report["status"] = "failed"
-            report["error"] = f"Could not clean owned DerivedData: {exc}"
+            cleanup_error = f"Could not clean owned DerivedData: {exc}"
+            report["error"] = (f"{report['error']}; {cleanup_error}"
+                               if report["error"] else cleanup_error)
             report["derived_data_retained"] = True
         report["finished_at"] = utc_now()
         _write_json_atomic(run_dir / "report.json", report)
