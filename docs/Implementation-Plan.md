@@ -19,8 +19,13 @@ Finish the review of the Release tooling and close the remaining phone-test evid
 - [x] Update docs/Design-Language.md, docs/Design-and-Assets.md and docs/Testing.md for the requested motion contract and actual phone outcomes.
 - [x] Repair the CI local-WebKit fixture’s observed five-second cold-start timeout with a bounded readiness wait and fail-fast setup, preserving playback assertions.
 - [x] Run the existing completion/dismissal, maximum-text reduced-motion and native-focus simulator regressions plus Release/host checks; review the loop’s lifecycle and accessibility. Thirteen focused behavior tests, 42 host tests and unsigned Release passed. The first native-focus attempt failed on an automation command before completion opened; no speech/focus assertion was weakened.
+- [ ] Address Codex cleanup-error feedback: retain the original Release failure alongside a cleanup failure, assert both in the final report and notes, then save/push and acknowledge that comment.
+- [ ] Address Codex interrupt feedback: defer an interrupt through the complete Release cleanup/reporting phase, retain terminal evidence and a failing exit status, add a focused signal regression, then save/push and acknowledge that comment.
 - [ ] Save and push each review fix, acknowledge Codex findings if present, and wait for final review/CI/mergeability gates.
 - [ ] Update docs/Testing.md with actual outcomes and leave PR #15 unmerged with current readiness reported.
 
 ## Open questions
 - None for implementation. Phone checks require a reachable unlocked device and brief user feedback; independent review work continues while waiting.
+
+## Verification limits
+- The unchanged native VoiceOver focus test hit the same pre-modal `moveForward` automation error in two fresh iOS 27 attempts, including with Device Hub foregrounded. The human check was explicitly declined. Existing assertions remain intact; no current passing native-focus result is claimed.
