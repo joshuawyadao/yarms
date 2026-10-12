@@ -8,7 +8,7 @@ Use the checked-in [Release command](../scripts/release-ios.py) from the reposit
 python3 scripts/release-ios.py check
 ```
 
-This unsigned generic iOS Simulator build needs no signing account and does not boot a simulator. It checks matching bundle versions, expected identifiers, shared Keychain configuration, extension embedding, and Release compiler settings. It rejects Debug compilation, testability, test bundles, and compiled UI-test control markers in either executable. The temporary UI-test store and reduced-motion override are available only in Debug builds.
+This unsigned generic iOS Simulator build needs no signing account and does not boot a simulator. It checks matching bundle versions, expected identifiers, shared Keychain configuration, each target’s effective entitlements path and declaration, extension embedding, and Release compiler settings. It rejects Debug compilation, testability, test bundles, and compiled UI-test control markers in either executable. A missing, redirected, unresolved or malformed entitlements file fails the check before compilation. Both files must declare the single shared Keychain group and omit App Groups. The temporary UI-test store and reduced-motion override are available only in Debug builds.
 
 The independent **Release Verify** CI job runs this command and keeps its report, log, and notes for seven days. Host tests cover malformed settings, bundle mismatches, signing mismatches, command failures, and command boundaries. A separate compiler regression checks actual inbox behavior in both Debug and Release when `swiftc` is available.
 

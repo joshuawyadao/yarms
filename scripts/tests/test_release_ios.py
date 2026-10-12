@@ -23,6 +23,8 @@ def settings(target, derived, *, version="1.0", build="1", team="", group=None):
             "DEVELOPMENT_TEAM": team, "CODE_SIGN_STYLE": "Automatic",
             "ENABLE_TESTABILITY": "NO", "SWIFT_OPTIMIZATION_LEVEL": "-O",
             "YARMS_KEYCHAIN_GROUP": group or release.SHARED_GROUP_SUFFIX,
+            "CODE_SIGN_ENTITLEMENTS": ("YarmsApp/Yarms.entitlements" if target == "Yarms"
+                                       else "YarmsShare/Yarms.entitlements"),
             "IPHONEOS_DEPLOYMENT_TARGET": "18.0",
             "TARGET_BUILD_DIR": str(derived / "Build" / "Products" / "Release-iphonesimulator"),
             "FULL_PRODUCT_NAME": "Yarms.app", "APPLICATION_EXTENSION_API_ONLY": "YES",
@@ -120,11 +122,19 @@ class ReleaseCLITests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        for target in ("YarmsApp", "YarmsShare"):
+            directory = self.root / target
+            directory.mkdir()
+            with (directory / "Yarms.entitlements").open("wb") as handle:
+                plistlib.dump({"keychain-access-groups": ["$(YARMS_KEYCHAIN_GROUP)"]}, handle)
+
+    def run_release(self, args, fake):
+        return release.execute(args, fake, self.root, source_root=self.root)
 
     def test_check_builds_unsigned_release_and_retains_report(self):
         fake = FakeExecutor()
         args = release.parse_args(["check"])
-        report = release.execute(args, fake, self.root)
+        report = self.run_release(args, fake)
         self.assertEqual(report["status"], "passed")
         self.assertEqual(report["signing"]["status"], "unchecked")
         self.assertFalse(report["signing"]["distribution_ready"])
@@ -145,7 +155,7 @@ class ReleaseCLITests(unittest.TestCase):
         fake = FakeExecutor(team="UNBNJA6WRF")
         args = release.parse_args(["archive", "--version", "1.2.3", "--build-number", "7",
                                    "--team", "UNBNJA6WRF"])
-        report = release.execute(args, fake, self.root)
+        report = self.run_release(args, fake)
         self.assertEqual(report["status"], "passed", report["error"])
         self.assertEqual(report["signing"]["status"], "verified")
         self.assertFalse(report["signing"]["distribution_ready"])
@@ -162,9 +172,9 @@ class ReleaseCLITests(unittest.TestCase):
         self.assertFalse(any(x == "-allowProvisioningUpdates" for x in build_command))
 
     def test_unsigned_archive_states_limit_explicitly(self):
-        report = release.execute(release.parse_args(["archive", "--version", "1.0.0",
+        report = self.run_release(release.parse_args(["archive", "--version", "1.0.0",
                                                       "--build-number", "2", "--unsigned"]),
-                                 FakeExecutor(), self.root)
+                                  FakeExecutor())
         self.assertEqual(report["status"], "passed", report["error"])
         self.assertEqual(report["signing"]["status"], "unchecked")
         self.assertIn("not distribution-ready", Path(report["run_directory"], "release-notes.md").read_text())
@@ -175,11 +185,11 @@ class ReleaseCLITests(unittest.TestCase):
         both = {name: settings(name, derived) for name in ("Yarms", "YarmsShare")}
         both["Yarms"]["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = "DEBUG"
         with self.assertRaisesRegex(release.RunError, "DEBUG"):
-            release.validate_settings(both, args)
+            release.validate_settings(both, args, self.root)
         both["Yarms"].pop("SWIFT_ACTIVE_COMPILATION_CONDITIONS")
         both["YarmsShare"]["CURRENT_PROJECT_VERSION"] = "2"
         with self.assertRaisesRegex(release.RunError, "CURRENT_PROJECT_VERSION"):
-            release.validate_settings(both, args)
+            release.validate_settings(both, args, self.root)
 
     def test_rejects_release_flags_that_restore_testability_or_debug_optimization(self):
         args = release.parse_args(["check"])
@@ -189,28 +199,95 @@ class ReleaseCLITests(unittest.TestCase):
                         for name in ("Yarms", "YarmsShare")}
                 both["YarmsShare"]["OTHER_SWIFT_FLAGS"] = "$(inherited) " + flag
                 with self.assertRaisesRegex(release.RunError, "testability or unoptimized"):
-                    release.validate_settings(both, args)
+                    release.validate_settings(both, args, self.root)
+
+    def test_relative_and_absolute_entitlement_paths_are_accepted_for_both_targets(self):
+        args = release.parse_args(["check"])
+        for absolute_target in (None, "Yarms", "YarmsShare"):
+            with self.subTest(absolute_target=absolute_target):
+                both = {name: settings(name, self.root / "DerivedData")
+                        for name in ("Yarms", "YarmsShare")}
+                if absolute_target:
+                    both[absolute_target]["CODE_SIGN_ENTITLEMENTS"] = str(
+                        self.root / both[absolute_target]["CODE_SIGN_ENTITLEMENTS"])
+                metadata = release.validate_settings(both, args, self.root)
+                self.assertEqual(metadata["entitlement_files"], {
+                    "Yarms": "YarmsApp/Yarms.entitlements",
+                    "YarmsShare": "YarmsShare/Yarms.entitlements"})
+
+    def test_invalid_entitlements_fail_before_build_for_both_targets(self):
+        args = release.parse_args(["check"])
+        redirected = self.root / "other.entitlements"
+        redirected.write_bytes(b"invalid plist; must not be read")
+        original = plistlib.dumps({"keychain-access-groups": ["$(YARMS_KEYCHAIN_GROUP)"]})
+        cases = ("missing_setting", "blank_setting", "unresolved_setting", "redirected_setting",
+                 "missing_file", "malformed_file", "wrong_group", "extra_default_group", "app_groups")
+        expected_errors = {
+            "missing_setting": "CODE_SIGN_ENTITLEMENTS",
+            "blank_setting": "CODE_SIGN_ENTITLEMENTS",
+            "unresolved_setting": "unresolved CODE_SIGN_ENTITLEMENTS",
+            "redirected_setting": "must use",
+            "missing_file": "missing or invalid CODE_SIGN_ENTITLEMENTS path",
+            "malformed_file": "invalid",
+            "wrong_group": "wrong keychain-access-groups",
+            "extra_default_group": "wrong keychain-access-groups",
+            "app_groups": "App Groups",
+        }
+        for target in ("Yarms", "YarmsShare"):
+            path = self.root / ("YarmsApp" if target == "Yarms" else "YarmsShare") / "Yarms.entitlements"
+            for case in cases:
+                with self.subTest(target=target, case=case):
+                    path.write_bytes(original)
+                    def mutate(name, values):
+                        if name != target:
+                            return
+                        if case == "missing_setting":
+                            values.pop("CODE_SIGN_ENTITLEMENTS")
+                        elif case == "blank_setting":
+                            values["CODE_SIGN_ENTITLEMENTS"] = "   "
+                        elif case == "unresolved_setting":
+                            values["CODE_SIGN_ENTITLEMENTS"] = "$(SRCROOT)/" + values["CODE_SIGN_ENTITLEMENTS"]
+                        elif case == "redirected_setting":
+                            values["CODE_SIGN_ENTITLEMENTS"] = str(redirected)
+                        elif case == "missing_file":
+                            path.unlink()
+                        elif case == "malformed_file":
+                            path.write_bytes(b"not a plist")
+                        else:
+                            groups = (["$(YARMS_KEYCHAIN_GROUP)"] if case == "app_groups"
+                                      else ["WRONG.group"] if case == "wrong_group"
+                                      else ["DEFAULT.group", "$(YARMS_KEYCHAIN_GROUP)"])
+                            content = {"keychain-access-groups": groups}
+                            if case == "app_groups":
+                                content["com.apple.security.application-groups"] = []
+                            path.write_bytes(plistlib.dumps(content))
+                    fake = FakeExecutor(settings_mutator=mutate)
+                    report = self.run_release(args, fake)
+                    self.assertEqual(report["status"], "failed")
+                    self.assertIn(target, report["error"])
+                    self.assertIn(expected_errors[case], report["error"])
+                    self.assertFalse(any(command[-1] == "build" for command in fake.commands))
+            path.write_bytes(original)
 
     def test_rejects_share_metadata_and_debug_sentinel(self):
         for fake, expected in ((FakeExecutor(bad_share=True), "CFBundleIdentifier"),
                                (FakeExecutor(marker=b"-YarmsUITestStoreID"), "debug-only"),
                                (FakeExecutor(test_bundle=True), "test bundle")):
             with self.subTest(expected=expected):
-                report = release.execute(release.parse_args(["check"]), fake, self.root)
+                report = self.run_release(release.parse_args(["check"]), fake)
                 self.assertEqual(report["status"], "failed")
                 self.assertIn(expected, report["error"])
                 self.assertTrue(Path(report["run_directory"], "report.json").is_file())
 
     def test_xcode_failure_keeps_failure_report_and_log(self):
-        report = release.execute(release.parse_args(["check"]), FakeExecutor(build_failure=True), self.root)
+        report = self.run_release(release.parse_args(["check"]), FakeExecutor(build_failure=True))
         self.assertEqual(report["status"], "failed")
         self.assertIn("exited 65", report["error"])
         self.assertTrue(Path(report["log"]).exists())
 
     def test_early_configuration_failure_keeps_readable_failure_report(self):
-        report = release.execute(release.parse_args(["archive", "--version", "1.0.0",
-                                                      "--build-number", "2"]),
-                                 FakeExecutor(), self.root)
+        report = self.run_release(release.parse_args(["archive", "--version", "1.0.0",
+                                                      "--build-number", "2"]), FakeExecutor())
         self.assertEqual(report["status"], "failed")
         self.assertIn("pass --team", report["error"])
         notes = Path(report["run_directory"], "release-notes.md").read_text()
@@ -222,7 +299,7 @@ class ReleaseCLITests(unittest.TestCase):
         for fake, expected in ((FakeExecutor(timeout=True), "timeout"),
                                (FakeExecutor(interrupt=True), "interrupt")):
             with self.subTest(expected=expected):
-                report = release.execute(release.parse_args(["check"]), fake, self.root)
+                report = self.run_release(release.parse_args(["check"]), fake)
                 self.assertEqual(report["status"], "failed")
                 self.assertIn(expected, report["error"])
                 self.assertFalse((Path(report["run_directory"]) / "DerivedData").exists())
@@ -230,7 +307,7 @@ class ReleaseCLITests(unittest.TestCase):
     def test_signed_archive_requires_valid_default_shared_group(self):
         args = release.parse_args(["archive", "--version", "1.0.0", "--build-number", "2",
                                    "--team", "UNBNJA6WRF"])
-        report = release.execute(args, FakeExecutor(team="UNBNJA6WRF", default_group=False), self.root)
+        report = self.run_release(args, FakeExecutor(team="UNBNJA6WRF", default_group=False))
         self.assertEqual(report["status"], "failed")
         self.assertIn("default resolved shared Keychain", report["error"])
 
@@ -241,7 +318,7 @@ class ReleaseCLITests(unittest.TestCase):
         fake = FakeExecutor(team="UNBNJA6WRF", settings_mutator=mutate)
         args = release.parse_args(["archive", "--version", "1.0.0", "--build-number", "2",
                                    "--team", "UNBNJA6WRF"])
-        report = release.execute(args, fake, self.root)
+        report = self.run_release(args, fake)
         self.assertEqual(report["status"], "failed")
         self.assertIn("DEVELOPMENT_TEAM", report["error"])
         self.assertFalse(any(command[-1] == "archive" for command in fake.commands))

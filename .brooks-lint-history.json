@@ -218,5 +218,16 @@
       "suggestion": 0
     },
     "scope": "Gentle motion/accessibility branch and reusable regression automation vs origin/main; large related diff sampled. App/UI, runner ownership/interrupt/result handling, CI and replay preservation tests reviewed; no outstanding findings after preparation fixes."
+  },
+  {
+    "date": "2026-10-12",
+    "mode": "PR Review",
+    "score": 100,
+    "findings": {
+      "critical": 0,
+      "warning": 0,
+      "suggestion": 0
+    },
+    "scope": "PR #15 Release update sampled: effective entitlement-path gap fixed with fail-closed tests; shared executor, Debug exclusion, signing and artifact checks reviewed; no outstanding actionable findings."
   }
 ]

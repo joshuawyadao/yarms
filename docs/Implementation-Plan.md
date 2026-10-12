@@ -8,10 +8,11 @@ Finish the review of the Release tooling and close the remaining phone-test evid
 
 ## Action items
 - [x] Inspect current PR checks, relevant Release/Testing docs, and the retained phone-test controllers.
-- [ ] Validate each target's effective entitlement file and shared Keychain declaration in Release checks.
-- [ ] Add fail-closed regression cases for missing, redirected, malformed, and mismatched entitlements.
-- [ ] Run repository/host checks and a real unsigned Release build; update docs/Release.md and review notes.
-- [ ] Verify phone availability, signed candidate and clean rollback profiles, isolation, and bounded cleanup before installation.
+- [x] Validate each target's effective entitlement file and shared Keychain declaration in Release checks.
+- [x] Add fail-closed regression cases for missing, redirected, malformed, and mismatched entitlements.
+- [x] Run repository/host checks and a real unsigned Release build; update docs/Release.md and review notes.
+- [x] Verify phone availability, signed candidate and clean rollback profiles, isolation, and bounded cleanup before installation.
+- [ ] Build a fresh UUID-isolated diagnostic library and Keychain service, guard against symlinks, and require a nonce-fresh empty library/folder/queue baseline without overwriting old test storage.
 - [ ] Complete two real native TikTok shares through the existing controller and record queue, duplicate, and library-audit results.
 - [ ] Check fallback reachability and collect human VoiceOver/motion observations on the phone, retaining explicit evidence limits.
 - [ ] Save and push each review fix, acknowledge Codex findings if present, and wait for final review/CI/mergeability gates.

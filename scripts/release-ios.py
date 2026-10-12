@@ -181,8 +181,43 @@ def _keychain_group(value, team):
     return value
 
 
-def validate_settings(settings, args):
+def _validate_entitlements_path(settings, target, source_root):
+    """Inspect only the checked-in entitlement file selected by this target."""
+    relative = Path("YarmsApp" if target == "Yarms" else "YarmsShare") / "Yarms.entitlements"
+    expected = source_root.resolve() / relative
+    configured = settings.get("CODE_SIGN_ENTITLEMENTS")
+    if not isinstance(configured, str) or not configured.strip():
+        raise RunError(f"{target} has no CODE_SIGN_ENTITLEMENTS setting")
+    configured = configured.strip()
+    if "$(" in configured or "${" in configured:
+        raise RunError(f"{target} has an unresolved CODE_SIGN_ENTITLEMENTS setting")
+    candidate = Path(configured)
+    if not candidate.is_absolute():
+        candidate = source_root / candidate
+    try:
+        selected = candidate.resolve(strict=True)
+        intended = expected.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise RunError(f"{target} has a missing or invalid CODE_SIGN_ENTITLEMENTS path") from exc
+    if selected != expected or intended != expected or not expected.is_file():
+        raise RunError(f"{target} must use {relative} for CODE_SIGN_ENTITLEMENTS")
+    try:
+        with expected.open("rb") as handle:
+            entitlements = plistlib.load(handle)
+    except (OSError, ValueError, plistlib.InvalidFileException) as exc:
+        raise RunError(f"{target} has invalid {relative} entitlements") from exc
+    if not isinstance(entitlements, dict):
+        raise RunError(f"{target} has invalid {relative} entitlements")
+    if entitlements.get("keychain-access-groups") != ["$(YARMS_KEYCHAIN_GROUP)"]:
+        raise RunError(f"{target} has the wrong keychain-access-groups in {relative}")
+    if "com.apple.security.application-groups" in entitlements:
+        raise RunError(f"{target} declares App Groups in {relative}")
+    return str(relative)
+
+
+def validate_settings(settings, args, source_root=ROOT):
     app, share = settings["Yarms"], settings["YarmsShare"]
+    entitlement_files = {}
     for name, target, bundle in (("Yarms", app, APP_ID), ("YarmsShare", share, SHARE_ID)):
         if _required(target, "CONFIGURATION", name) != "Release":
             raise RunError(f"{name} is not configured for Release")
@@ -205,6 +240,7 @@ def validate_settings(settings, args):
         if _keychain_group(_required(target, "YARMS_KEYCHAIN_GROUP", name),
                            str(target.get("DEVELOPMENT_TEAM", "")).strip()) != SHARED_GROUP_SUFFIX:
             raise RunError(f"{name} has the wrong shared Keychain group")
+        entitlement_files[name] = _validate_entitlements_path(target, name, Path(source_root))
         if _required(target, "CODE_SIGN_STYLE", name) != "Automatic":
             raise RunError(f"{name} must use automatic code signing")
         deployment = _required(target, "IPHONEOS_DEPLOYMENT_TARGET", name)
@@ -229,7 +265,8 @@ def validate_settings(settings, args):
             raise RunError("Requested signing team did not reach both targets")
     return {"version": version, "build_number": build, "configured_team": team or None,
             "bundle_ids": {"app": APP_ID, "share_extension": SHARE_ID},
-            "shared_keychain_group": SHARED_GROUP_SUFFIX}
+            "shared_keychain_group": SHARED_GROUP_SUFFIX,
+            "entitlement_files": entitlement_files}
 
 
 def _plist(path):
@@ -399,7 +436,7 @@ def release_notes(args, report, notes_text):
     return "\n".join(lines) + "\n"
 
 
-def execute(args, executor=None, release_root=None):
+def execute(args, executor=None, release_root=None, source_root=ROOT):
     global RELEASES
     if release_root is not None:
         RELEASES = Path(release_root)
@@ -422,7 +459,7 @@ def execute(args, executor=None, release_root=None):
                 raise RunError("Could not read UTF-8 release notes file") from exc
         report["source"] = source_state(executor)
         settings = target_settings(executor, args, run_dir)
-        metadata = validate_settings(settings, args)
+        metadata = validate_settings(settings, args, source_root)
         report["metadata"] = metadata
         require_command(executor, build_command(args, run_dir), args.timeout_seconds,
                         run_dir / "xcodebuild.log")
