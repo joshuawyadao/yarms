@@ -3,11 +3,13 @@
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -33,6 +35,38 @@ class CIScopeTests(unittest.TestCase):
             self.assertTrue(scope.classify("pull_request", SHA, SHA, diff))
         self.assertTrue(scope.classify("push", SHA, SHA, b"docs/Guide.md\0"))
         self.assertTrue(scope.classify("pull_request", "bad", SHA, b"docs/Guide.md\0"))
+
+    def test_source_renamed_to_docs_requires_full_checks(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+
+            def git(*arguments):
+                return subprocess.check_output(["git", "-C", str(root), *arguments],
+                                               stderr=subprocess.DEVNULL).decode().strip()
+
+            git("init", "--quiet")
+            git("config", "user.name", "CI Scope Test")
+            git("config", "user.email", "ci-scope@example.invalid")
+            git("config", "commit.gpgsign", "false")
+            git("config", "core.hooksPath", "/dev/null")
+            git("config", "diff.renames", "true")
+            (root / "YarmsApp").mkdir()
+            (root / "docs").mkdir()
+            (root / "YarmsApp" / "Player.swift").write_text("import SwiftUI\nstruct Player {}\n")
+            git("add", ".")
+            git("commit", "--quiet", "-m", "Add player")
+            base = git("rev-parse", "HEAD")
+            git("mv", "YarmsApp/Player.swift", "docs/Player.md")
+            git("commit", "--quiet", "-m", "Move source into docs")
+            head = git("rev-parse", "HEAD")
+            self.assertEqual(git("diff", "--name-only", f"{base}...{head}"), "docs/Player.md")
+            check_output = subprocess.check_output
+
+            def from_temporary_repository(command, **options):
+                return check_output([command[0], "-C", str(root), *command[1:]], **options)
+
+            with mock.patch.object(scope.subprocess, "check_output", from_temporary_repository):
+                self.assertTrue(scope.classify("pull_request", base, head))
 
 
 class PruningTests(unittest.TestCase):

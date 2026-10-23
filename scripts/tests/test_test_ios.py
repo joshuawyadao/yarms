@@ -227,6 +227,8 @@ class RunnerTests(unittest.TestCase):
 
     def test_profiles_filter_only_requested_tests(self):
         full = runner.test_command(SIM_ID, "full", self.base / "dd", self.base / "r")
+        unit = runner.test_command(SIM_ID, "unit", self.base / "dd", self.base / "r")
+        self.assertEqual([item for item in unit if item.startswith("-only-testing:")], ["-only-testing:YarmsTests"])
         sharing = runner.test_command(SIM_ID, "sharing", self.base / "dd", self.base / "r")
         feedback = runner.test_command(SIM_ID, "feedback", self.base / "dd", self.base / "r")
         self.assertFalse(any(item.startswith("-only-testing:") for item in full))

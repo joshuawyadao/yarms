@@ -15,7 +15,7 @@ def classify(event, base, head, diff=None):
     if diff is None:
         try:
             diff = subprocess.check_output(
-                ["git", "diff", "--name-only", "-z", f"{base}...{head}"],
+                ["git", "diff", "--no-renames", "--name-only", "-z", f"{base}...{head}"],
                 stderr=subprocess.DEVNULL, timeout=30,
             )
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):

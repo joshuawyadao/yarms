@@ -23,4 +23,22 @@ F07 remains a growth follow-up: exports can exceed the defensive 10 MiB import l
 
 ## Validation and review ledger
 
-Implementation validation and PR review are in progress. Final results are recorded here before branch completion.
+- Host repository verification: 54 tests passed, including a real source-to-docs Git rename regression; source renames cannot bypass macOS checks.
+- Unsigned Release app/Share verification passed locally. Debug fixture controls were excluded from the inspected Release executables.
+- Initial iOS 27 run passed the app tests and ordinary UI journeys through notes/relaunch, then native VoiceOver hit `kAXErrorServerNotFound` during app launch. A later launch stalled; the owned run was interrupted with its failed evidence preserved. A focused run also timed out booting iOS 27. Both runners removed their owned simulators/DerivedData with no cleanup errors. No native assertion was weakened or skipped to obtain a pass.
+- A final full run explicitly selects the installed iOS 26.5 runtime; native VoiceOver remains capability-gated there. Hosted full-suite results and the current commit’s readiness are recorded on [PR #16](https://github.com/joshuawyadao/yarms/pull/16). This document does not claim a passing iOS 27 accessibility run.
+- Codex review completed on `490053c` without major issues; follow-up review is requested after the local-review fixes. No actionable Codex comment or reaction queue existed at that review.
+
+### Brooks review concerns
+
+PR review sampled the high-risk storage, retry, fixture and CI diff (over 500 changed lines); the size increases review effort, so app and CI checkpoints are separate. R1–R6 and the quick test check were considered. These concrete concerns were fixed:
+
+| Concern | Consequence | Fix / regression |
+| --- | --- | --- |
+| Partial metadata marked complete; stale terminal state on coalescing | Manual recovery could remain blocked | Classify partial results and give the survivor the fresh attempt state; fixed-date and alias regression tests |
+| Stale refresh still changed selection/feedback | Older results could override newer user-visible state | Reject all stale snapshot effects using monotonic revisions |
+| Manual retry overlapped an active request | Earlier results could overwrite retry reset | Disable retry while requests/reset are active; add a UI retry/persistence journey |
+| Colliding pending UUID treated as an existing link | A different capture could be acknowledged without saving | Reject the conflicting identity, preserve queue/library; regression test |
+| Rename-aware diff hid deleted source under a docs destination | A source removal could skip expensive checks | Disable rename detection for classification; real temporary Git repo regression |
+
+No remaining actionable local-review concern was identified after these fixes. CI/review terminal state is read freshly from the PR; the PR remains unmerged. Conditional F07/profile-dependent follow-ups above remain explicitly deferred.

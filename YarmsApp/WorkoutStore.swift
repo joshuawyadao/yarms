@@ -29,6 +29,7 @@ struct WorkoutStore: @unchecked Sendable {
         case invalidFolderName
         case duplicateFolderName
         case invalidFolderReference
+        case conflictingPendingIdentifier
     }
 
     private struct LibraryFile: Codable {
@@ -90,8 +91,10 @@ struct WorkoutStore: @unchecked Sendable {
         for (_, entries) in pendingSources {
             for pending in entries.reversed() {
                 let duplicate = knownURLs.contains(pending.link.url) ||
-                    (pending.link.videoID.map { knownVideos.contains($0) } ?? false) ||
-                    knownIDs.contains(pending.id)
+                    (pending.link.videoID.map { knownVideos.contains($0) } ?? false)
+                if knownIDs.contains(pending.id), !duplicate {
+                    throw StoreError.conflictingPendingIdentifier
+                }
                 guard !duplicate else { continue }
                 library.workouts.append(Workout(id: pending.id, sourceLink: pending.link, savedAt: pending.savedAt))
                 knownURLs.insert(pending.link.url)

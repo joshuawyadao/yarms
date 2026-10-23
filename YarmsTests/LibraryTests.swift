@@ -13,6 +13,21 @@ final class LibraryTests: XCTestCase {
         }
     }
 
+    func testPendingIdentifierCollisionPreservesQueueAndLibrary() throws {
+        let (store, inbox, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/123"))
+        let second = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/456"))
+        let captured = try inbox.save(first)
+        _ = try store.refresh()
+        let collision = PendingLink(id: captured.id, link: second, savedAt: Date())
+        let pendingFile = directory.appendingPathComponent("Inbox/\(captured.id.uuidString).json")
+        try JSONEncoder().encode(collision).write(to: pendingFile)
+        XCTAssertThrowsError(try store.refresh(), "Conflicting identities must not silently acknowledge a different link")
+        XCTAssertEqual(try inbox.load().map(\.link), [second])
+        XCTAssertEqual(try store.load().map(\.sourceLink), [first])
+    }
+
     func testRefreshBatchesBothInboxesBeforeAcknowledgementAndRetriesSafely() throws {
         let container = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: container) }

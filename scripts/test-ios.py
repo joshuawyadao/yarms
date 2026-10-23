@@ -29,6 +29,7 @@ FEEDBACK_TESTS = (
 )
 SUITE_FILTERS = {
     "full": (),
+    "unit": ("YarmsTests",),
     "sharing": ("YarmsTests/ShortcutCaptureTests", "YarmsTests/LibraryTests"),
     "feedback": tuple(f"YarmsUITests/YarmsUITests/{name}" for name in FEEDBACK_TESTS),
 }
