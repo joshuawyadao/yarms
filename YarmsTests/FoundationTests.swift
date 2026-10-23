@@ -2,6 +2,14 @@ import XCTest
 @testable import Yarms
 
 final class FoundationTests: XCTestCase {
+    func testFixturesRequireExplicitFlagAndValidIsolatedStore() {
+        let id = UUID().uuidString
+        XCTAssertFalse(SharedInbox.usesUITestFixtures(arguments: ["-YarmsUITestFixtures"]))
+        XCTAssertFalse(SharedInbox.usesUITestFixtures(arguments: ["-YarmsUITestStoreID", id]))
+        XCTAssertFalse(SharedInbox.usesUITestFixtures(arguments: ["-YarmsUITestFixtures", "-YarmsUITestStoreID", "invalid"]))
+        XCTAssertTrue(SharedInbox.usesUITestFixtures(arguments: ["-YarmsUITestFixtures", "-YarmsUITestStoreID", id]))
+    }
+
     func testCanonicalVideoLinkBuildsOfficialPlayerURL() throws {
         let link = try XCTUnwrap(TikTokLink(text: "Watch https://www.tiktok.com/@coach/video/123456?is_from_webapp=1"))
         XCTAssertEqual(link.url.absoluteString, "https://www.tiktok.com/@coach/video/123456")

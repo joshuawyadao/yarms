@@ -27,6 +27,8 @@ Start with the guide for your task. These pages describe the checked-in app; mil
 | [Contributing](../CONTRIBUTING.md) | Branch workflow, review expectations, and keeping docs current |
 | [Security policy](../SECURITY.md) | Private vulnerability reporting and supported version |
 
+See [efficiency implementation](Efficiency.md) for resource-saving changes, validation and growth follow-ups.
+
 ## Plans and history
 
 - [MVP roadmap](MVP-Roadmap.md): original product scope and delivered follow-ups.

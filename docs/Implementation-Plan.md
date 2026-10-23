@@ -1,32 +1,24 @@
 # Plan
 
-Finish the review of the Release tooling and close the remaining phone-test evidence gaps, then add the user-requested gentle heart loop to the completion sheet. Fix the discovered entitlements-validation gap, preserve isolated test storage and a verified clean rollback, and keep human observations distinct from automated assertions.
+Implement the efficiency audit’s immediate recommendations while preserving local-only storage, durable capture, backup validation and native accessibility behavior, then prepare an unmerged PR into main.
 
 ## Scope
-- In: Release entitlements gate and regression tests, review feedback and CI, canonical verification docs, existing isolated phone diagnostics, brief assisted phone checks, and a completion-art loop limited to the visible foreground sheet.
-- Out: PR merging under the review-cycle skill, TestFlight/App Store upload, personal-library exports, the human VoiceOver check declined by the user, and captures outside the already approved Share Sheet scope.
+- In: F01 batched library snapshots and background storage, F02 persisted bounded metadata retries, F03/F04 targeted CI without duplicate builds, F05 deterministic Debug-only UI fixtures, F06 evidence retention and opt-in local pruning, F08 note-heavy restore scaling, F09 direct import normalization, F10 fewer redirect requests; tests and canonical docs.
+- Out: new hosting or subscriptions, database migration, physical-device installation, PR merging, and speculative image/player changes. F07’s new large-backup format remains a documented growth follow-up; preserve the current 10 MiB import limit and complete export warning.
 
 ## Action items
-- [x] Inspect current PR checks, relevant Release/Testing docs, and the retained phone-test controllers.
-- [x] Validate each target's effective entitlement file and shared Keychain declaration in Release checks.
-- [x] Add fail-closed regression cases for missing, redirected, malformed, and mismatched entitlements.
-- [x] Run repository/host checks and a real unsigned Release build; update docs/Release.md and review notes.
-- [x] Verify phone availability, signed candidate and clean rollback profiles, isolation, and bounded cleanup before installation.
-- [x] Build a fresh UUID-isolated diagnostic library and Keychain service, guard against symlinks, and require a nonce-fresh empty library/folder/queue baseline without overwriting old test storage.
-- [x] Complete two real native TikTok shares through the existing controller and record queue, duplicate, and library-audit results.
-- [x] Finish the deterministic fallback check; record the user’s positive motion feedback and explicit VoiceOver-check skip. The final human reply arrived after the controller's bounded timeout and clean rollback; no post-observation audit is claimed.
-- [x] Add a gentle heart loop to YarmsUIComponents.swift, keeping the entrance, static reduced-motion art and immediate dismissal, with no animation when backgrounded.
-- [x] Update docs/Design-Language.md, docs/Design-and-Assets.md and docs/Testing.md for the requested motion contract and actual phone outcomes.
-- [x] Repair the CI local-WebKit fixture’s observed five-second cold-start timeout with a bounded readiness wait and fail-fast setup, preserving playback assertions.
-- [x] Run the existing completion/dismissal, maximum-text reduced-motion and native-focus simulator regressions plus Release/host checks; review the loop’s lifecycle and accessibility. Thirteen focused behavior tests, 42 host tests and unsigned Release passed. The first native-focus attempt failed on an automation command before completion opened; no speech/focus assertion was weakened.
-- [x] Address Codex cleanup-error feedback: retain the original Release failure alongside a cleanup failure and assert both in the final report and notes. Eighteen focused host tests passed; save/push and acknowledgement are recorded in the PR review ledger.
-- [x] Address Codex interrupt feedback: defer an interrupt through the complete Release cleanup/reporting phase, retain terminal evidence and a failing exit status, and add real SIGINT/SIGTERM regressions. Twenty-one focused Release and all 47 host tests passed; save/push and acknowledgement are recorded in the PR review ledger.
-- [x] Address Codex's simulator-runner follow-up: keep final report/console emission inside interrupt-safe finalization, consume pending signals before returning, and prove late interrupts cannot retain success or exit zero. Real report/console signal regressions passed; all 28 runner and 50 host tests passed, with prior errors/counts and owned cleanup preserved. Save/push and acknowledgement are recorded in the PR review ledger.
-- [ ] Save and push each review fix, acknowledge Codex findings if present, and wait for final review/CI/mergeability gates.
-- [ ] Update docs/Testing.md with actual outcomes and leave PR #15 unmerged with current readiness reported.
+- [x] Inspect the audit, current source/tests and Architecture, Data-and-Privacy, Development, Release and Testing documentation; branch from current origin/main.
+- [x] Stabilize ordinary UI journeys with local metadata/player fixtures scoped to valid Debug test storage; preserve native VoiceOver assertions and Release exclusions.
+- [x] Add one-read library refresh and one-commit pending imports, consistent snapshots, unchanged-write avoidance and serialized off-main execution for refresh/enrichment; retain commit-before-acknowledgement and fresh reads for App Intent changes.
+- [x] Persist metadata outcomes and retry dates locally; cap attempts, honor Retry-After, pause scheduling while inactive, provide manual retry and skip redundant canonical HEAD requests.
+- [x] Remove backup decode round trips without weakening sanitization/size limits; benchmark and improve repeated note merging while preserving paragraph occurrence and precedence.
+- [x] Gate macOS CI by relevant changes and successful fast checks, remove the redundant generic Debug build, retain stable required statuses and compact evidence, and add preview-first local pruning/phase metrics.
+- [x] Extend focused storage/retry/network/fixture and host tests for failures, replays, stale writes, size limits, no external UI networking and protected evidence; run targeted checks, full simulator tests and unsigned Release verification.
+- [x] Update Architecture, Data-and-Privacy, Testing, Development, Release and repository map as appropriate with actual behavior, measurements and deferred limits.
+- [x] Checkpoint coherent changes, push this branch, open/attach draft PR #16, run Brooks and Codex review and save the review fixes. Keep the remaining CI/review readiness loop on the PR; final status is reported after fresh terminal checks without merging.
 
 ## Open questions
-- None. Assisted phone observations are complete within the limits below. Final PR review and CI readiness are reported through the PR and review ledger.
+- None. Keep the existing backup format and cost-free architecture; measure or document conditional follow-ups rather than adding infrastructure.
 
-## Verification limits
-- The unchanged native VoiceOver focus test hit the same pre-modal `moveForward` automation error in two fresh iOS 27 attempts, including with Device Hub foregrounded. The human check was explicitly declined. Existing assertions remain intact; no current passing native-focus result is claimed.
+## Checkpoint validation
+- Host verifier: 54 passing tests; Swift syntax parsing and worker storage typechecking passed. Unsigned Release verification passed. iOS 27 accessibility/server and boot failures are recorded in docs/Efficiency.md with successful owned cleanup. Final iOS 26.5 and hosted CI/review gates are tracked on PR #16; no successful iOS 27 result is claimed.

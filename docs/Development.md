@@ -17,6 +17,10 @@ Yarms is an iPhone app built from the checked-in [Xcode project](../Yarms.xcodep
 
 The repository verifier checks required public files, the shared scheme, project references, Keychain entitlements, extension version settings, prohibited private or generated files, local Markdown links, whitespace errors and the portable test runner's host tests. It needs `python3` and Git. Run `python3 scripts/test-ios.py` for the full scheme on a disposable simulator, or `--suite feedback` / `--suite sharing` for focused checks. Options, retained results, cleanup and signed-device boundaries are in [Testing](Testing.md).
 
+CI runs this portable verifier on Ubuntu for every pull request. A pull request changing only Markdown under `docs/` (or the root README/CONTRIBUTING guides) skips the two macOS builds; all other or unrecognized changes run XCTest and the Release check. Pushes to main and manual runs always run both. The required `CI Verify` and `Release Verify` checks still finish on documentation-only changes. A manual run can request full result bundles and logs with `full_evidence`. The runner prints its Xcode and available simulator runtime versions; the test script chooses an installed iOS 18+ runtime.
+
+Local runner reports include elapsed phase times and log size. Preview old successful local results with `python3 scripts/prune-local-runs.py`; add `--apply` to remove candidates. Defaults are older than 14 days with five newest eligible runs kept. Failed runs and versioned archives require `--include-failures` and `--include-archives` respectively.
+
 ## Validate Release builds and create archives
 
 Run `python3 scripts/release-ios.py check` for an unsigned Release app and Share extension check. Use the [Release guide](Release.md) for versioned archives, local signing requirements, retained reports, and release notes. The archive command sets version and build inputs for that invocation without changing the project.

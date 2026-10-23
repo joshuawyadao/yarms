@@ -24,6 +24,19 @@ struct SharedInbox: PendingLinkInbox {
         #endif
     }
 
+    /// Fixtures require an explicitly selected, valid isolated Debug store.
+    static func usesUITestFixtures(arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        #if DEBUG
+        guard arguments.contains("-YarmsUITestFixtures"),
+              let index = arguments.firstIndex(of: uiTestStoreArgument),
+              arguments.indices.contains(index + 1),
+              UUID(uuidString: arguments[index + 1]) != nil else { return false }
+        return true
+        #else
+        return false
+        #endif
+    }
+
     static var liveContainer: URL? {
         container(
             arguments: ProcessInfo.processInfo.arguments,

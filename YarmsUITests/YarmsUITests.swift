@@ -7,6 +7,23 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testManualMetadataRetryPreservesSavedWorkout() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        let retry = app.buttons["retryWorkoutDetailsButton"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: retry)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 5), .completed)
+        retry.tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "Retry must preserve the saved identity and source")
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "Retry must preserve the durable workout")
+    }
+
+    @MainActor
     func testPasteSearchPlayerLayoutAndNotesPersistence() throws {
         let app = isolatedApp()
         let videoID = pasteUniqueWorkout(into: app)
@@ -525,7 +542,7 @@ final class YarmsUITests: XCTestCase {
     @MainActor
     private func isolatedApp() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]
+        app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString, "-YarmsUITestFixtures"]
         return app
     }
 

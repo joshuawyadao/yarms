@@ -270,6 +270,25 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(restored.title, "Core workout")
     }
 
+    func testManyAliasNotesPreserveParagraphCountsAndFirstNoteWhitespace() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var entries: [Workout] = []
+        for number in 0..<8 {
+            let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach\(number)/video/123"))
+            var workout = Workout(id: UUID(), sourceLink: link,
+                                  savedAt: Date(timeIntervalSince1970: Double(number)))
+            workout.notes = number == 0 ? "  Warm up  \n\nRepeat" :
+                number == 1 ? "Repeat\n\nRepeat" : "Set \(number)"
+            entries.append(workout)
+        }
+        let backup = try WorkoutBackup(workouts: entries)
+        XCTAssertEqual(try store.restoreBackup(backup).added, 1)
+        XCTAssertEqual(try store.load().first?.notes,
+                       "  Warm up  \n\nRepeat\n\nRepeat\n\nSet 2\n\nSet 3\n\nSet 4\n\nSet 5\n\nSet 6\n\nSet 7")
+        XCTAssertEqual(try store.restoreBackup(backup), BackupRestoreResult(added: 0, updated: 0))
+    }
+
     func testRestoreKeepsExistingDetailsAndFillsMissingNotes() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }

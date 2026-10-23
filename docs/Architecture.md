@@ -39,14 +39,14 @@ The [repository map](Repository-Map.md) identifies every source file. Project se
 1. `TikTokLink` scans URL candidates in shared text until it finds a supported TikTok video or short link. It requires HTTPS and an accepted host, rejects credentials and explicit ports, and removes query/fragment data.
 2. The Share extension stores a `PendingLink` in `KeychainInbox`. The app's Paste action and optional `SaveTikTokWorkoutIntent` use the file-backed `SharedInbox`.
 3. `LibraryShellView` refreshes on appearance and when the app becomes active. `WorkoutStore.importPending()` reads the file inbox, then the Keychain inbox.
-4. For each new record, the store saves the library atomically **before** acknowledging/removing the pending record. Already-known records can be acknowledged directly. An interrupted acknowledgement can be replayed without duplicating the workout.
+4. The store decodes the library once, indexes both inbox batches by source URL/video identity, commits all new records atomically **before** acknowledging any pending entry, then returns workouts, folders and previous IDs together. A failed acknowledgement can be replayed without duplicating records; failed reads or commits retain pending entries.
 5. New shares are Unfiled. On foreground/paste, a new workout switches the folder selection to Unfiled; search text is retained, so a search can still hide it.
 
 The app and extension share a Keychain entitlement and signing team. They do not use an App Group. Only the app writes `Library.json`. A process-wide recursive lock serializes store read/modify/write operations; it is not an interprocess database lock. If the library cannot be decoded, import fails before queued entries are removed. Malformed file-inbox JSON is skipped and retained; a malformed Keychain payload makes that queue's load throw.
 
 ## Enrichment and identity
 
-The queue selects workouts missing a title, thumbnail, or canonical video ID and keeps at most three enrichment tasks active. Creator absence alone does not trigger a retry. Refresh can queue incomplete records again; there is no persistent background retry service.
+The queue selects due workouts missing a title, thumbnail, or canonical video ID and keeps at most three enrichment tasks active. Optional local enrichment state tracks attempts, partial/complete results and permanent failures. Transient failures back off for 1, 2, 4 and 8 minutes, with a five-attempt cap; Retry-After may extend a delay up to 24 hours. Valid partial results stay quiet. The active library view wakes for the next due retry; inactive scenes start no new requests. The Retry workout details toolbar action explicitly resets stopped/incomplete attempts and is disabled while requests or the reset are active. There is no background scheduler or paid queue.
 
 `TikTokMetadataClient` tries at most five HEAD requests for a short link, with a 10-second per-request timeout. Automatic redirect following is disabled for these requests. Each next URL must pass `TikTokLink` validation before it is requested. A canonical numeric video ID enables the player; failed resolution leaves the original source link available.
 
@@ -56,7 +56,7 @@ When links resolve to the same video ID, the store keeps the earliest saved iden
 
 ## Library and workout presentation
 
-`LibraryShellView` owns selection, search, dialogs, backup pickers, and enrichment scheduling. All/Unfiled/folder filtering runs before `Workout.matches` searches title, creator, and source/resolved/alias links. Folder counts and ID-to-name lookup are prepared before rendering rows.
+`LibraryShellView` owns selection, search, dialogs, backup pickers, and enrichment scheduling. File operations run through the store’s serial background executor; snapshots have monotonic revisions so stale async completions cannot replace newer UI state. Every operation reads current disk state rather than retaining a library cache, preserving App Intent changes. Enrichment returns the committed snapshot without a second library decode. All/Unfiled/folder filtering runs before `Workout.matches` searches title, creator, and source/resolved/alias links. Folder counts and ID-to-name lookup are prepared before rendering rows.
 
 The [design language](Design-Language.md) defines the UI rules. `YarmsTheme` owns adaptive color roles, spacing, radii, button styles, and target/content sizes; `YarmsUIComponents` supplies folder badges/filters, adaptive workout-card content, and empty states. Screen views retain persistence, navigation, and playback responsibilities. [Design and assets](Design-and-Assets.md) covers icon and asset maintenance.
 
@@ -86,7 +86,7 @@ sequenceDiagram
 
 `TikTokPlayerHTML` builds a local host around the [official embed player](https://developers.tiktok.com/docs/en/embed-player), with TikTok's controls enabled. JavaScript accepts messages from `https://www.tiktok.com` with the player marker. Native parsing additionally requires the host's main frame, expected envelope/type, and finite nonnegative times. Commands target TikTok's origin; normal UI controls remain disabled until ready or after a reported player error.
 
-Duration may arrive in a ready or time event. Relative seeking is bounded at zero and at known duration. Replay seeks to zero. `WKWebView` enables inline media playback, and its handler is removed when dismantled. The always-available external link is the fallback for unavailable posts or unresolved short links. Yarms does not persist a video file, though WebKit and networking can use system-managed caches.
+Duration may arrive in a ready or time event. Relative seeking is bounded at zero and at known duration. Replay seeks to zero. `WKWebView` enables inline media playback, and its handler is removed when dismantled. Ordinary UI tests explicitly select a valid isolated Debug store and local fixtures: metadata uses no network, and player HTML has no remote frame and denies external resources with CSP. Release ignores these fixture controls; real player availability/accessibility remains a separate live/device check. The always-available external link is the fallback for unavailable posts or unresolved short links. Yarms does not persist a video file, though WebKit and networking can use system-managed caches.
 
 ## Backups and failure boundaries
 

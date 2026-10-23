@@ -27,8 +27,10 @@ Local library and backup envelopes contain `schemaVersion`, `workouts`, and `fol
 | --- | --- |
 | `TikTokLink` | `url` string; optional `videoID` string |
 | `PendingLink` | `id` UUID, `link` TikTokLink, `savedAt` date |
-| `Workout` | Required `id`, `sourceLink`, `savedAt`; optional `resolvedLink`, `title`, `creator`, `thumbnailURL`, `notes`, `folderID`, `sourceAliases` |
+| `Workout` | Required `id`, `sourceLink`, `savedAt`; optional `resolvedLink`, `title`, `creator`, `thumbnailURL`, `notes`, `folderID`, `sourceAliases`, optional local `enrichmentState` |
 | `WorkoutFolder` | `id` UUID and `name` string |
+
+Enrichment state stores only retry status, attempt count and next attempt time on this device. It is optional for older libraries. Import discards this state, along with untrusted remote claims, so an imported archive cannot suppress or schedule requests. No background service receives this state.
 
 `playbackLink` is computed as resolved link or source link, not stored separately. All and Unfiled are UI filters; only user-created folders have records. Folder names are trimmed, 1–80 characters, contain no control characters, and are unique using case/diacritic folding with `en_US_POSIX`.
 
@@ -62,7 +64,7 @@ Local loading is decoding plus version handling; it is not the full untrusted-ba
 
 ## Backup import boundary
 
-The importer checks file size before reading when available, then reads in bounded chunks to detect overflow even if that size was unavailable or changed. The maximum accepted input is **10 × 1,024 × 1,024 bytes**. Export has no matching size cap: it preserves every record and the UI warns if the result exceeds the restore limit.
+The importer checks file size before reading when available, then reads in bounded chunks to detect overflow even if that size was unavailable or changed. The maximum accepted input is **10 × 1,024 × 1,024 bytes**. Restore revalidates/sanitizes typed archives directly and retains the encoded-size guard without a second JSON decode. Export has no matching size cap: it preserves every record and the UI warns if the result exceeds the restore limit.
 
 Import normalizes blank optional title/creator/notes to absent values, trims folder names, and validates:
 
@@ -101,7 +103,7 @@ In words: validation precedes confirmation, and the store revalidates the archiv
 
 **Note precedence matters.** Restore keeps the current workout's note first, even if the incoming backup record has an earlier save time. Incoming records are considered in save order. Enrichment coalescing starts with the earliest saved workout's note instead.
 
-Both paths share a paragraph-occurrence merge policy: blank-line-separated paragraphs from later notes are appended only when that occurrence is missing from the earlier note. Intentional repeated paragraphs inside either note are retained; partial text matches are distinct. For example, current `Warm up` plus imported `Warm up` / `Stretch` becomes `Warm up` / `Stretch`. Restoring that archive again adds no more copies. The helper streams paragraph ranges rather than allocating an array for every delimiter in a large note.
+Both paths share a paragraph-occurrence merge policy: blank-line-separated paragraphs from later notes are appended only when that occurrence is missing from the earlier note. Intentional repeated paragraphs inside either note are retained; partial text matches are distinct. For example, current `Warm up` plus imported `Warm up` / `Stretch` becomes `Warm up` / `Stretch`. Restoring that archive again adds no more copies. The helper streams paragraph ranges and accumulates occurrence counts and ordered fragments per merged workout, materializing the final note once; repeated incoming aliases do not repeatedly rescan the growing note.
 
 A successful restore reports added workouts and updated/combined existing records; it does not count added folders as workouts. Re-importing the same archive does not keep duplicating records or notes. Confirmed aliases persist locally for later capture/restore matching, but an exported alias is untrusted when imported elsewhere.
 

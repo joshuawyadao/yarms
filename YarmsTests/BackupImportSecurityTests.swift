@@ -2,6 +2,25 @@ import XCTest
 @testable import Yarms
 
 final class BackupImportSecurityTests: XCTestCase {
+    func testDirectlyConstructedBackupIsSanitizedBeforeRestore() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/123"))
+        var workout = Workout(id: UUID(), sourceLink: short, savedAt: Date())
+        workout.resolvedLink = canonical
+        workout.thumbnailURL = URL(string: "https://tracker.example/opened-backup")
+        workout.enrichmentState = WorkoutEnrichmentState(status: .permanentFailure,
+                                                         attemptCount: 5, nextAttemptAt: nil)
+        let store = WorkoutStore(fileURL: directory.appendingPathComponent("Library.json"),
+                                 inbox: SharedInbox(directory: directory.appendingPathComponent("Inbox")))
+
+        XCTAssertEqual(try store.restoreBackup(WorkoutBackup(workouts: [workout])).added, 1)
+        let restored = try XCTUnwrap(store.load().first)
+        XCTAssertNil(restored.resolvedLink)
+        XCTAssertNil(restored.thumbnailURL)
+        XCTAssertNil(restored.enrichmentState)
+    }
     func testImportDropsUntrustedThumbnailResolutionAndAliases() throws {
         let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
         let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
