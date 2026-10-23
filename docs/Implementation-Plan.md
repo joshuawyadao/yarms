@@ -8,14 +8,17 @@ Implement the efficiency audit’s immediate recommendations while preserving lo
 
 ## Action items
 - [x] Inspect the audit, current source/tests and Architecture, Data-and-Privacy, Development, Release and Testing documentation; branch from current origin/main.
-- [ ] Stabilize ordinary UI journeys with local metadata/player fixtures scoped to valid Debug test storage; preserve native VoiceOver assertions and Release exclusions.
-- [ ] Add one-read library refresh and one-commit pending imports, consistent snapshots, unchanged-write avoidance and serialized off-main execution for refresh/enrichment; retain commit-before-acknowledgement and fresh reads for App Intent changes.
-- [ ] Persist metadata outcomes and retry dates locally; cap attempts, honor Retry-After, pause scheduling while inactive, provide manual retry and skip redundant canonical HEAD requests.
-- [ ] Remove backup decode round trips without weakening sanitization/size limits; benchmark and improve repeated note merging while preserving paragraph occurrence and precedence.
-- [ ] Gate macOS CI by relevant changes and successful fast checks, remove the redundant generic Debug build, retain stable required statuses and compact evidence, and add preview-first local pruning/phase metrics.
+- [x] Stabilize ordinary UI journeys with local metadata/player fixtures scoped to valid Debug test storage; preserve native VoiceOver assertions and Release exclusions.
+- [x] Add one-read library refresh and one-commit pending imports, consistent snapshots, unchanged-write avoidance and serialized off-main execution for refresh/enrichment; retain commit-before-acknowledgement and fresh reads for App Intent changes.
+- [x] Persist metadata outcomes and retry dates locally; cap attempts, honor Retry-After, pause scheduling while inactive, provide manual retry and skip redundant canonical HEAD requests.
+- [x] Remove backup decode round trips without weakening sanitization/size limits; benchmark and improve repeated note merging while preserving paragraph occurrence and precedence.
+- [x] Gate macOS CI by relevant changes and successful fast checks, remove the redundant generic Debug build, retain stable required statuses and compact evidence, and add preview-first local pruning/phase metrics.
 - [ ] Extend focused storage/retry/network/fixture and host tests for failures, replays, stale writes, size limits, no external UI networking and protected evidence; run targeted checks, full simulator tests and unsigned Release verification.
-- [ ] Update Architecture, Data-and-Privacy, Testing, Development, Release and repository map as appropriate with actual behavior, measurements and deferred limits.
+- [x] Update Architecture, Data-and-Privacy, Testing, Development, Release and repository map as appropriate with actual behavior, measurements and deferred limits.
 - [ ] Checkpoint coherent changes, push this branch, open/attach a draft PR, run Brooks and Codex review, address actionable findings and CI failures, then report fresh readiness without merging.
 
 ## Open questions
 - None. Keep the existing backup format and cost-free architecture; measure or document conditional follow-ups rather than adding infrastructure.
+
+## Checkpoint validation
+- Host verifier: 53 passing tests; Swift syntax parsing and worker storage typechecking passed. Full simulator validation is running; review gates remain pending.

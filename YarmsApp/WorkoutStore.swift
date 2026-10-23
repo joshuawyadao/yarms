@@ -1,9 +1,28 @@
 import Foundation
 
-struct WorkoutStore {
+struct WorkoutStore: @unchecked Sendable {
     // Enrichment, inbox import, note edits, and restore all read then replace the library.
     // One app-process lock prevents a later writer from dropping another writer's changes.
     private static let accessLock = NSRecursiveLock()
+    private static let worker = DispatchQueue(label: "Yarms.WorkoutStore.worker")
+    private static var snapshotRevision: UInt64 = 0
+
+    struct LibrarySnapshot {
+        let workouts: [Workout]
+        let folders: [WorkoutFolder]
+        let previousIDs: Set<UUID>
+        let revision: UInt64
+    }
+
+    enum LibraryIO { case read, write }
+
+    func perform<T>(_ operation: @escaping (WorkoutStore) throws -> T) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            Self.worker.async {
+                continuation.resume(with: Result { try operation(self) })
+            }
+        }
+    }
 
     enum StoreError: Error {
         case unsupportedVersion
@@ -21,11 +40,14 @@ struct WorkoutStore {
     private let fileURL: URL
     private let inbox: SharedInbox
     private let shareInbox: (any PendingLinkInbox)?
+    private let observeLibraryIO: ((LibraryIO) -> Void)?
 
-    init(fileURL: URL, inbox: SharedInbox, shareInbox: (any PendingLinkInbox)? = nil) {
+    init(fileURL: URL, inbox: SharedInbox, shareInbox: (any PendingLinkInbox)? = nil,
+         observeLibraryIO: ((LibraryIO) -> Void)? = nil) {
         self.fileURL = fileURL
         self.inbox = inbox
         self.shareInbox = shareInbox
+        self.observeLibraryIO = observeLibraryIO
     }
 
     static func live() -> WorkoutStore? {
@@ -47,6 +69,50 @@ struct WorkoutStore {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
         return try readLibrary().folders ?? []
+    }
+
+    func refresh() throws -> LibrarySnapshot {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        var library = try readLibrary()
+        let previousIDs = Set(library.workouts.map(\.id))
+        let pendingSources: [(any PendingLinkInbox, [PendingLink])] = try {
+            var sources: [(any PendingLinkInbox, [PendingLink])] = [(inbox, try inbox.load())]
+            if let shareInbox { sources.append((shareInbox, try shareInbox.load())) }
+            return sources
+        }()
+        var knownURLs = Set(library.workouts.flatMap { workout in
+            [workout.sourceLink.url] + (workout.sourceAliases?.map(\.url) ?? [])
+        })
+        var knownVideos = Set(library.workouts.compactMap { $0.playbackLink.videoID })
+        var knownIDs = previousIDs
+        var added = false
+        for (_, entries) in pendingSources {
+            for pending in entries.reversed() {
+                let duplicate = knownURLs.contains(pending.link.url) ||
+                    (pending.link.videoID.map { knownVideos.contains($0) } ?? false) ||
+                    knownIDs.contains(pending.id)
+                guard !duplicate else { continue }
+                library.workouts.append(Workout(id: pending.id, sourceLink: pending.link, savedAt: pending.savedAt))
+                knownURLs.insert(pending.link.url)
+                if let videoID = pending.link.videoID { knownVideos.insert(videoID) }
+                knownIDs.insert(pending.id)
+                added = true
+            }
+        }
+        if added { try save(library) }
+        // The atomic library write must finish before acknowledging either inbox.
+        for (source, entries) in pendingSources {
+            for pending in entries { try source.remove(pending.id) }
+        }
+        return snapshot(library, previousIDs: previousIDs)
+    }
+
+    private func snapshot(_ library: LibraryFile, previousIDs: Set<UUID>) -> LibrarySnapshot {
+        Self.snapshotRevision &+= 1
+        return LibrarySnapshot(workouts: library.workouts.sorted { $0.savedAt > $1.savedAt },
+                        folders: library.folders ?? [], previousIDs: previousIDs,
+                        revision: Self.snapshotRevision)
     }
 
     @discardableResult
@@ -102,6 +168,7 @@ struct WorkoutStore {
             throw StoreError.invalidFolderReference
         }
         guard let index = library.workouts.firstIndex(where: { $0.id == workoutID }) else { return false }
+        if library.workouts[index].folderID == folderID { return true }
         library.workouts[index].folderID = folderID
         try save(library)
         return true
@@ -109,66 +176,76 @@ struct WorkoutStore {
 
     @discardableResult
     func importPending() throws -> [Workout] {
-        Self.accessLock.lock()
-        defer { Self.accessLock.unlock() }
-        var workouts = try load()
-        try importPending(from: inbox, into: &workouts)
-        if let shareInbox {
-            try importPending(from: shareInbox, into: &workouts)
-        }
-        return workouts.sorted { $0.savedAt > $1.savedAt }
+        try refresh().workouts
     }
 
-    private func importPending(from inbox: any PendingLinkInbox, into workouts: inout [Workout]) throws {
-        for pending in try inbox.load().reversed() {
-            let duplicate = workouts.contains { workout in
-                workout.sourceLink.url == pending.link.url ||
-                workout.sourceAliases?.contains(where: { $0.url == pending.link.url }) == true ||
-                (pending.link.videoID != nil && workout.playbackLink.videoID == pending.link.videoID)
-            }
-            if !duplicate {
-                workouts.append(Workout(id: pending.id, sourceLink: pending.link, savedAt: pending.savedAt))
-                try save(workouts)
-            }
-            try inbox.remove(pending.id)
-        }
-    }
-
-    func applyEnrichment(_ enrichment: TikTokEnrichment, to id: UUID) throws {
+    @discardableResult
+    func applyEnrichment(_ enrichment: TikTokEnrichment, to id: UUID) throws -> LibrarySnapshot {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
-        var workouts = try load()
-        let index = workouts.firstIndex(where: { $0.id == id }) ??
+        var library = try readLibrary()
+        let previousIDs = Set(library.workouts.map(\.id))
+        let index = library.workouts.firstIndex(where: { $0.id == id }) ??
             enrichment.resolvedLink?.videoID.flatMap { videoID in
-                workouts.firstIndex { $0.playbackLink.videoID == videoID }
+                library.workouts.firstIndex { $0.playbackLink.videoID == videoID }
             }
-        guard let index else { return }
+        guard let index else { return snapshot(library, previousIDs: previousIDs) }
         var changed = false
         if let resolvedLink = enrichment.resolvedLink, resolvedLink.videoID != nil {
-            workouts[index].resolvedLink = resolvedLink
-            changed = true
+            if library.workouts[index].resolvedLink != resolvedLink {
+                library.workouts[index].resolvedLink = resolvedLink
+                changed = true
+            }
         }
         if let metadata = enrichment.metadata {
-            if workouts[index].title == nil, let title = metadata.title, !title.isEmpty {
-                workouts[index].title = title
+            if library.workouts[index].title == nil, let title = metadata.title, !title.isEmpty {
+                library.workouts[index].title = title
                 changed = true
             }
-            if workouts[index].creator == nil, let creator = metadata.creator, !creator.isEmpty {
-                workouts[index].creator = creator
+            if library.workouts[index].creator == nil, let creator = metadata.creator, !creator.isEmpty {
+                library.workouts[index].creator = creator
                 changed = true
             }
-            if workouts[index].thumbnailURL == nil, let thumbnailURL = metadata.thumbnailURL {
-                workouts[index].thumbnailURL = thumbnailURL
+            if library.workouts[index].thumbnailURL == nil, let thumbnailURL = metadata.thumbnailURL {
+                library.workouts[index].thumbnailURL = thumbnailURL
                 changed = true
             }
         }
-        if let videoID = workouts[index].playbackLink.videoID {
-            changed = coalesceDuplicates(in: &workouts, for: videoID) || changed
+        let state = WorkoutEnrichmentState.after(result: enrichment,
+                                                 previous: library.workouts[index].enrichmentState,
+                                                 now: Date())
+        if library.workouts[index].enrichmentState != state {
+            library.workouts[index].enrichmentState = state
+            changed = true
         }
-        if changed { try save(workouts) }
+        if let videoID = library.workouts[index].playbackLink.videoID {
+            changed = coalesceDuplicates(in: &library.workouts, for: videoID,
+                                         enrichedState: state) || changed
+        }
+        if changed { try save(library) }
+        return snapshot(library, previousIDs: previousIDs)
     }
 
-    private func coalesceDuplicates(in workouts: inout [Workout], for videoID: String) -> Bool {
+    @discardableResult
+    func resetEnrichmentRetry() throws -> LibrarySnapshot {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        var library = try readLibrary()
+        let previousIDs = Set(library.workouts.map(\.id))
+        var changed = false
+        for index in library.workouts.indices {
+            if let state = library.workouts[index].enrichmentState,
+               state.status != .complete {
+                library.workouts[index].enrichmentState = nil
+                changed = true
+            }
+        }
+        if changed { try save(library) }
+        return snapshot(library, previousIDs: previousIDs)
+    }
+
+    private func coalesceDuplicates(in workouts: inout [Workout], for videoID: String,
+                                    enrichedState: WorkoutEnrichmentState) -> Bool {
         let matches = workouts.filter { $0.playbackLink.videoID == videoID }.sorted {
             $0.savedAt == $1.savedAt
                 ? $0.id.uuidString < $1.id.uuidString
@@ -178,14 +255,14 @@ struct WorkoutStore {
 
         // Keep the first save's identity, and fill its missing details from later saves.
         var keeper = matches[0]
-        var notes: String?
+        var notes = NoteAccumulator(nil)
         var aliases = Set(keeper.sourceAliases ?? [])
         for match in matches {
             aliases.insert(match.sourceLink)
             aliases.formUnion(match.sourceAliases ?? [])
             if let note = match.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
                !note.isEmpty {
-                notes = mergeDistinctNotes(notes, note)
+                notes.absorb(note)
             }
             if match.id == keeper.id { continue }
             if keeper.title == nil { keeper.title = match.title }
@@ -193,7 +270,11 @@ struct WorkoutStore {
             if keeper.thumbnailURL == nil { keeper.thumbnailURL = match.thumbnailURL }
             if keeper.folderID == nil { keeper.folderID = match.folderID }
         }
-        keeper.notes = notes
+        keeper.notes = notes.value
+        // The enrichment that triggered this merge is the freshest attempt.
+        // The oldest save keeps its identity, but its terminal retry state must
+        // not hide a newer alias's successful result.
+        keeper.enrichmentState = enrichedState
         aliases.remove(keeper.sourceLink)
         keeper.sourceAliases = aliases.isEmpty ? nil : aliases.sorted { $0.url.absoluteString < $1.url.absoluteString }
         workouts.removeAll { $0.playbackLink.videoID == videoID }
@@ -205,11 +286,13 @@ struct WorkoutStore {
     func updateNotes(_ text: String, for id: UUID) throws -> Bool {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
-        var workouts = try load()
-        guard let index = workouts.firstIndex(where: { $0.id == id }) else { return false }
+        var library = try readLibrary()
+        guard let index = library.workouts.firstIndex(where: { $0.id == id }) else { return false }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        workouts[index].notes = trimmed.isEmpty ? nil : trimmed
-        try save(workouts)
+        let notes = trimmed.isEmpty ? nil : trimmed
+        if library.workouts[index].notes == notes { return true }
+        library.workouts[index].notes = notes
+        try save(library)
         return true
     }
 
@@ -235,7 +318,7 @@ struct WorkoutStore {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
         // Revalidate even when the caller constructed an archive without decoding JSON.
-        let validated = try WorkoutBackup.decode(backup.encode())
+        let validated = try backup.normalizedForImport()
         var library = try readLibrary()
         let current = library.workouts.sorted { $0.savedAt > $1.savedAt }
         var folders = library.folders ?? []
@@ -286,6 +369,7 @@ struct WorkoutStore {
     }
 
     private func readLibrary() throws -> LibraryFile {
+        observeLibraryIO?(.read)
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             return LibraryFile(schemaVersion: 2, workouts: [], folders: [])
         }
@@ -314,6 +398,7 @@ struct WorkoutStore {
             schemaVersion: 2, workouts: library.workouts, folders: library.folders ?? []
         ))
         try data.write(to: fileURL, options: .atomic)
+        observeLibraryIO?(.write)
     }
 
     static func normalizedFolderName(_ name: String) throws -> String {
@@ -337,6 +422,7 @@ struct WorkoutStore {
 
 private struct BackupMergeIndex {
     private var records: [Workout?] = []
+    private var notes: [Int: NoteAccumulator] = [:]
     private var byID: [UUID: Int] = [:]
     private var bySource: [URL: Set<Int>] = [:]
     private var byVideoID: [String: Set<Int>] = [:]
@@ -351,6 +437,7 @@ private struct BackupMergeIndex {
     var workouts: [Workout] {
         records.indices.compactMap { position in
             guard var workout = records[position] else { return nil }
+            workout.notes = notes[position]?.value
             var aliases = sourceAliases[position] ?? []
             aliases.remove(workout.sourceLink)
             workout.sourceAliases = aliases.isEmpty ? nil : aliases.sorted {
@@ -402,6 +489,7 @@ private struct BackupMergeIndex {
         if matches.count == 1, let position = matches.first, let current = records[position] {
             try Self.validateCompatible(current, incoming)
             let merged = Self.merge(current, incoming)
+            notes[position]?.absorb(incoming.notes)
             records[position] = merged
             // Extend the index in place. Materialize and sort aliases once at
             // the end of restore, regardless of how many links share this post.
@@ -428,6 +516,7 @@ private struct BackupMergeIndex {
             return originals[workout.id] != nil
         } ?? ordered[0]
         var keeper = records[keeperIndex]!
+        var combinedNotes = notes[keeperIndex] ?? NoteAccumulator(keeper.notes)
         var aliases = Set([incoming.sourceLink])
         for position in ordered {
             aliases.formUnion(sourceAliases[position] ?? [])
@@ -435,13 +524,16 @@ private struct BackupMergeIndex {
         for position in ordered where position != keeperIndex {
             guard let other = records[position] else { continue }
             try Self.validateCompatible(keeper, other)
+            combinedNotes.absorb(notes[position]?.value ?? other.notes)
             keeper = Self.merge(keeper, other)
         }
         try Self.validateCompatible(keeper, incoming)
         keeper = Self.merge(keeper, incoming)
+        combinedNotes.absorb(incoming.notes)
 
         for position in ordered { remove(position) }
         records[keeperIndex] = keeper
+        notes[keeperIndex] = combinedNotes
         sourceAliases[keeperIndex] = aliases
         addIndex(for: keeperIndex)
     }
@@ -468,7 +560,6 @@ private struct BackupMergeIndex {
         if merged.creator == nil { merged.creator = incoming.creator }
         if merged.thumbnailURL == nil { merged.thumbnailURL = incoming.thumbnailURL }
         if merged.folderID == nil { merged.folderID = incoming.folderID }
-        merged.notes = mergeDistinctNotes(current.notes, incoming.notes)
         return merged
     }
 
@@ -477,6 +568,7 @@ private struct BackupMergeIndex {
         var stored = workout
         if !trustAliases { stored.sourceAliases = nil }
         records.append(stored)
+        notes[position] = NoteAccumulator(workout.notes)
         // Imported alias claims never make a new record match unrelated local posts.
         sourceAliases[position] = Set([workout.sourceLink] + (trustAliases ? workout.sourceAliases ?? [] : []))
         addIndex(for: position)
@@ -507,33 +599,44 @@ private struct BackupMergeIndex {
             if byVideoID[videoID]?.isEmpty == true { byVideoID.removeValue(forKey: videoID) }
         }
         records[position] = nil
+        notes.removeValue(forKey: position)
         sourceAliases.removeValue(forKey: position)
     }
 }
 
-// Restore and enrichment share one paragraph-occurrence rule. Keep the first
-// note intact, then append only occurrences the later note contributes. Counts
-// preserve intentional repeats inside either note without re-adding overlap.
-private func mergeDistinctNotes(_ existing: String?, _ incoming: String?) -> String? {
-    guard let incoming else { return existing }
-    guard let existing else { return incoming }
-    let separator = "\n\n"
-    var existingOccurrences: [Substring: Int] = [:]
-    forEachNoteParagraph(in: existing) { paragraph in
-        existingOccurrences[paragraph, default: 0] += 1
-    }
-    var merged = existing
-    var appended = false
-    forEachNoteParagraph(in: incoming) { paragraph in
-        if let count = existingOccurrences[paragraph], count > 0 {
-            existingOccurrences[paragraph] = count - 1
-        } else {
-            merged.append(separator)
-            merged.append(contentsOf: paragraph)
-            appended = true
+// Keep paragraph counts while thousands of aliases merge into one post.
+// Materializing the combined String after every alias rescans all prior notes.
+private struct NoteAccumulator {
+    private var first: String?
+    private var appended: [String] = []
+    private var occurrences: [String: Int] = [:]
+
+    init(_ note: String?) {
+        first = note
+        if let note {
+            forEachNoteParagraph(in: note) { occurrences[String($0), default: 0] += 1 }
         }
     }
-    return appended ? merged : existing
+
+    var value: String? {
+        guard let first else { return nil }
+        guard !appended.isEmpty else { return first }
+        return first + "\n\n" + appended.joined(separator: "\n\n")
+    }
+
+    mutating func absorb(_ note: String?) {
+        guard let note else { return }
+        guard first != nil else { self = NoteAccumulator(note); return }
+        var incoming: [String: Int] = [:]
+        forEachNoteParagraph(in: note) { paragraph in
+            let key = String(paragraph)
+            incoming[key, default: 0] += 1
+            if incoming[key, default: 0] > occurrences[key, default: 0] {
+                appended.append(key)
+                occurrences[key, default: 0] += 1
+            }
+        }
+    }
 }
 
 private func forEachNoteParagraph(in note: String, _ visit: (Substring) -> Void) {

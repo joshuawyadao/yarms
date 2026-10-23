@@ -65,6 +65,35 @@ enum TikTokPlayerCommand: Equatable {
 }
 
 enum TikTokPlayerHTML {
+    static func presentationDocument(for playerURL: URL,
+                                     arguments: [String] = ProcessInfo.processInfo.arguments) -> String? {
+        guard let official = document(for: playerURL) else { return nil }
+        #if DEBUG
+        if SharedInbox.usesUITestFixtures(arguments: arguments) {
+            return """
+            <!doctype html><html><head>
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+            <style>body{margin:0;background:#000;color:#fff;font:18px system-ui;display:grid;place-items:center;height:100vh}</style>
+            </head><body><p>Workout video preview</p><script>
+            function emit(type,value) {
+              window.webkit.messageHandlers.yarmsPlayerEvents.postMessage({
+                origin:'https://www.tiktok.com',message:{type:type,value:value,'x-tiktok-player':true}
+              });
+            }
+            window.yarmsPlayerCommand = function(message) {
+              if(message.type==='play') emit('onStateChange',1);
+              if(message.type==='pause') emit('onStateChange',2);
+              if(message.type==='seekTo') emit('onCurrentTime',{currentTime:message.value,duration:120});
+            };
+            emit('onPlayerReady',{duration:120});
+            </script></body></html>
+            """
+        }
+        #endif
+        return official
+    }
+
     static func document(for playerURL: URL) -> String? {
         let path = playerURL.path.split(separator: "/")
         guard playerURL.scheme == "https",

@@ -3,6 +3,17 @@ import WebKit
 @testable import Yarms
 
 final class PlayerBridgeTests: XCTestCase {
+    func testPresentationFixtureHasNoRemoteFramesAndRequiresIsolatedStore() throws {
+        let url = try XCTUnwrap(URL(string: "https://www.tiktok.com/player/v1/123"))
+        let args = ["-YarmsUITestFixtures", "-YarmsUITestStoreID", UUID().uuidString]
+        let fixture = try XCTUnwrap(TikTokPlayerHTML.presentationDocument(for: url, arguments: args))
+        XCTAssertFalse(fixture.contains("<iframe"), "Ordinary UI fixtures must not load TikTok resources")
+        XCTAssertTrue(fixture.contains("default-src 'none'"), "CSP must block external requests")
+        XCTAssertTrue(fixture.contains("onPlayerReady"))
+        let normal = try XCTUnwrap(TikTokPlayerHTML.presentationDocument(for: url, arguments: []))
+        XCTAssertTrue(normal.contains("<iframe"), "Normal playback must retain the official player")
+    }
+
     func testOfficialPlayerEventsDecodeFromMainFrame() {
         let ready = envelope(type: "onPlayerReady", value: NSNull())
         let playing = envelope(type: "onStateChange", value: 1)

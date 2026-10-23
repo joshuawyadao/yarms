@@ -525,7 +525,7 @@ final class YarmsUITests: XCTestCase {
     @MainActor
     private func isolatedApp() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]
+        app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString, "-YarmsUITestFixtures"]
         return app
     }
 

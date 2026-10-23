@@ -88,3 +88,10 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | Inline playback | `EmbeddedPlayerView.swift`, `TikTokPlayerBridge.swift` | `PlayerBridgeTests.swift`, device playback checks |
 | Visual colors, components, or icon | `YarmsTheme.swift`, `YarmsUIComponents.swift`, `Assets.xcassets` | [Design Language](Design-Language.md), [Design and Assets](Design-and-Assets.md), simulator light/dark/high-contrast checks |
 | Build settings, scheme, or CI | `project.pbxproj`, `Yarms.xcscheme`, `ci.yml` | `generate-project.rb`, `verify-repository.sh`, [Development](Development.md) |
+
+## Efficiency tools
+
+- `scripts/ci-scope.py`: conservative docs-only PR classification.
+- `scripts/prune-local-runs.py`: preview-first pruning of owned local verification evidence.
+- `scripts/tests/test_ci_maintenance.py`: classification and retention regressions.
+- [Efficiency.md](Efficiency.md): implemented audit actions, measurements and deferred growth work.

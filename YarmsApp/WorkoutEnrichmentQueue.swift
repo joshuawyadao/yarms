@@ -4,14 +4,18 @@ import Foundation
 // flight, and advance through a snapshot instead of starting one task per row.
 struct WorkoutEnrichmentQueue {
     static let maximumConcurrent = 3
+    var hasActiveRequests: Bool { !active.isEmpty }
 
     private var pending: [Workout] = []
     private var nextIndex = 0
     private var active = Set<UUID>()
 
-    mutating func reset(with workouts: [Workout]) {
+    mutating func reset(with workouts: [Workout], now: Date = Date()) {
         pending = workouts.filter { workout in
             !active.contains(workout.id) &&
+                (workout.enrichmentState == nil ||
+                 (workout.enrichmentState?.status == .pending &&
+                  (workout.enrichmentState?.nextAttemptAt ?? .distantPast) <= now)) &&
                 (workout.title == nil || workout.playbackLink.videoID == nil ||
                  workout.thumbnailURL == nil)
         }

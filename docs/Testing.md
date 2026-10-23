@@ -2,6 +2,14 @@
 
 The shared **Yarms** scheme includes `YarmsTests` and `YarmsUITests`. Run from the repository root on a Mac with Xcode and an available iPhone simulator. Find a destination with `xcrun simctl list devices available`; substitute its name or ID below. The simulator suite uses invented TikTok-shaped links and controlled network responses for deterministic checks. External TikTok, Share Sheet, signing, and Files behavior also need [device checks](#signed-iphone-checks).
 
+## Deterministic UI and efficiency checks
+
+Routine UI tests pass both a valid `-YarmsUITestStoreID` UUID and `-YarmsUITestFixtures`. The Debug app returns local metadata results and local player HTML with external resources denied by CSP. Native VoiceOver navigation/focus assertions stay intact; these tests validate app behavior against a fixed player, while live TikTok player-tree compatibility remains a separate device check. Neither flag enables fixtures in Release or without a valid isolated store.
+
+Storage regressions verify one read/one write for 100 pending links, persistence before acknowledgement, acknowledgement retry, revisioned snapshots, late enrichment and note preservation. Retry tests use fixed dates/HTTP fixtures for backoff, partial outcomes, attempt caps and Retry-After. The opt-in restore benchmark also covers aliases with distinct notes. See [efficiency implementation](Efficiency.md) for scope and current validation.
+
+CI now runs fast repository checks before macOS. Pure Markdown PRs receive terminal required gate statuses without macOS jobs; source, build, asset, unknown, main and manual changes run iOS tests and unsigned Release. The redundant generic Debug build is removed. Compact reports are retained 14 days; full logs/results are retained on failure or explicit manual request for seven days. Local pruning previews candidates by default and protects failures/archives; see [Development](Development.md).
+
 ## Local and CI-matching commands
 
 Run the maintained automation from the repository root:

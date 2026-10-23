@@ -30,13 +30,33 @@ final class BackupScalingBenchmarkTests: XCTestCase {
         XCTAssertLessThan(ratio, 10, "Restore scaling regressed beyond the 10x limit")
     }
 
-    private func makeBackup(aliasCount: Int) throws -> WorkoutBackup {
+    func testManyDistinctNoteParagraphsScaleWhenOptedIn() throws {
+        guard ProcessInfo.processInfo.environment["YARMS_RUN_BACKUP_BENCHMARK"] == "1" else {
+            throw XCTSkip("Set YARMS_RUN_BACKUP_BENCHMARK=1 to run the restore scaling benchmark")
+        }
+        let small = try makeBackup(aliasCount: 1_000, distinctNotes: true)
+        let large = try makeBackup(aliasCount: 4_000, distinctNotes: true)
+        var smallSamples: [Double] = []
+        var largeSamples: [Double] = []
+        _ = try elapsedRestore(small)
+        for _ in 0..<5 {
+            smallSamples.append(try elapsedRestore(small))
+            largeSamples.append(try elapsedRestore(large))
+        }
+        let ratio = median(largeSamples) / median(smallSamples)
+        print("Note-heavy restore scaling (1,000 → 4,000 aliases): \(ratio)x")
+        XCTAssertLessThan(ratio, 10, "Distinct notes should not cause repeated scans of prior paragraphs")
+    }
+
+    private func makeBackup(aliasCount: Int, distinctNotes: Bool = false) throws -> WorkoutBackup {
         let entries = try (0..<aliasCount).map { number in
             let link = try XCTUnwrap(TikTokLink(
                 text: "https://www.tiktok.com/@coach\(number)/video/123"
             ))
-            return Workout(id: UUID(), sourceLink: link,
-                           savedAt: Date(timeIntervalSince1970: Double(number)))
+            var workout = Workout(id: UUID(), sourceLink: link,
+                                  savedAt: Date(timeIntervalSince1970: Double(number)))
+            if distinctNotes { workout.notes = "Set \(number)" }
+            return workout
         }
         return try WorkoutBackup(workouts: entries)
     }

@@ -28,6 +28,9 @@ struct WorkoutBackup {
             copy.creator = Self.nonblank(copy.creator)
             copy.notes = Self.nonblank(copy.notes)
             if importing {
+                // Retry and terminal status belong to this installation's
+                // enrichment attempts, not to a user-selected archive.
+                copy.enrichmentState = nil
                 // The archive is user-selected data. Re-fetch thumbnails from TikTok
                 // rather than contacting an arbitrary URL embedded in that file.
                 copy.thumbnailURL = nil
@@ -97,6 +100,13 @@ struct WorkoutBackup {
         // Local libraries can grow beyond the defensive import limit through
         // notes and later saves. An export must still include every record.
         return try encoder.encode(Archive(schemaVersion: 2, workouts: workouts, folders: folders))
+    }
+
+    // Restore accepts backups built directly in memory too. Measure the exact
+    // archive bytes, then apply the same import sanitization without decoding.
+    func normalizedForImport() throws -> WorkoutBackup {
+        guard try encode().count <= Self.maximumBytes else { throw BackupError.tooLarge }
+        return try WorkoutBackup(workouts: workouts, folders: folders, importing: true)
     }
 
     private static func validate(_ workouts: [Workout], folders: [WorkoutFolder]) throws {

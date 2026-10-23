@@ -2,6 +2,95 @@ import XCTest
 @testable import Yarms
 
 final class LibraryTests: XCTestCase {
+    private final class FailingAcknowledgementInbox: PendingLinkInbox {
+        var entries: [PendingLink]
+        var shouldFail = true
+        init(_ entries: [PendingLink]) { self.entries = entries }
+        func load() throws -> [PendingLink] { entries }
+        func remove(_ id: UUID) throws {
+            if shouldFail { throw CocoaError(.fileWriteUnknown) }
+            entries.removeAll { $0.id == id }
+        }
+    }
+
+    func testRefreshBatchesBothInboxesBeforeAcknowledgementAndRetriesSafely() throws {
+        let container = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: container) }
+        let inbox = SharedInbox(directory: container.appendingPathComponent("Inbox"))
+        let firstLink = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/123"))
+        let secondLink = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/456"))
+        let first = try inbox.save(firstLink)
+        let second = PendingLink(id: UUID(), link: secondLink, savedAt: Date())
+        let shareInbox = FailingAcknowledgementInbox([second])
+        let store = WorkoutStore(fileURL: container.appendingPathComponent("Library.json"),
+                                 inbox: inbox, shareInbox: shareInbox)
+
+        XCTAssertThrowsError(try store.refresh())
+        XCTAssertEqual(Set(try store.load().map(\.id)), [first.id, second.id],
+                       "Both links must be durable before any acknowledgement failure")
+        XCTAssertEqual(shareInbox.entries.count, 1)
+        shareInbox.shouldFail = false
+        let retry = try store.refresh()
+        XCTAssertEqual(retry.previousIDs, [first.id, second.id])
+        XCTAssertEqual(retry.workouts.count, 2)
+        XCTAssertTrue(shareInbox.entries.isEmpty)
+        XCTAssertTrue(try inbox.load().isEmpty)
+    }
+
+    func testHundredPendingLinksUseOneLibraryReadAndWrite() throws {
+        let container = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: container) }
+        let inbox = SharedInbox(directory: container.appendingPathComponent("Inbox"))
+        for number in 1...100 {
+            try inbox.save(XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/\(number)")))
+        }
+        var reads = 0
+        var writes = 0
+        let store = WorkoutStore(fileURL: container.appendingPathComponent("Library.json"),
+                                 inbox: inbox, observeLibraryIO: { operation in
+            switch operation {
+            case .read: reads += 1
+            case .write: writes += 1
+            }
+        })
+        XCTAssertEqual(try store.refresh().workouts.count, 100)
+        XCTAssertEqual(reads, 1)
+        XCTAssertEqual(writes, 1)
+        XCTAssertTrue(try inbox.load().isEmpty)
+    }
+
+    func testRefreshReturnsFoldersAndPreviousIDsInOneSnapshot() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let folder = try store.createFolder(named: "Strength")
+        let first = try inbox.save(XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/123")))
+        let initial = try store.refresh()
+        XCTAssertTrue(initial.previousIDs.isEmpty)
+        XCTAssertEqual(initial.folders, [folder])
+        XCTAssertEqual(initial.workouts.map(\.id), [first.id])
+        let next = try store.refresh()
+        XCTAssertEqual(next.previousIDs, [first.id])
+        XCTAssertGreaterThan(next.revision, initial.revision)
+    }
+
+    func testEnrichmentSnapshotIncludesRecentNoteAndMissingIDDoesNotWrite() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let entry = try inbox.save(XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/123")))
+        try store.refresh()
+        try store.updateNotes("Keep this", for: entry.id)
+        let enrichment = TikTokEnrichment(resolvedLink: nil,
+                                          metadata: TikTokMetadata(title: "Workout", creator: nil,
+                                                                   thumbnailURL: nil))
+        let snapshot = try store.applyEnrichment(enrichment, to: entry.id)
+        XCTAssertEqual(snapshot.workouts.first?.notes, "Keep this")
+        XCTAssertEqual(snapshot.workouts.first?.title, "Workout")
+        let file = container.appendingPathComponent("Library.json")
+        let before = try Data(contentsOf: file)
+        let missing = try store.applyEnrichment(enrichment, to: UUID())
+        XCTAssertEqual(missing.workouts, snapshot.workouts)
+        XCTAssertEqual(try Data(contentsOf: file), before)
+    }
     private func makeStore() -> (WorkoutStore, SharedInbox, URL) {
         let container = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let inbox = SharedInbox(directory: container.appendingPathComponent("Inbox"))
@@ -107,6 +196,36 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(workout.playbackLink.videoID, "123")
         XCTAssertEqual(workout.title, "Strength")
         XCTAssertEqual(workout.creator, "Coach")
+    }
+
+    func testNewAliasSuccessReplacesOldKeeperPermanentFailureState() throws {
+        let (store, _, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        try FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
+        let canonical = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/video/123"))
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMnewalias/"))
+        var older = Workout(id: UUID(), sourceLink: canonical,
+                            savedAt: Date(timeIntervalSince1970: 100))
+        older.notes = "Keep this note"
+        older.enrichmentState = WorkoutEnrichmentState(status: .permanentFailure,
+                                                       attemptCount: 5, nextAttemptAt: nil)
+        let newer = Workout(id: UUID(), sourceLink: short,
+                            savedAt: Date(timeIntervalSince1970: 200))
+        try JSONEncoder().encode(TestLibraryFile(workouts: [older, newer]))
+            .write(to: container.appendingPathComponent("Library.json"))
+
+        let result = try store.applyEnrichment(
+            TikTokEnrichment(resolvedLink: canonical,
+                             metadata: TikTokMetadata(title: "Strength", creator: nil,
+                                                      thumbnailURL: URL(string: "https://www.tiktok.com/cover.jpg"))),
+            to: newer.id
+        )
+        let survivor = try XCTUnwrap(result.workouts.onlyElement)
+        XCTAssertEqual(survivor.id, older.id)
+        XCTAssertEqual(survivor.notes, "Keep this note")
+        XCTAssertEqual(survivor.title, "Strength")
+        XCTAssertEqual(survivor.enrichmentState?.status, .complete)
+        XCTAssertEqual(try store.load().onlyElement?.enrichmentState?.status, .complete)
     }
 
     func testTwoShortLinksCoalesceAfterBothResolve() throws {
