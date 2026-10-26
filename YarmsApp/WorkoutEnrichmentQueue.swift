@@ -19,8 +19,9 @@ struct WorkoutEnrichmentQueue {
         workout.enrichmentState == nil || workout.enrichmentState?.status == .pending
     }
 
-    static func nextRetryDate(in workouts: [Workout]) -> Date? {
-        workouts.compactMap { workout in
+    static func nextRetryDate(in workouts: [Workout], isActive: Bool) -> Date? {
+        guard isActive else { return nil }
+        return workouts.compactMap { workout in
             guard needsDetails(workout), mayEnrich(workout),
                   let date = workout.enrichmentState?.nextAttemptAt,
                   date.timeIntervalSinceReferenceDate.isFinite else { return nil }

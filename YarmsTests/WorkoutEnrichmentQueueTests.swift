@@ -122,7 +122,7 @@ final class WorkoutEnrichmentQueueTests: XCTestCase {
         incomplete.enrichmentState = WorkoutEnrichmentState(status: .pending,
                                                             attemptCount: 1, nextAttemptAt: later)
 
-        XCTAssertEqual(WorkoutEnrichmentQueue.nextRetryDate(in: [complete, incomplete]), later)
+        XCTAssertEqual(WorkoutEnrichmentQueue.nextRetryDate(in: [complete, incomplete], isActive: true), later)
         var queue = WorkoutEnrichmentQueue()
         queue.reset(with: [complete, incomplete], now: early)
         XCTAssertTrue(queue.takeAvailable().isEmpty)
@@ -142,9 +142,36 @@ final class WorkoutEnrichmentQueueTests: XCTestCase {
             nextAttemptAt: Date(timeIntervalSinceReferenceDate: .infinity))
         let legacy = Workout(id: UUID(), sourceLink: link, savedAt: now)
 
-        XCTAssertNil(WorkoutEnrichmentQueue.nextRetryDate(in: [terminal, infinite, legacy]))
+        XCTAssertNil(WorkoutEnrichmentQueue.nextRetryDate(in: [terminal, infinite, legacy], isActive: true))
         var queue = WorkoutEnrichmentQueue()
         queue.reset(with: [terminal, infinite, legacy], now: now)
         XCTAssertEqual(queue.takeAvailable().map(\.id), [legacy.id])
+    }
+
+    func testRetryTimerCancelsWhileInactiveAndRearmsAfterFailure() throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let now = Date(timeIntervalSinceReferenceDate: 30_000)
+        var workout = Workout(id: UUID(), sourceLink: link, savedAt: now)
+        let retryable = TikTokEnrichment(resolvedLink: link, metadata: nil,
+                                         outcome: .retryableFailure)
+        workout.enrichmentState = WorkoutEnrichmentState.after(result: retryable,
+                                                               previous: nil, now: now)
+        let firstDeadline = try XCTUnwrap(workout.enrichmentState?.nextAttemptAt)
+        XCTAssertEqual(WorkoutEnrichmentQueue.nextRetryDate(in: [workout], isActive: true), firstDeadline)
+        XCTAssertNil(WorkoutEnrichmentQueue.nextRetryDate(in: [workout], isActive: false))
+
+        // The in-flight request finishes after the scene becomes inactive.
+        workout.enrichmentState = WorkoutEnrichmentState.after(result: retryable,
+            previous: workout.enrichmentState, now: now.addingTimeInterval(30))
+        let persistedDeadline = try XCTUnwrap(workout.enrichmentState?.nextAttemptAt)
+        XCTAssertNil(WorkoutEnrichmentQueue.nextRetryDate(in: [workout], isActive: false))
+        XCTAssertEqual(WorkoutEnrichmentQueue.nextRetryDate(in: [workout], isActive: true),
+                       persistedDeadline)
+
+        var queue = WorkoutEnrichmentQueue()
+        queue.reset(with: [workout], now: persistedDeadline.addingTimeInterval(-1))
+        XCTAssertTrue(queue.takeAvailable().isEmpty)
+        queue.reset(with: [workout], now: persistedDeadline)
+        XCTAssertEqual(queue.takeAvailable().map(\.id), [workout.id])
     }
 }

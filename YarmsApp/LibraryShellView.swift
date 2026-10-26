@@ -84,7 +84,7 @@ struct LibraryShellView: View {
     @State private var celebratesSave = false
 
     private var nextRetryDate: Date? {
-        WorkoutEnrichmentQueue.nextRetryDate(in: workouts)
+        WorkoutEnrichmentQueue.nextRetryDate(in: workouts, isActive: scenePhase == .active)
     }
 
     private var visibleWorkouts: [Workout] {

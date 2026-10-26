@@ -22,8 +22,8 @@ Implement the efficiency audit’s immediate recommendations while preserving lo
 - [x] Run the focused feedback suite and update Testing/Efficiency with the failed run and narrow fix: five passed, zero failures, one expected VoiceOver skip on iOS 26.5, with successful owned cleanup. Save the follow-up on this branch.
 - [x] Address Codex P2 comment 4382833738: move next-retry selection into WorkoutEnrichmentQueue and share missing-detail/state eligibility with queue reset so a fully populated pending workout cannot block later deadlines.
 - [x] Add fixed-date scheduling regressions for that blocker, later eligible work and terminal/invalid deadlines; validate the app suite and update Architecture/Testing/Efficiency. App suite: 105 passed, zero failures, three expected skips and successful owned cleanup. Save and acknowledge the fix on the PR.
-- [ ] Address Codex P2 comment 4382914794: make the timer's selected deadline nil while inactive so scene activation re-arms an unchanged pending deadline; preserve queue bounds and active-only requests.
-- [ ] Add a fixed-date inactive-result/reactivation regression, validate the integrated app suite and update the scheduling docs before pushing and acknowledging the comment.
+- [x] Address Codex P2 comment 4382914794: make the timer's selected deadline nil while inactive so scene activation re-arms an unchanged pending deadline; preserve queue bounds and active-only requests.
+- [x] Add a fixed-date inactive-result/reactivation regression, validate the integrated app suite and update the scheduling docs. App suite: 106 passed, zero failures, three expected skips and successful cleanup on iOS 26.5. Save and acknowledge the fix on the PR.
 - [ ] Recheck final CI, Codex feedback and mergeability without merging PR #16; the PR records current-head readiness after this source checkpoint.
 
 ## Open questions
