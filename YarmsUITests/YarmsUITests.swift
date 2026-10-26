@@ -180,7 +180,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(completionDone.isHittable,
                       "The looping artwork must leave Done immediately reachable after resume")
         completionDone.tap()
-        XCTAssertFalse(title.exists, "Done should dismiss the completion sheet")
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5), "Done should dismiss the completion sheet")
         XCTAssertTrue(app.staticTexts["workoutHeading"].exists,
                       "Dismissing completion should keep the workout open")
         scrollUntilHittable(editor, in: app)
@@ -308,7 +308,8 @@ final class YarmsUITests: XCTestCase {
         sheetScreenshot.lifetime = .keepAlways
         add(sheetScreenshot)
         completionDone.tap()
-        XCTAssertFalse(title.exists)
+        XCTAssertTrue(title.waitForNonExistence(timeout: 5),
+                      "Done should dismiss completion at maximum text size")
         XCTAssertTrue(app.staticTexts["workoutHeading"].exists,
                       "Dismissing completion should remain on the workout")
     }

@@ -18,9 +18,9 @@ Implement the efficiency audit’s immediate recommendations while preserving lo
 - [x] Checkpoint coherent changes, push this branch, open/attach draft PR #16, run Brooks and Codex review and save the review fixes. Keep the remaining CI/review readiness loop on the PR; final status is reported after fresh terminal checks without merging.
 - [x] Address Codex P2 comment 4355584117: retain short-link resolver failure classification and Retry-After when combining it with oEmbed results, while preserving useful metadata and redirect validation.
 - [x] Add controlled-network regressions for timeout plus successful metadata, transient HEAD plus permanent oEmbed response, and the later retry delay; run app tests and repository verification, update Architecture/Testing/Efficiency. App suite: 103 passed, zero failures and three expected skips; owned cleanup succeeded. Repository checks: 54 passed.
-- [ ] Recheck final CI, Codex feedback and mergeability without merging PR #16.
-- [ ] Fix observed CI test synchronization: use the existing five-second disappearance wait after Done in both completion journeys; retain content, accessibility, dismissal and draft-preservation assertions. No production behavior or test timeout increase is needed.
-- [ ] Run the focused feedback suite, update Testing/Efficiency with the failed run and narrow fix, push, then recheck required hosted gates and review.
+- [x] Fix observed CI test synchronization: use the existing five-second disappearance wait after Done in both completion journeys; retain content, accessibility, dismissal and draft-preservation assertions. No production behavior or existing timeout increase is needed.
+- [x] Run the focused feedback suite and update Testing/Efficiency with the failed run and narrow fix: five passed, zero failures, one expected VoiceOver skip on iOS 26.5, with successful owned cleanup. Save the follow-up on this branch.
+- [ ] Recheck final CI, Codex feedback and mergeability without merging PR #16; the PR records current-head readiness after this source checkpoint.
 
 ## Open questions
 - None. Keep the existing backup format and cost-free architecture; measure or document conditional follow-ups rather than adding infrastructure.
