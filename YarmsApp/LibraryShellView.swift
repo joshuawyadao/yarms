@@ -84,10 +84,7 @@ struct LibraryShellView: View {
     @State private var celebratesSave = false
 
     private var nextRetryDate: Date? {
-        workouts.compactMap { workout -> Date? in
-            guard workout.enrichmentState?.status == .pending else { return nil }
-            return workout.enrichmentState?.nextAttemptAt
-        }.filter { $0.timeIntervalSinceReferenceDate.isFinite }.min()
+        WorkoutEnrichmentQueue.nextRetryDate(in: workouts)
     }
 
     private var visibleWorkouts: [Workout] {

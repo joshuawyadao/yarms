@@ -10,14 +10,28 @@ struct WorkoutEnrichmentQueue {
     private var nextIndex = 0
     private var active = Set<UUID>()
 
+    // The timer and queue must agree on which records still need details.
+    private static func needsDetails(_ workout: Workout) -> Bool {
+        workout.title == nil || workout.playbackLink.videoID == nil || workout.thumbnailURL == nil
+    }
+
+    private static func mayEnrich(_ workout: Workout) -> Bool {
+        workout.enrichmentState == nil || workout.enrichmentState?.status == .pending
+    }
+
+    static func nextRetryDate(in workouts: [Workout]) -> Date? {
+        workouts.compactMap { workout in
+            guard needsDetails(workout), mayEnrich(workout),
+                  let date = workout.enrichmentState?.nextAttemptAt,
+                  date.timeIntervalSinceReferenceDate.isFinite else { return nil }
+            return date
+        }.min()
+    }
+
     mutating func reset(with workouts: [Workout], now: Date = Date()) {
         pending = workouts.filter { workout in
-            !active.contains(workout.id) &&
-                (workout.enrichmentState == nil ||
-                 (workout.enrichmentState?.status == .pending &&
-                  (workout.enrichmentState?.nextAttemptAt ?? .distantPast) <= now)) &&
-                (workout.title == nil || workout.playbackLink.videoID == nil ||
-                 workout.thumbnailURL == nil)
+            !active.contains(workout.id) && Self.needsDetails(workout) && Self.mayEnrich(workout) &&
+                (workout.enrichmentState?.nextAttemptAt ?? .distantPast) <= now
         }
         nextIndex = 0
     }

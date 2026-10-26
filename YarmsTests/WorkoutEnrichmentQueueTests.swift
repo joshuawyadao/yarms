@@ -107,4 +107,44 @@ final class WorkoutEnrichmentQueueTests: XCTestCase {
             resolvedLink: short, metadata: metadata), previous: nil, now: now)
         XCTAssertEqual(unresolved.status, .partial)
     }
+
+    func testNextRetryDateSkipsFullyPopulatedPendingWorkout() throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let now = Date(timeIntervalSinceReferenceDate: 10_000)
+        let early = now.addingTimeInterval(60)
+        let later = now.addingTimeInterval(300)
+        var complete = Workout(id: UUID(), sourceLink: link, savedAt: now)
+        complete.title = "Workout"
+        complete.thumbnailURL = URL(string: "https://www.tiktok.com/thumbnail.jpg")
+        complete.enrichmentState = WorkoutEnrichmentState(status: .pending,
+                                                          attemptCount: 1, nextAttemptAt: early)
+        var incomplete = Workout(id: UUID(), sourceLink: link, savedAt: now)
+        incomplete.enrichmentState = WorkoutEnrichmentState(status: .pending,
+                                                            attemptCount: 1, nextAttemptAt: later)
+
+        XCTAssertEqual(WorkoutEnrichmentQueue.nextRetryDate(in: [complete, incomplete]), later)
+        var queue = WorkoutEnrichmentQueue()
+        queue.reset(with: [complete, incomplete], now: early)
+        XCTAssertTrue(queue.takeAvailable().isEmpty)
+        queue.reset(with: [complete, incomplete], now: later)
+        XCTAssertEqual(queue.takeAvailable().map(\.id), [incomplete.id])
+    }
+
+    func testNextRetryDateIgnoresTerminalAndNonfiniteDeadlines() throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let now = Date(timeIntervalSinceReferenceDate: 20_000)
+        var terminal = Workout(id: UUID(), sourceLink: link, savedAt: now)
+        terminal.enrichmentState = WorkoutEnrichmentState(status: .permanentFailure,
+                                                          attemptCount: 5, nextAttemptAt: now)
+        var infinite = Workout(id: UUID(), sourceLink: link, savedAt: now)
+        infinite.enrichmentState = WorkoutEnrichmentState(
+            status: .pending, attemptCount: 1,
+            nextAttemptAt: Date(timeIntervalSinceReferenceDate: .infinity))
+        let legacy = Workout(id: UUID(), sourceLink: link, savedAt: now)
+
+        XCTAssertNil(WorkoutEnrichmentQueue.nextRetryDate(in: [terminal, infinite, legacy]))
+        var queue = WorkoutEnrichmentQueue()
+        queue.reset(with: [terminal, infinite, legacy], now: now)
+        XCTAssertEqual(queue.takeAvailable().map(\.id), [legacy.id])
+    }
 }
