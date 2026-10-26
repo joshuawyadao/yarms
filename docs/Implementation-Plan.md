@@ -20,6 +20,8 @@ Implement the efficiency audit’s immediate recommendations while preserving lo
 - [x] Add controlled-network regressions for timeout plus successful metadata, transient HEAD plus permanent oEmbed response, and the later retry delay; run app tests and repository verification, update Architecture/Testing/Efficiency. App suite: 103 passed, zero failures and three expected skips; owned cleanup succeeded. Repository checks: 54 passed.
 - [x] Fix observed CI test synchronization: use the existing five-second disappearance wait after Done in both completion journeys; retain content, accessibility, dismissal and draft-preservation assertions. No production behavior or existing timeout increase is needed.
 - [x] Run the focused feedback suite and update Testing/Efficiency with the failed run and narrow fix: five passed, zero failures, one expected VoiceOver skip on iOS 26.5, with successful owned cleanup. Save the follow-up on this branch.
+- [ ] Address Codex P2 comment 4382833738: move next-retry selection into WorkoutEnrichmentQueue and share missing-detail/state eligibility with queue reset so a fully populated pending workout cannot block later deadlines.
+- [ ] Add fixed-date scheduling regressions for that blocker, later eligible work and terminal/invalid deadlines; validate the app suite, update Architecture/Testing/Efficiency, push and acknowledge the comment.
 - [ ] Recheck final CI, Codex feedback and mergeability without merging PR #16; the PR records current-head readiness after this source checkpoint.
 
 ## Open questions
