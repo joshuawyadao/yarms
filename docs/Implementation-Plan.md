@@ -19,6 +19,8 @@ Implement the efficiency audit’s immediate recommendations while preserving lo
 - [x] Address Codex P2 comment 4355584117: retain short-link resolver failure classification and Retry-After when combining it with oEmbed results, while preserving useful metadata and redirect validation.
 - [x] Add controlled-network regressions for timeout plus successful metadata, transient HEAD plus permanent oEmbed response, and the later retry delay; run app tests and repository verification, update Architecture/Testing/Efficiency. App suite: 103 passed, zero failures and three expected skips; owned cleanup succeeded. Repository checks: 54 passed.
 - [ ] Recheck final CI, Codex feedback and mergeability without merging PR #16.
+- [ ] Fix observed CI test synchronization: use the existing five-second disappearance wait after Done in both completion journeys; retain content, accessibility, dismissal and draft-preservation assertions. No production behavior or test timeout increase is needed.
+- [ ] Run the focused feedback suite, update Testing/Efficiency with the failed run and narrow fix, push, then recheck required hosted gates and review.
 
 ## Open questions
 - None. Keep the existing backup format and cost-free architecture; measure or document conditional follow-ups rather than adding infrastructure.
