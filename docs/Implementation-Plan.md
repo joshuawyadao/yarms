@@ -16,8 +16,8 @@ Implement the efficiency audit’s immediate recommendations while preserving lo
 - [x] Extend focused storage/retry/network/fixture and host tests for failures, replays, stale writes, size limits, no external UI networking and protected evidence; run targeted checks, full simulator tests and unsigned Release verification.
 - [x] Update Architecture, Data-and-Privacy, Testing, Development, Release and repository map as appropriate with actual behavior, measurements and deferred limits.
 - [x] Checkpoint coherent changes, push this branch, open/attach draft PR #16, run Brooks and Codex review and save the review fixes. Keep the remaining CI/review readiness loop on the PR; final status is reported after fresh terminal checks without merging.
-- [ ] Address Codex P2 comment 4355584117: retain short-link resolver failure classification and Retry-After when combining it with oEmbed results, while preserving useful metadata and redirect validation.
-- [ ] Add controlled-network regressions for timeout plus successful metadata, transient HEAD plus permanent oEmbed response, and the later retry delay; run app tests and repository verification, update Architecture/Testing/Efficiency, then push and acknowledge the comment.
+- [x] Address Codex P2 comment 4355584117: retain short-link resolver failure classification and Retry-After when combining it with oEmbed results, while preserving useful metadata and redirect validation.
+- [x] Add controlled-network regressions for timeout plus successful metadata, transient HEAD plus permanent oEmbed response, and the later retry delay; run app tests and repository verification, update Architecture/Testing/Efficiency. App suite: 103 passed, zero failures and three expected skips; owned cleanup succeeded. Repository checks: 54 passed.
 - [ ] Recheck final CI, Codex feedback and mergeability without merging PR #16.
 
 ## Open questions

@@ -27,21 +27,33 @@ struct TikTokMetadataClient {
             return TikTokEnrichment(resolvedLink: link.videoID == nil ? nil : link, metadata: nil)
         }
         #endif
-        let resolvedLink: TikTokLink?
+        let resolution: LinkResolution
         if link.videoID != nil {
-            resolvedLink = link
+            resolution = LinkResolution(link: link, outcome: .success)
         } else {
-            resolvedLink = await resolveShortLink(link)
+            resolution = await resolveShortLink(link)
         }
 
         // TikTok may still return oEmbed data for a short URL when HEAD is
         // unavailable. Only a numeric canonical URL is eligible for playback.
-        let fetched = await fetchMetadata(for: resolvedLink ?? link)
-        return TikTokEnrichment(resolvedLink: resolvedLink, metadata: fetched.metadata,
-                                outcome: fetched.outcome, retryAfter: fetched.retryAfter)
+        let fetched = await fetchMetadata(for: resolution.link ?? link)
+        // Both operations supply independent details. A transient failure in either
+        // must remain retryable even if the other succeeds or rejects the short URL.
+        let outcomes = [resolution.outcome, fetched.outcome]
+        let outcome: TikTokEnrichment.Outcome = outcomes.contains(.retryableFailure) ? .retryableFailure :
+            outcomes.contains(.permanentFailure) ? .permanentFailure : .success
+        return TikTokEnrichment(resolvedLink: resolution.link, metadata: fetched.metadata,
+                                outcome: outcome,
+                                retryAfter: [resolution.retryAfter, fetched.retryAfter].compactMap { $0 }.max())
     }
 
-    private func resolveShortLink(_ link: TikTokLink) async -> TikTokLink? {
+    private struct LinkResolution {
+        let link: TikTokLink?
+        let outcome: TikTokEnrichment.Outcome
+        var retryAfter: Date? = nil
+    }
+
+    private func resolveShortLink(_ link: TikTokLink) async -> LinkResolution {
         var current = link
         // The delegate stops URLSession before it follows each response's Location.
         // Inspecting every hop keeps a TikTok short link from sending a request elsewhere.
@@ -53,22 +65,27 @@ struct TikTokMetadataClient {
 
             guard let (_, response) = try? await session.data(for: request,
                                                                delegate: NoAutomaticRedirects()),
-                  let response = response as? HTTPURLResponse else { return nil }
+                  let response = response as? HTTPURLResponse else {
+                return LinkResolution(link: nil, outcome: .retryableFailure)
+            }
 
             if (300..<400).contains(response.statusCode) {
                 guard let location = response.value(forHTTPHeaderField: "Location"),
                       let nextURL = URL(string: location, relativeTo: current.url)?.absoluteURL,
-                      let next = TikTokLink(text: nextURL.absoluteString) else { return nil }
-                if next.videoID != nil { return next }
+                      let next = TikTokLink(text: nextURL.absoluteString) else {
+                    return LinkResolution(link: nil, outcome: .permanentFailure)
+                }
+                if next.videoID != nil { return LinkResolution(link: next, outcome: .success) }
                 current = next
                 continue
             }
 
-            guard (200..<300).contains(response.statusCode),
-                  current.videoID != nil else { return nil }
-            return current
+            let retryable = response.statusCode == 429 || response.statusCode >= 500
+            return LinkResolution(link: nil,
+                                  outcome: retryable ? .retryableFailure : .permanentFailure,
+                                  retryAfter: retryable ? Self.retryAfter(response) : nil)
         }
-        return nil
+        return LinkResolution(link: nil, outcome: .permanentFailure)
     }
 
     private func fetchMetadata(for link: TikTokLink) async -> TikTokEnrichment {

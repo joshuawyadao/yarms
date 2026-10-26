@@ -50,7 +50,7 @@ The queue selects due workouts missing a title, thumbnail, or canonical video ID
 
 `TikTokMetadataClient` tries at most five HEAD requests for a short link, with a 10-second per-request timeout. Automatic redirect following is disabled for these requests. Each next URL must pass `TikTokLink` validation before it is requested. A canonical numeric video ID enables the player; failed resolution leaves the original source link available.
 
-The client then requests TikTok's [oEmbed metadata](https://developers.tiktok.com/docs/en/embed-videos), even if short-link resolution failed. Available title, creator, and thumbnail fill missing fields; they do not overwrite existing values.
+The client then requests TikTok's [oEmbed metadata](https://developers.tiktok.com/docs/en/embed-videos), even if short-link resolution failed. Available title, creator, and thumbnail fill missing fields; they do not overwrite existing values. A timeout, rate limit or server failure in either operation keeps the combined attempt retryable, even if the other returns metadata or a permanent error. The later Retry-After from either response is honored within the existing delay and attempt caps. Invalid redirects and exhausted redirect traversal remain terminal when no transient operation needs a retry.
 
 When links resolve to the same video ID, the store keeps the earliest saved identity (UUID breaks equal-time ties). It fills missing details and an empty folder assignment from duplicates, combines notes, and records locally confirmed source aliases. A late enrichment response for a removed duplicate can find the survivor by video ID. Detailed matching and note precedence are in [Data and privacy](Data-and-Privacy.md#restore-and-duplicate-rules).
 

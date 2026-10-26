@@ -124,6 +124,7 @@ final class MetadataTests: XCTestCase {
         XCTAssertNil(result.resolvedLink)
         XCTAssertEqual(result.metadata?.title, "A short workout")
         XCTAssertEqual(result.metadata?.creator, "Coach")
+        XCTAssertEqual(result.outcome, .permanentFailure)
     }
 
     func testRetryAfterSecondsAndDateOnRateLimit() async throws {
@@ -137,6 +138,63 @@ final class MetadataTests: XCTestCase {
         MockURLProtocol.handler = { _ in (503, ["Retry-After": "Wed, 21 Oct 2037 07:28:00 GMT"], Data()) }
         let dated = await client().enrich(link)
         XCTAssertGreaterThan(try XCTUnwrap(dated.retryAfter), Date().addingTimeInterval(86_390))
+    }
+
+    func testShortLinkTimeoutRemainsRetryableWithSuccessfulMetadata() async throws {
+        let short = try XCTUnwrap(TikTokLink(text: "https://vt.tiktok.com/ZMshort/"))
+        var requests = 0
+        MockURLProtocol.handler = { request in
+            requests += 1
+            if request.httpMethod == "HEAD" { throw URLError(.timedOut) }
+            XCTAssertEqual(request.url?.path, "/oembed")
+            return (200, [:], Data(#"{"title":"Workout","thumbnail_url":"https://p16.tiktokcdn.com/cover.jpg"}"#.utf8))
+        }
+
+        let result = await client().enrich(short)
+        XCTAssertNil(result.resolvedLink)
+        XCTAssertEqual(result.metadata?.title, "Workout")
+        XCTAssertNotNil(result.metadata?.thumbnailURL)
+        XCTAssertEqual(result.outcome, .retryableFailure)
+        let now = Date(timeIntervalSince1970: 1_000)
+        let state = WorkoutEnrichmentState.after(result: result, previous: nil, now: now)
+        XCTAssertEqual(state.status, .pending)
+        XCTAssertEqual(state.nextAttemptAt, now.addingTimeInterval(60))
+        XCTAssertEqual(requests, 2)
+    }
+
+    func testShortLinkServerFailureRemainsRetryableWhenOEmbedRejectsURL() async throws {
+        let short = try XCTUnwrap(TikTokLink(text: "https://vm.tiktok.com/ZMshort/"))
+        MockURLProtocol.handler = { request in
+            request.httpMethod == "HEAD" ? (503, ["Retry-After": "120"], Data()) : (404, [:], Data())
+        }
+
+        let before = Date()
+        let result = await client().enrich(short)
+        XCTAssertNil(result.resolvedLink)
+        XCTAssertNil(result.metadata)
+        XCTAssertEqual(result.outcome, .retryableFailure)
+        XCTAssertGreaterThanOrEqual(try XCTUnwrap(result.retryAfter), before.addingTimeInterval(120))
+        let state = WorkoutEnrichmentState.after(result: result, previous: nil, now: before)
+        XCTAssertEqual(state.status, .pending)
+        XCTAssertEqual(state.nextAttemptAt, result.retryAfter)
+    }
+
+    func testShortLinkAndMetadataFailuresHonorLaterRetryAfter() async throws {
+        let short = try XCTUnwrap(TikTokLink(text: "https://vm.tiktok.com/ZMshort/"))
+        // Exercise both orderings: neither endpoint may shorten the other's delay.
+        for headDelay in [120, 240] {
+            let metadataDelay = 360 - headDelay
+            MockURLProtocol.handler = { request in
+                request.httpMethod == "HEAD" ?
+                    (429, ["Retry-After": String(headDelay)], Data()) :
+                    (503, ["Retry-After": String(metadataDelay)], Data())
+            }
+            let before = Date()
+            let result = await client().enrich(short)
+            XCTAssertEqual(result.outcome, .retryableFailure)
+            XCTAssertGreaterThanOrEqual(try XCTUnwrap(result.retryAfter), before.addingTimeInterval(240))
+            XCTAssertLessThanOrEqual(try XCTUnwrap(result.retryAfter), Date().addingTimeInterval(240))
+        }
     }
 
     func testValidEmptyOptionalMetadataDoesNotCauseRetry() async throws {
