@@ -9,6 +9,7 @@ import re
 import shutil
 import signal
 import sys
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,7 @@ FEEDBACK_TESTS = (
 )
 SUITE_FILTERS = {
     "full": (),
+    "unit": ("YarmsTests",),
     "sharing": ("YarmsTests/ShortcutCaptureTests", "YarmsTests/LibraryTests"),
     "feedback": tuple(f"YarmsUITests/YarmsUITests/{name}" for name in FEEDBACK_TESTS),
 }
@@ -173,6 +175,8 @@ def print_final_result(report, report_path):
 
 
 def execute(args, executor=None, run_base=None, host=None, interrupt_state=None, app_probe=None):
+    started = time.monotonic()
+    phases = {}
     executor = executor or Executor()
     app_probe = app_probe or (lambda path: path.is_dir())
     run_base = Path(run_base) if run_base else ROOT / ".build" / "test-runs"
@@ -193,11 +197,13 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None,
     simulator_id = None
     derived_data = run_root / "DerivedData"
     try:
+        phase_start = time.monotonic()
         if (host or platform.system()) != "Darwin":
             raise RunError("Xcode simulator tests require macOS")
         catalog = parse_json(require_command(executor, ["xcrun", "simctl", "list", "--json"], 30), "simctl catalog")
         runtime, device_type = select_profile(catalog, args.runtime, args.device_type)
         report.update(runtime=runtime, deviceType=device_type)
+        phases["profile_seconds"] = round(time.monotonic() - phase_start, 2)
         write_report(report_path, report)
         if needs_voiceover_frontend(runtime, args.suite):
             report["voiceOverFrontend"] = "failed"
@@ -215,8 +221,11 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None,
         require_command(executor, ["xcrun", "simctl", "boot", simulator_id], 60)
         require_command(executor, ["xcrun", "simctl", "bootstatus", simulator_id, "-b"], 180)
         require_command(executor, ["xcrun", "simctl", "ui", simulator_id, "appearance", args.appearance], 120)
+        phases["simulator_seconds"] = round(time.monotonic() - phase_start, 2)
         result_bundle = run_root / "Tests.xcresult"
+        test_start = time.monotonic()
         code, _ = executor.run(test_command(simulator_id, args.suite, derived_data, result_bundle), args.timeout_seconds, run_root / "xcodebuild.log")
+        phases["xcodebuild_seconds"] = round(time.monotonic() - test_start, 2)
         report["testExitCode"] = code
         write_report(report_path, report)
         if result_bundle.exists():
@@ -228,6 +237,7 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None,
     except (Exception, KeyboardInterrupt) as exc:
         report["error"] = str(exc) or type(exc).__name__
     finally:
+        cleanup_start = time.monotonic()
         if interrupt_state:
             interrupt_state.cleaning = True
         with blocked_termination_signals():
@@ -260,6 +270,11 @@ def execute(args, executor=None, run_base=None, host=None, interrupt_state=None,
             if interrupt_state and interrupt_state.interrupted and not report["error"]:
                 report["error"] = "Interrupted by signal"
             report["status"] = "passed" if not report["error"] and not report["cleanupErrors"] else "failed"
+            phases["cleanup_seconds"] = round(time.monotonic() - cleanup_start, 2)
+            report["metrics"] = {"total_seconds": round(time.monotonic() - started, 2),
+                                 "phases": phases,
+                                 "log_bytes": (run_root / "xcodebuild.log").stat().st_size
+                                 if (run_root / "xcodebuild.log").is_file() else 0}
             write_report(report_path, report)
             print_final_result(report, report_path)
         if interrupt_state and interrupt_state.interrupted:

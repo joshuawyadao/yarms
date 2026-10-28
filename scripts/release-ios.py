@@ -9,6 +9,7 @@ import re
 import shutil
 import signal
 import sys
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -437,6 +438,8 @@ def release_notes(args, report, notes_text):
 
 
 def execute(args, executor=None, release_root=None, source_root=ROOT, interrupt_state=None):
+    started = time.monotonic()
+    phases = {}
     global RELEASES
     if release_root is not None:
         RELEASES = Path(release_root)
@@ -450,6 +453,7 @@ def execute(args, executor=None, release_root=None, source_root=ROOT, interrupt_
     _write_json_atomic(run_dir / "report.json", report)
     (run_dir / "xcodebuild.log").write_text("Xcode build has not started.\n", encoding="utf-8")
     try:
+        settings_start = time.monotonic()
         if args.mode == "archive" and args.notes_file:
             try:
                 if args.notes_file.stat().st_size > 65536:
@@ -460,9 +464,12 @@ def execute(args, executor=None, release_root=None, source_root=ROOT, interrupt_
         report["source"] = source_state(executor)
         settings = target_settings(executor, args, run_dir)
         metadata = validate_settings(settings, args, source_root)
+        phases["settings_seconds"] = round(time.monotonic() - settings_start, 2)
         report["metadata"] = metadata
+        build_start = time.monotonic()
         require_command(executor, build_command(args, run_dir), args.timeout_seconds,
                         run_dir / "xcodebuild.log")
+        phases["build_seconds"] = round(time.monotonic() - build_start, 2)
         artifact = validate_artifact(args, run_dir, settings, metadata)
         report["artifact"] = artifact
         if args.mode == "archive" and not args.unsigned:
@@ -474,6 +481,7 @@ def execute(args, executor=None, release_root=None, source_root=ROOT, interrupt_
         report["status"] = "failed"
         report["error"] = "Interrupted" if isinstance(exc, KeyboardInterrupt) else str(exc)
     finally:
+        cleanup_start = time.monotonic()
         if interrupt_state:
             interrupt_state.cleaning = True
         with blocked_termination_signals():
@@ -493,6 +501,10 @@ def execute(args, executor=None, release_root=None, source_root=ROOT, interrupt_
                                    if report["error"] else cleanup_error)
                 report["derived_data_retained"] = True
             report["finished_at"] = utc_now()
+            phases["cleanup_seconds"] = round(time.monotonic() - cleanup_start, 2)
+            report["metrics"] = {"total_seconds": round(time.monotonic() - started, 2),
+                                 "phases": phases,
+                                 "log_bytes": (run_dir / "xcodebuild.log").stat().st_size}
             _write_json_atomic(run_dir / "report.json", report)
             (run_dir / "release-notes.md").write_text(release_notes(args, report, notes_text),
                                                       encoding="utf-8")

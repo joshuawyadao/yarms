@@ -21,11 +21,11 @@ struct EmbeddedPlayerView: View {
     let workout: Workout
     let folders: [WorkoutFolder]
     let onNotesSaved: () -> Void
-    let onFolderChanged: (UUID?) -> Bool
-    let onDeleteWorkout: () -> Bool
+    let onFolderChanged: (UUID?) async -> Bool
+    let onDeleteWorkout: () async -> Bool
 
     init(workout: Workout, folders: [WorkoutFolder], onNotesSaved: @escaping () -> Void,
-         onFolderChanged: @escaping (UUID?) -> Bool, onDeleteWorkout: @escaping () -> Bool) {
+         onFolderChanged: @escaping (UUID?) async -> Bool, onDeleteWorkout: @escaping () async -> Bool) {
         self.workout = workout
         self.folders = folders
         self.onNotesSaved = onNotesSaved
@@ -43,7 +43,7 @@ struct EmbeddedPlayerView: View {
                     workoutHeading
 
                     if let playerURL = workout.playbackLink.playerURL,
-                       let html = TikTokPlayerHTML.document(for: playerURL) {
+                       let html = TikTokPlayerHTML.presentationDocument(for: playerURL) {
                         let playerWidth = max(0, min(geometry.size.width, YarmsTheme.maximumContentWidth) - 2 * YarmsTheme.Spacing.lg)
                         TikTokWebPlayer(html: html, controller: player)
                             .frame(width: playerWidth, height: playerWidth * 16 / 9)
@@ -188,11 +188,12 @@ struct EmbeddedPlayerView: View {
         }
         .alert("Delete saved workout?", isPresented: $showingDeleteWorkout) {
             Button("Delete workout", role: .destructive) {
-                if onDeleteWorkout() {
-                    dismiss()
-                } else {
-                    messageTitle = "Could not delete workout"
-                    message = "The saved workout could not be removed. Return to the library, select it again, and retry."
+                Task { @MainActor in
+                    if await onDeleteWorkout() { dismiss() }
+                    else {
+                        messageTitle = "Could not delete workout"
+                        message = "The saved workout could not be removed. Return to the library, select it again, and retry."
+                    }
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -284,7 +285,9 @@ struct EmbeddedPlayerView: View {
     }
 
     private func selectFolder(_ id: UUID?) {
-        if onFolderChanged(id) { selectedFolderID = id }
+        Task { @MainActor in
+            if await onFolderChanged(id) { selectedFolderID = id }
+        }
     }
 
     private var playbackControls: some View {
@@ -339,19 +342,23 @@ struct EmbeddedPlayerView: View {
             message = "yarms could not access its saved workouts."
             return
         }
-        do {
-            if try store.updateNotes(noteText, for: workout.id) {
-                noteSaved = true
-                if !wasSaved {
-                    noteSaveEventID += 1
-                    YarmsAccessibility.announceSaveResult("Saved on this iPhone")
+        let text = noteText
+        let id = workout.id
+        Task { @MainActor in
+            do {
+                if try await store.perform({ try $0.updateNotes(text, for: id) }) {
+                    noteSaved = noteText == text
+                    if noteSaved && !wasSaved {
+                        noteSaveEventID += 1
+                        YarmsAccessibility.announceSaveResult("Saved on this iPhone")
+                    }
+                    onNotesSaved()
+                } else {
+                    message = "This workout changed while you were editing. Reopen it and try again."
                 }
-                onNotesSaved()
-            } else {
-                message = "This workout changed while you were editing. Reopen it and try again."
+            } catch {
+                message = "Your notes could not be saved. Try again."
             }
-        } catch {
-            message = "Your notes could not be saved. Try again."
         }
     }
 }

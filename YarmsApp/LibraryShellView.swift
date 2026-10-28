@@ -68,6 +68,8 @@ struct LibraryShellView: View {
     @State private var movingWorkout: Workout?
     @State private var workoutPendingDeletion: Workout?
     @State private var showingDeleteWorkout = false
+    @State private var retryingDetails = false
+    @State private var snapshotRevision: UInt64 = 0
     @State private var enrichmentQueue = WorkoutEnrichmentQueue()
     @State private var message: String?
     @State private var messageTitle = "Could not update workouts"
@@ -80,6 +82,10 @@ struct LibraryShellView: View {
     @State private var saveConfirmation: String?
     @State private var saveEventID = 0
     @State private var celebratesSave = false
+
+    private var nextRetryDate: Date? {
+        WorkoutEnrichmentQueue.nextRetryDate(in: workouts, isActive: scenePhase == .active)
+    }
 
     private var visibleWorkouts: [Workout] {
         workouts.filter { selectedFolder.includes($0) && $0.matches(searchText) }
@@ -148,6 +154,9 @@ struct LibraryShellView: View {
                     Label("Backup", systemImage: "externaldrive")
                 }
                 .accessibilityLabel("Backup and restore")
+                Button("Retry workout details", systemImage: "arrow.clockwise") { retryMetadata() }
+                    .disabled(workouts.isEmpty || enrichmentQueue.hasActiveRequests || retryingDetails)
+                    .accessibilityIdentifier("retryWorkoutDetailsButton")
             }
             .alert(messageTitle, isPresented: Binding(
                 get: { message != nil },
@@ -210,14 +219,22 @@ struct LibraryShellView: View {
             .fileImporter(isPresented: $showingImporter, allowedContentTypes: [.json]) { result in
                 importBackup(result)
             }
+            .task(id: nextRetryDate) {
+                guard let date = nextRetryDate, scenePhase == .active else { return }
+                let delay = max(0, date.timeIntervalSinceNow)
+                do { try await Task.sleep(for: .seconds(delay)) }
+                catch { return }
+                guard !Task.isCancelled, scenePhase == .active else { return }
+                await refresh()
+            }
             .onAppear {
                 saveConfirmation = nil
-                refresh(showNewShares: true)
+                Task { await refresh(showNewShares: true) }
             }
             .onChange(of: searchText) { _, _ in saveConfirmation = nil }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
-                    refresh(showNewShares: true)
+                    Task { await refresh(showNewShares: true) }
                 } else {
                     saveConfirmation = nil
                 }
@@ -325,9 +342,9 @@ struct LibraryShellView: View {
                     EmbeddedPlayerView(
                         workout: workout,
                         folders: folders,
-                        onNotesSaved: { _ = refresh() },
-                        onFolderChanged: { destination in moveWorkout(workout, to: destination) },
-                        onDeleteWorkout: { removeWorkout(workout) }
+                        onNotesSaved: { Task { await refresh() } },
+                        onFolderChanged: { destination in await moveWorkout(workout, to: destination) },
+                        onDeleteWorkout: { await removeWorkout(workout) }
                     )
                 } label: {
                     WorkoutCardContent(workout: workout, folderName: workout.folderID.flatMap { namesByID[$0] })
@@ -528,57 +545,61 @@ struct LibraryShellView: View {
 
     private func saveFolder() {
         saveConfirmation = nil
-        guard let store = WorkoutStore.live() else {
-            showMessage("Could not update folders", "yarms could not access its saved workouts.")
-            return
-        }
-        do {
-            if let editingFolder {
-                guard try store.renameFolder(editingFolder.id, to: folderName) else {
-                    showMessage("Could not rename folder", "This folder is no longer available.")
-                    return
+        guard let store = WorkoutStore.live() else { return }
+        let editing = editingFolder
+        let name = folderName
+        Task { @MainActor in
+            do {
+                let created = try await store.perform { store -> WorkoutFolder? in
+                    if let editing {
+                        guard try store.renameFolder(editing.id, to: name) else {
+                            throw WorkoutStore.StoreError.invalidFolderReference
+                        }
+                        return nil
+                    }
+                    return try store.createFolder(named: name)
                 }
-            } else {
-                let created = try store.createFolder(named: folderName)
-                selectedFolder = .folder(created.id)
+                if let created { selectedFolder = .folder(created.id) }
+                editingFolder = nil
+                await refresh()
+            } catch {
+                showMessage("Could not save folder", "Use a different, nonempty folder name and try again.")
             }
-            self.editingFolder = nil
-            _ = refresh()
-        } catch {
-            showMessage("Could not save folder", "Use a different, nonempty folder name and try again.")
         }
     }
 
     private func deleteSelectedFolder() {
         saveConfirmation = nil
-        defer { folderPendingDeletion = nil }
         guard let folder = folderPendingDeletion, let store = WorkoutStore.live() else { return }
-        do {
-            if try store.deleteFolder(folder.id) {
-                if selectedFolder == .folder(folder.id) { selectedFolder = .unfiled }
-                _ = refresh()
+        folderPendingDeletion = nil
+        Task { @MainActor in
+            do {
+                if try await store.perform({ try $0.deleteFolder(folder.id) }) {
+                    if selectedFolder == .folder(folder.id) { selectedFolder = .unfiled }
+                    await refresh()
+                }
+            } catch {
+                showMessage("Could not delete folder", "Your workouts are still saved. Try again.")
             }
-        } catch {
-            showMessage("Could not delete folder", "Your workouts are still saved. Try again.")
         }
     }
 
     private func finishMove(_ workout: Workout, to folderID: UUID?) {
-        if moveWorkout(workout, to: folderID) { movingWorkout = nil }
+        Task { @MainActor in
+            if await moveWorkout(workout, to: folderID) { movingWorkout = nil }
+        }
     }
 
-    private func moveWorkout(_ workout: Workout, to folderID: UUID?) -> Bool {
+    @MainActor
+    private func moveWorkout(_ workout: Workout, to folderID: UUID?) async -> Bool {
         saveConfirmation = nil
-        guard let store = WorkoutStore.live() else {
-            showMessage("Could not move workout", "yarms could not access its saved workouts.")
-            return false
-        }
+        guard let store = WorkoutStore.live() else { return false }
         do {
-            guard try store.moveWorkout(workout.id, to: folderID) else {
+            guard try await store.perform({ try $0.moveWorkout(workout.id, to: folderID) }) else {
                 showMessage("Could not move workout", "This workout changed. Reopen it and try again.")
                 return false
             }
-            _ = refresh()
+            await refresh()
             return true
         } catch {
             showMessage("Could not move workout", "Your workout is still saved. Try again.")
@@ -604,51 +625,71 @@ struct LibraryShellView: View {
             showMessage("Could not update workouts", "yarms could not access its saved links.")
             return
         }
-        do {
-            let pending = try inbox.save(link)
-            selectedFolder = .unfiled
-            guard refresh() else { return }
-            let isNew = workouts.contains { $0.id == pending.id }
-            if !isNew { selectedFolder = .all }
-            confirmSave(isNew ? "Saved for your next move." : "Already in your library.",
-                        celebrates: isNew)
-        } catch {
-            showMessage("Could not update workouts", "yarms could not save that link.")
+        guard let store = WorkoutStore.live() else { return }
+        Task { @MainActor in
+            do {
+                let pending = try await store.perform { _ in try inbox.save(link) }
+                selectedFolder = .unfiled
+                guard await refresh() else { return }
+                let isNew = workouts.contains { $0.id == pending.id }
+                if !isNew { selectedFolder = .all }
+                confirmSave(isNew ? "Saved for your next move." : "Already in your library.",
+                            celebrates: isNew)
+            } catch {
+                showMessage("Could not update workouts", "yarms could not save that link.")
+            }
         }
     }
 
-    @discardableResult
-    private func refresh(showNewShares: Bool = false) -> Bool {
-        guard let store = WorkoutStore.live() else {
-            showMessage("Could not update workouts", "yarms could not access its saved workouts.")
-            return false
-        }
+    @MainActor @discardableResult
+    private func refresh(showNewShares: Bool = false) async -> Bool {
+        guard let store = WorkoutStore.live() else { return false }
         do {
-            // Compare against persisted records so opening an existing library never
-            // looks like a fresh save. Only pending captures can trigger feedback.
-            let currentIDs = Set(try store.load().map(\.id))
-            let imported = try store.importPending()
-            folders = try store.loadFolders()
+            let snapshot = try await store.perform { try $0.refresh() }
+            guard applySnapshot(snapshot) else { return true }
             selectedFolder = FolderSelection.afterImport(
-                selectedFolder, previousIDs: currentIDs, imported: imported,
+                selectedFolder, previousIDs: snapshot.previousIDs, imported: snapshot.workouts,
                 showNewShares: showNewShares
             )
-            if case .folder(let id) = selectedFolder,
-               !folders.contains(where: { $0.id == id }) {
-                selectedFolder = .all
-            }
-            workouts = imported
-            enrichmentQueue.reset(with: workouts)
-            scheduleEnrichment(using: store)
-            let addedCount = imported.filter { !currentIDs.contains($0.id) }.count
+            let addedCount = snapshot.workouts.filter { !snapshot.previousIDs.contains($0.id) }.count
             if showNewShares && addedCount > 0 {
                 confirmSave(addedCount == 1 ? "Saved for your next move." : "\(addedCount) workouts saved for later.",
                             celebrates: true)
             }
+            scheduleEnrichment(using: store)
             return true
         } catch {
             showMessage("Could not update workouts", "yarms could not read its saved workouts.")
             return false
+        }
+    }
+
+    @discardableResult
+    private func applySnapshot(_ snapshot: WorkoutStore.LibrarySnapshot) -> Bool {
+        guard snapshot.revision >= snapshotRevision else { return false }
+        snapshotRevision = snapshot.revision
+        workouts = snapshot.workouts
+        folders = snapshot.folders
+        if case .folder(let id) = selectedFolder, !folders.contains(where: { $0.id == id }) {
+            selectedFolder = .all
+        }
+        enrichmentQueue.reset(with: workouts)
+        return true
+    }
+
+    private func retryMetadata() {
+        guard !enrichmentQueue.hasActiveRequests, !retryingDetails else { return }
+        guard let store = WorkoutStore.live() else { return }
+        retryingDetails = true
+        Task { @MainActor in
+            do {
+                applySnapshot(try await store.perform { try $0.resetEnrichmentRetry() })
+                retryingDetails = false
+                scheduleEnrichment(using: store)
+            } catch {
+                retryingDetails = false
+                showMessage("Could not retry details", "Your workouts are still saved. Try again.")
+            }
         }
     }
 
@@ -660,16 +701,19 @@ struct LibraryShellView: View {
     }
 
     private func scheduleEnrichment(using store: WorkoutStore) {
+        guard scenePhase == .active, !retryingDetails else { return }
         for workout in enrichmentQueue.takeAvailable() {
             Task { await enrich(workout, using: store) }
         }
     }
 
+    @MainActor
     private func enrich(_ workout: Workout, using store: WorkoutStore) async {
         let result = await TikTokMetadataClient().enrich(workout.playbackLink)
         do {
-            try store.applyEnrichment(result, to: workout.id)
-            workouts = try store.load()
+            let snapshot = try await store.perform { try $0.applyEnrichment(result, to: workout.id) }
+            enrichmentQueue.finish(workout.id)
+            applySnapshot(snapshot)
         } catch {
             showMessage("Could not update workouts", "yarms saved the link but could not update its details.")
         }
@@ -678,43 +722,37 @@ struct LibraryShellView: View {
     }
 
     private func deleteSelectedWorkout() {
-        defer { workoutPendingDeletion = nil }
         guard let workout = workoutPendingDeletion else { return }
-        if !removeWorkout(workout) {
-            showMessage("Could not delete workout", "The saved workout could not be removed. Select it again from the library and retry.")
+        workoutPendingDeletion = nil
+        Task { @MainActor in
+            if !(await removeWorkout(workout)) {
+                showMessage("Could not delete workout", "The saved workout could not be removed. Select it again from the library and retry.")
+            }
         }
     }
 
-    private func removeWorkout(_ workout: Workout) -> Bool {
+    @MainActor
+    private func removeWorkout(_ workout: Workout) async -> Bool {
         saveConfirmation = nil
         guard let store = WorkoutStore.live() else { return false }
         do {
-            guard try store.remove(workout.id) else {
-                // Enrichment may have combined this selection with an older save.
-                workouts = try store.load()
-                enrichmentQueue.reset(with: workouts)
-                return false
-            }
-            workouts.removeAll { $0.id == workout.id }
-            enrichmentQueue.reset(with: workouts)
-            return true
-        } catch {
-            return false
-        }
+            let removed = try await store.perform { try $0.remove(workout.id) }
+            await refresh()
+            return removed
+        } catch { return false }
     }
 
     private func exportBackup() {
-        guard let store = WorkoutStore.live() else {
-            showMessage("Could not export backup", "yarms could not access its saved workouts.")
-            return
-        }
-        do {
-            let data = try store.exportBackup()
-            exportedBackupExceedsImportLimit = data.count > WorkoutBackup.maximumBytes
-            backupDocument = WorkoutBackupDocument(data: data)
-            showingExporter = true
-        } catch {
-            showMessage("Could not export backup", "yarms could not prepare the backup file.")
+        guard let store = WorkoutStore.live() else { return }
+        Task { @MainActor in
+            do {
+                let data = try await store.perform { try $0.exportBackup() }
+                exportedBackupExceedsImportLimit = data.count > WorkoutBackup.maximumBytes
+                backupDocument = WorkoutBackupDocument(data: data)
+                showingExporter = true
+            } catch {
+                showMessage("Could not export backup", "yarms could not prepare the backup file.")
+            }
         }
     }
 
@@ -725,37 +763,39 @@ struct LibraryShellView: View {
                 showMessage("Could not read backup", "Choose a yarms JSON backup file and try again.")
             }
         case .success(let url):
-            let hasAccess = url.startAccessingSecurityScopedResource()
-            defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
-            do {
-                pendingBackup = try WorkoutBackup.load(from: url)
-                confirmingRestore = true
-            } catch let error as WorkoutBackup.BackupError where error == .tooLarge {
-                showMessage("Backup too large", "Choose a yarms backup smaller than 10 MB.")
-            } catch {
-                showMessage("Could not read backup", "This file is not a supported yarms backup.")
+            guard let store = WorkoutStore.live() else { return }
+            Task { @MainActor in
+                do {
+                    pendingBackup = try await store.perform { _ in
+                        let hasAccess = url.startAccessingSecurityScopedResource()
+                        defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
+                        return try WorkoutBackup.load(from: url)
+                    }
+                    confirmingRestore = true
+                } catch let error as WorkoutBackup.BackupError where error == .tooLarge {
+                    showMessage("Backup too large", "Choose a yarms backup smaller than 10 MB.")
+                } catch {
+                    showMessage("Could not read backup", "This file is not a supported yarms backup.")
+                }
             }
         }
     }
 
     private func restoreBackup() {
         saveConfirmation = nil
-        guard let backup = pendingBackup, let store = WorkoutStore.live() else {
-            showMessage("Could not restore backup", "yarms could not access its saved workouts.")
-            return
-        }
+        guard let backup = pendingBackup, let store = WorkoutStore.live() else { return }
         pendingBackup = nil
-        do {
-            let result = try store.restoreBackup(backup)
-            if !refresh() {
-                workouts = (try? store.load()) ?? workouts
-                folders = (try? store.loadFolders()) ?? folders
-                showMessage("Backup restored", "The backup was restored, but yarms could not refresh every pending link. Reopen the app to refresh the library.")
-                return
+        Task { @MainActor in
+            do {
+                let result = try await store.perform { try $0.restoreBackup(backup) }
+                guard await refresh() else {
+                    showMessage("Backup restored", "The backup was restored, but yarms could not refresh every pending link. Reopen the app to refresh the library.")
+                    return
+                }
+                showMessage("Backup restored", "Added \(result.added) workouts; updated or combined \(result.updated) existing records.")
+            } catch {
+                showMessage("Could not restore backup", "yarms could not save the backup. Try again.")
             }
-            showMessage("Backup restored", "Added \(result.added) workouts; updated or combined \(result.updated) existing records.")
-        } catch {
-            showMessage("Could not restore backup", "yarms could not save the backup. Try again.")
         }
     }
 

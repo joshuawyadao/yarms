@@ -1,86 +1,131 @@
 name: Repository Verify
-
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
-
+    inputs:
+      full_evidence:
+        description: Upload full build logs and result bundles
+        type: boolean
+        default: false
 permissions:
   contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   verify:
     name: Repository Verify
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    outputs:
+      full: ${{ steps.scope.outputs.full }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Run repository checks
-        run: ./scripts/verify-repository.sh
-
-  ios:
-    name: CI Verify
+          fetch-depth: 0
+      - name: Classify changes
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/ci-scope.py >> "$GITHUB_OUTPUT"
+      - run: ./scripts/verify-repository.sh
+  ios-internal:
+    name: iOS tests
+    needs: verify
+    if: needs.verify.result == 'success' && needs.verify.outputs.full == 'true'
     runs-on: macos-15
-    # Leave time around the 25-minute test bound for building, cold boot,
-    # cleanup and result upload.
     timeout-minutes: 40
     steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Build iPhone app
-        run: xcodebuild -quiet -project Yarms.xcodeproj -scheme Yarms -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
-
-      - name: Run iPhone unit and UI tests
-        run: python3 scripts/test-ios.py --suite full --timeout-seconds 1500
-
-      - name: Keep test results
+      - name: Report toolchain
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes
+      - run: python3 scripts/test-ios.py --suite full --timeout-seconds 1500
+      - name: Keep compact test evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Yarms-test-results
+          name: Yarms-test-summary
           path: |
             .build/test-runs/*/report.json
             .build/test-runs/*/summary.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Keep full test evidence
+        if: failure() || inputs.full_evidence == true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Yarms-test-detail
+          path: |
             .build/test-runs/*/xcodebuild.log
             .build/test-runs/*/Tests.xcresult
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
-
-  release:
-    name: Release Verify
+  release-internal:
+    name: Release build
+    needs: verify
+    if: needs.verify.result == 'success' && needs.verify.outputs.full == 'true'
     runs-on: macos-15
     timeout-minutes: 20
     steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-
-      - name: Validate Release app and Share extension
-        run: python3 scripts/release-ios.py check --timeout-seconds 900
-
-      - name: Keep Release verification evidence
+      - run: xcodebuild -version
+      - run: python3 scripts/release-ios.py check --timeout-seconds 900
+      - name: Keep compact Release evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: Yarms-release-results
+          name: Yarms-release-summary
           path: |
             .build/releases/*/report.json
-            .build/releases/*/xcodebuild.log
             .build/releases/*/release-notes.md
           include-hidden-files: true
           if-no-files-found: ignore
+          retention-days: 14
+      - name: Keep full Release log
+        if: failure() || inputs.full_evidence == true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Yarms-release-detail
+          path: .build/releases/*/xcodebuild.log
+          include-hidden-files: true
+          if-no-files-found: ignore
           retention-days: 7
+  ci-gate:
+    name: CI Verify
+    if: always()
+    needs: [verify, ios-internal]
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          REPO_RESULT: ${{ needs.verify.result }}
+          IOS_RESULT: ${{ needs.ios-internal.result }}
+          FULL: ${{ needs.verify.outputs.full }}
+        run: |
+          test "$REPO_RESULT" = success
+          if test "$FULL" = true; then test "$IOS_RESULT" = success; else test "$IOS_RESULT" = skipped; fi
+  release-gate:
+    name: Release Verify
+    if: always()
+    needs: [verify, release-internal]
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          REPO_RESULT: ${{ needs.verify.result }}
+          RELEASE_RESULT: ${{ needs.release-internal.result }}
+          FULL: ${{ needs.verify.outputs.full }}
+        run: |
+          test "$REPO_RESULT" = success
+          if test "$FULL" = true; then test "$RELEASE_RESULT" = success; else test "$RELEASE_RESULT" = skipped; fi
