@@ -51,7 +51,7 @@ sequenceDiagram
     App->>Library: Atomically save new workout records
     App->>Inbox: Acknowledge imported entries
     App-->>You: Show new workout in Unfiled
-    App->>TikTok: Resolve short link; request metadata
+    App->>TikTok: Resolve short link and request metadata
     TikTok-->>App: Available title, creator, thumbnail URL
     App->>Library: Persist details and retry state
     App-->>You: Refresh card
