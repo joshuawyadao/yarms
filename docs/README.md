@@ -18,6 +18,7 @@ Start with the guide for your task. These pages describe the checked-in app; mil
 
 | Guide | What you will find |
 | --- | --- |
+| [Implementation catch-up](Project-Catchup.md) | Visual learning reference, save/player walkthroughs, design tradeoffs, engineering concepts, Apple procedures, dated baseline and running update log |
 | [Repository map](Repository-Map.md) | Source responsibilities, target membership, configuration, and where to make common changes |
 | [Architecture](Architecture.md) | Capture and playback diagrams, module boundaries, failure behavior, and terminology |
 | [Data and privacy](Data-and-Privacy.md) | Storage locations, schema fields, backup validation and merge rules, network boundaries |
