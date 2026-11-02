@@ -1,33 +1,19 @@
 # Plan
 
-Implement the efficiency audit’s immediate recommendations while preserving local-only storage, durable capture, backup validation and native accessibility behavior, then prepare an unmerged PR into main.
+Save a visual, evidence-backed project catch-up as a dated running reference, link it from the documentation, and prepare an unmerged PR into main.
 
 ## Scope
-- In: F01 batched library snapshots and background storage, F02 persisted bounded metadata retries, F03/F04 targeted CI without duplicate builds, F05 deterministic Debug-only UI fixtures, F06 evidence retention and opt-in local pruning, F08 note-heavy restore scaling, F09 direct import normalization, F10 fewer redirect requests; tests and canonical docs.
-- Out: new hosting or subscriptions, database migration, physical-device installation, PR merging, and speculative image/player changes. F07’s new large-backup format remains a documented growth follow-up; preserve the current 10 MiB import limit and complete export warning.
+- In: `docs/Project-Catchup.md`, documentation index/map links, a dated baseline and append-only learning/snapshot log, engineering concepts and Apple procedures, scoped review and repository verification.
+- Out: application or test behavior changes, cache implementation, distribution, new infrastructure, and merging the PR.
 
 ## Action items
-- [x] Inspect the audit, current source/tests and Architecture, Data-and-Privacy, Development, Release and Testing documentation; branch from current origin/main.
-- [x] Stabilize ordinary UI journeys with local metadata/player fixtures scoped to valid Debug test storage; preserve native VoiceOver assertions and Release exclusions.
-- [x] Add one-read library refresh and one-commit pending imports, consistent snapshots, unchanged-write avoidance and serialized off-main execution for refresh/enrichment; retain commit-before-acknowledgement and fresh reads for App Intent changes.
-- [x] Persist metadata outcomes and retry dates locally; cap attempts, honor Retry-After, pause scheduling while inactive, provide manual retry and skip redundant canonical HEAD requests.
-- [x] Remove backup decode round trips without weakening sanitization/size limits; benchmark and improve repeated note merging while preserving paragraph occurrence and precedence.
-- [x] Gate macOS CI by relevant changes and successful fast checks, remove the redundant generic Debug build, retain stable required statuses and compact evidence, and add preview-first local pruning/phase metrics.
-- [x] Extend focused storage/retry/network/fixture and host tests for failures, replays, stale writes, size limits, no external UI networking and protected evidence; run targeted checks, full simulator tests and unsigned Release verification.
-- [x] Update Architecture, Data-and-Privacy, Testing, Development, Release and repository map as appropriate with actual behavior, measurements and deferred limits.
-- [x] Checkpoint coherent changes, push this branch, open/attach draft PR #16, run Brooks and Codex review and save the review fixes. Keep the remaining CI/review readiness loop on the PR; final status is reported after fresh terminal checks without merging.
-- [x] Address Codex P2 comment 4355584117: retain short-link resolver failure classification and Retry-After when combining it with oEmbed results, while preserving useful metadata and redirect validation.
-- [x] Add controlled-network regressions for timeout plus successful metadata, transient HEAD plus permanent oEmbed response, and the later retry delay; run app tests and repository verification, update Architecture/Testing/Efficiency. App suite: 103 passed, zero failures and three expected skips; owned cleanup succeeded. Repository checks: 54 passed.
-- [x] Fix observed CI test synchronization: use the existing five-second disappearance wait after Done in both completion journeys; retain content, accessibility, dismissal and draft-preservation assertions. No production behavior or existing timeout increase is needed.
-- [x] Run the focused feedback suite and update Testing/Efficiency with the failed run and narrow fix: five passed, zero failures, one expected VoiceOver skip on iOS 26.5, with successful owned cleanup. Save the follow-up on this branch.
-- [x] Address Codex P2 comment 4382833738: move next-retry selection into WorkoutEnrichmentQueue and share missing-detail/state eligibility with queue reset so a fully populated pending workout cannot block later deadlines.
-- [x] Add fixed-date scheduling regressions for that blocker, later eligible work and terminal/invalid deadlines; validate the app suite and update Architecture/Testing/Efficiency. App suite: 105 passed, zero failures, three expected skips and successful owned cleanup. Save and acknowledge the fix on the PR.
-- [x] Address Codex P2 comment 4382914794: make the timer's selected deadline nil while inactive so scene activation re-arms an unchanged pending deadline; preserve queue bounds and active-only requests.
-- [x] Add a fixed-date inactive-result/reactivation regression, validate the integrated app suite and update the scheduling docs. App suite: 106 passed, zero failures, three expected skips and successful cleanup on iOS 26.5. Save and acknowledge the fix on the PR.
-- [ ] Recheck final CI, Codex feedback and mergeability without merging PR #16; the PR records current-head readiness after this source checkpoint.
+- [x] Inspect current source, history, catch-up template, Architecture, Data-and-Privacy, User-Guide, Development, Release, Testing and Efficiency; confirm clean checkout and branch from origin/main.
+- [ ] Write the visual reference with product/stack map, capture and player sequences, storage/cache boundaries, decision rationale, limitations, engineering concepts and Apple procedures.
+- [ ] Record full repository/revision/time-zone metadata, the default 30-day comparison, historical versus current verification, self-reported understanding, open questions and future snapshot instructions.
+- [ ] Link the reference from `docs/README.md` and `docs/Repository-Map.md`; keep canonical guides authoritative and mark cache suggestions as unimplemented.
+- [ ] Verify source claims, relative links, Mermaid structure and whitespace; run `./scripts/verify-repository.sh`. No test files or simulator run are needed because this changes documentation only.
+- [ ] Review the diff with Brooks, commit and push the documentation; create a PR and request Codex review.
+- [ ] Address actionable feedback, wait for terminal CI/review and fresh mergeability, and leave the PR unmerged with its final status reported.
 
 ## Open questions
-- None. Keep the existing backup format and cost-free architecture; measure or document conditional follow-ups rather than adding infrastructure.
-
-## Checkpoint validation
-- Host verifier: 54 passing tests; Swift syntax parsing and worker storage typechecking passed. Unsigned Release verification passed. Full local iOS 26.5: 113 passed, zero failures and four expected skips; cleanup succeeded. All five hosted checks passed on 465d030. Codex found the remaining transient-resolution classification issue; no successful iOS 27 accessibility result is claimed.
+- None. Use the project-catchup saved-reference template and preserve dated snapshots as historical evidence.
