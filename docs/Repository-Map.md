@@ -69,6 +69,7 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | --- | --- |
 | [README.md](../README.md) | Product overview and navigation. |
 | [docs/README.md](README.md) | Task-oriented documentation index. |
+| [Project-Catchup.md](Project-Catchup.md) | Visual implementation/decision learning reference with source baseline, walkthroughs and append-only learning/snapshot history. |
 | [CONTRIBUTING.md](../CONTRIBUTING.md), [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md), [SECURITY.md](../SECURITY.md), [LICENSE](../LICENSE) | Contribution process, community rules, private vulnerability reporting, and MIT license. |
 | [.github/ISSUE_TEMPLATE/](../.github/ISSUE_TEMPLATE/) and [pull_request_template.md](../.github/pull_request_template.md) | Bug/feature forms, issue-template config, and PR reporting prompts. |
 | [Architecture.md](Architecture.md), [Data-and-Privacy.md](Data-and-Privacy.md), [Design-Language.md](Design-Language.md), [Design-and-Assets.md](Design-and-Assets.md), [User-Guide.md](User-Guide.md) | Current system, data, UI design rules, assets, and user task references. |
