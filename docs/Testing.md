@@ -288,3 +288,9 @@ struct KeyboardDiagnosticScreen: View {
 ```
 
 Use a disposable app/test copy for this diagnostic; do not replace the production screen. Focus the editor, assert that the keyboard appears, type and verify text, tap Done, and assert keyboard dismissal. A clean diagnostic requires both successful UI assertions and zero matching runtime warnings; simply suppressing or ignoring the warning is not a fix.
+
+## TestFlight preparation verification — November 9, 2026
+
+Xcode 27.2 passed the unsigned Release simulator gate and an unsigned device archive for version 1.0.0/build 2, including the bundled policy, both privacy manifests and Boolean encryption metadata. All 56 repository host checks passed (23 Release tests). A full iOS 26.5 run passed 119 tests with four expected skips and one failure: the new privacy test had not launched its configured isolated app. Adding the missing launch preserved every assertion; the corrected focused test passed on a fresh iPhone 17 Pro/iOS 26.5, its policy screenshot was visually inspected, and cleanup succeeded. Final full-suite CI results are recorded on the preparation PR.
+
+Two earlier iOS 27 attempts stopped during CoreSimulator setup before XCTest (catalog access, then a device returning to Shutdown); no application failure is inferred. The second attempt cleaned up its owned simulator, and the first left no owned device. No paid-team signing, Apple upload or TestFlight-device verification is claimed by these unsigned checks.

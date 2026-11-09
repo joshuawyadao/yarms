@@ -9,6 +9,7 @@ final class YarmsUITests: XCTestCase {
     @MainActor
     func testPrivacyPolicyIsBundledAndDismissesToLibrary() throws {
         let app = isolatedApp()
+        app.launch()
         let privacy = app.buttons["privacyPolicyButton"]
         XCTAssertTrue(privacy.waitForExistence(timeout: 5), "Privacy must be accessible before saving a workout")
         privacy.tap()

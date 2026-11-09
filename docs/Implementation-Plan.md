@@ -12,7 +12,7 @@ Prepare Yarms for a private external TestFlight beta with accessible privacy inf
 - [x] Audit production APIs and dependencies, add accurate privacy manifests to both bundles, configure exempt-encryption metadata, and preserve these resources in the project generator.
 - [x] Extend Release artifact checks and host regressions for missing/malformed manifests, encryption metadata and missing policy so packaging omissions fail before upload.
 - [x] Write `docs/TestFlight.md` with paid-team/Keychain setup, backup-before-upgrade, Xcode archive/upload, compliance, reviewer instructions, private invitations and expiry; update canonical documentation links and behavior notes.
-- [ ] Run repository verification, focused privacy UI coverage, the full simulator suite and real Release check/unsigned archive; inspect the privacy screen and packaged resources, and record signing/device limits.
+- [x] Run repository verification, focused privacy UI coverage, the full simulator suite and real Release check/unsigned archive; inspect the privacy screen and packaged resources, and record signing/device limits.
 - [ ] Run Brooks review, save and push the branch, open a draft PR, request Codex review and handle actionable feedback and CI until terminal readiness or a concrete blocker.
 
 ## Open questions
@@ -42,3 +42,8 @@ No actionable findings from R1–R6 or the Quick Test Check. Resource duplicatio
 - No Brooks remediation required.
 - Actual Release build and unsigned archive verify generated resource wiring; simulator UI verification is pending.
 - Apple signing, service-terms/privacy answers and real TestFlight device acceptance remain explicit submission steps.
+
+- Local privacy regression initially failed because the new test configured `isolatedApp()` without launching it; existing helpers launch during Paste. Added the missing `app.launch()` without weakening assertions. Other observed UI flows passed; final suite verification follows the fix.
+- Corrected privacy regression passed on a fresh iPhone 17 Pro/iOS 26.5 (one passed, zero failed/skipped), with successful simulator/DerivedData cleanup. Exported and visually inspected its synthetic policy screenshot: readable layout, clear title and reachable Done. The earlier full run completed with 119 passed, one failure (the now-fixed missing launch), and four expected skips; final full coverage is delegated to CI on the corrected head, not claimed as a clean local full-suite pass.
+- GitHub: pushed plan `944c53b`, implementation `8aba98c`, and review checkpoint `3b83cb3`; opened draft PR #18. Codex review completed on `3b83cb3` with no findings, and no inline comments. First-run Repository Verify, Release build and Release Verify passed; full CI tests were still running at this checkpoint. The final head's current review/check/mergeability state is reported on the PR and in the completion response, without merging.
+- Follow-up Brooks pass: the test launch correction adds no production behavior, weakens no assertion and has focused passing UI evidence; no actionable maintainability finding. All 56 host checks passed again. No files intentionally excluded beyond ignored local build/test evidence.
