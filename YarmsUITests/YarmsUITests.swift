@@ -7,6 +7,25 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
+    func testPrivacyPolicyIsBundledAndDismissesToLibrary() throws {
+        let app = isolatedApp()
+        let privacy = app.buttons["privacyPolicyButton"]
+        XCTAssertTrue(privacy.waitForExistence(timeout: 5), "Privacy must be accessible before saving a workout")
+        privacy.tap()
+        let policy = app.staticTexts["privacyPolicyText"]
+        XCTAssertTrue(policy.waitForExistence(timeout: 5), "The bundled policy must open without a web request")
+        XCTAssertTrue(policy.label.contains("TikTok and network requests"), "The policy must disclose the embedded player")
+        XCTAssertTrue(policy.label.contains("Exports are unencrypted JSON"), "The policy must disclose backup contents")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Bundled privacy policy"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["closePrivacyPolicyButton"].tap()
+        XCTAssertTrue(policy.waitForNonExistence(timeout: 5), "Done must dismiss the privacy sheet")
+        XCTAssertTrue(privacy.isHittable, "Closing privacy must return to the usable library")
+    }
+
+    @MainActor
     func testManualMetadataRetryPreservesSavedWorkout() throws {
         let app = isolatedApp()
         let videoID = pasteUniqueWorkout(into: app)

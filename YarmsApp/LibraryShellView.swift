@@ -82,6 +82,7 @@ struct LibraryShellView: View {
     @State private var saveConfirmation: String?
     @State private var saveEventID = 0
     @State private var celebratesSave = false
+    @State private var showingPrivacyPolicy = false
 
     private var nextRetryDate: Date? {
         WorkoutEnrichmentQueue.nextRetryDate(in: workouts, isActive: scenePhase == .active)
@@ -157,7 +158,10 @@ struct LibraryShellView: View {
                 Button("Retry workout details", systemImage: "arrow.clockwise") { retryMetadata() }
                     .disabled(workouts.isEmpty || enrichmentQueue.hasActiveRequests || retryingDetails)
                     .accessibilityIdentifier("retryWorkoutDetailsButton")
+                Button("Privacy policy", systemImage: "hand.raised") { showingPrivacyPolicy = true }
+                    .accessibilityIdentifier("privacyPolicyButton")
             }
+            .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
             .alert(messageTitle, isPresented: Binding(
                 get: { message != nil },
                 set: { if !$0 { message = nil } }

@@ -12,6 +12,8 @@ Start with the guide for your task. These pages describe the checked-in app; mil
 | [Sharing from TikTok](Shortcut-Sharing.md) | Enabling Save to yarms, the pending-link handoff, and optional Shortcut compatibility |
 | [Development and setup](Development.md) | Prerequisites, simulator builds, signing, installation, and project regeneration |
 | [Release builds and archives](Release.md) | Automated Release checks, versioned archives, signing boundaries, and retained evidence |
+| [Private TestFlight release](TestFlight.md) | Paid-team signing, archive upload, beta review, private invitations, and build expiry |
+| [Privacy policy](../PRIVACY.md) | Public user-facing policy, also bundled for offline reading in the app |
 | [Upgrade from an earlier build](Storage-Migration.md) | Export-before-upgrade steps for the former App Group library |
 
 ## Understand and maintain

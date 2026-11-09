@@ -9,6 +9,8 @@ Save TikTok workouts, organize them into folders, and follow along on your iPhon
 
 > **Available from source:** The MVP is implemented for iOS 18 or later. There is no App Store or TestFlight release; install with Xcode using the [development guide](docs/Development.md).
 
+Preparing a private beta? Follow the [TestFlight submission guide](docs/TestFlight.md). Read the [privacy policy](PRIVACY.md), also available offline from the app's **Privacy policy** toolbar button.
+
 ## Start here
 
 | I want to… | Read |

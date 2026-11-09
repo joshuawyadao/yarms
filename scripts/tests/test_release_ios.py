@@ -19,6 +19,8 @@ sys.path.insert(0, str(SCRIPTS))
 SPEC = importlib.util.spec_from_file_location("release_ios", SCRIPTS / "release-ios.py")
 release = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(release)
+PRIVACY_MANIFEST = {"NSPrivacyAccessedAPITypes": []}
+PRIVACY_POLICY = b"Synthetic privacy policy for release packaging tests."
 
 
 def settings(target, derived, *, version="1.0", build="1", team="", group=None):
@@ -43,12 +45,14 @@ def make_bundle(app, *, version, build, marker=None, bad_share=False):
                                         (share, release.SHARE_ID if not bad_share else "wrong.share", "YarmsShare")):
         info = {"CFBundleIdentifier": bundle_id, "CFBundleShortVersionString": version,
                 "CFBundleVersion": build, "MinimumOSVersion": "18.0",
-                "CFBundleExecutable": executable}
+                "CFBundleExecutable": executable, "ITSAppUsesNonExemptEncryption": False}
         if path == share:
             info["NSExtension"] = {"NSExtensionPointIdentifier": "com.apple.share-services"}
         with (path / "Info.plist").open("wb") as handle:
             plistlib.dump(info, handle)
         (path / executable).write_bytes(b"MachO release payload" + (marker or b""))
+        (path / "PrivacyInfo.xcprivacy").write_bytes(plistlib.dumps(PRIVACY_MANIFEST))
+    (app / "PRIVACY.md").write_bytes(PRIVACY_POLICY)
 
 
 class FakeExecutor:
@@ -130,21 +134,67 @@ class ReleaseCLITests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        (self.root / "PRIVACY.md").write_bytes(PRIVACY_POLICY)
         for target in ("YarmsApp", "YarmsShare"):
             directory = self.root / target
             directory.mkdir()
+            (directory / "PrivacyInfo.xcprivacy").write_bytes(plistlib.dumps(PRIVACY_MANIFEST))
             with (directory / "Yarms.entitlements").open("wb") as handle:
                 plistlib.dump({"keychain-access-groups": ["$(YARMS_KEYCHAIN_GROUP)"]}, handle)
 
     def run_release(self, args, fake):
         return release.execute(args, fake, self.root, source_root=self.root)
 
+    def test_packaged_privacy_resources_reject_missing_malformed_and_drifted_assets(self):
+        app = self.root / "Yarms.app"
+        make_bundle(app, version="1.0", build="1")
+        share = app / "PlugIns" / "YarmsShare.appex"
+        info = {"ITSAppUsesNonExemptEncryption": False}
+        for bundle in (app, share):
+            path = bundle / "PrivacyInfo.xcprivacy"
+            for content in (None, b"invalid plist", plistlib.dumps([]),
+                            plistlib.dumps({}), plistlib.dumps({"NSPrivacyAccessedAPITypes": "wrong"}),
+                            plistlib.dumps({"NSPrivacyAccessedAPITypes": [], "NSPrivacyTracking": True})):
+                with self.subTest(bundle=bundle.name, manifest=content):
+                    if content is None:
+                        path.unlink()
+                    else:
+                        path.write_bytes(content)
+                    with self.assertRaises(release.RunError):
+                        release.validate_privacy_resources(app, share, info, info, self.root)
+                    path.write_bytes(plistlib.dumps(PRIVACY_MANIFEST))
+        policy = app / "PRIVACY.md"
+        for content in (None, b"", b"A stale privacy policy"):
+            with self.subTest(policy=content):
+                if content is None:
+                    policy.unlink()
+                else:
+                    policy.write_bytes(content)
+                with self.assertRaisesRegex(release.RunError, "privacy policy"):
+                    release.validate_privacy_resources(app, share, info, info, self.root)
+                policy.write_bytes(PRIVACY_POLICY)
+
+    def test_both_bundles_require_a_boolean_exempt_encryption_declaration(self):
+        app = self.root / "Yarms.app"
+        make_bundle(app, version="1.0", build="1")
+        share = app / "PlugIns" / "YarmsShare.appex"
+        valid = {"ITSAppUsesNonExemptEncryption": False}
+        for target in ("app", "share"):
+            for value in (None, True, "NO", 0):
+                with self.subTest(target=target, value=value):
+                    invalid = {} if value is None else {"ITSAppUsesNonExemptEncryption": value}
+                    with self.assertRaisesRegex(release.RunError, "ITSAppUsesNonExemptEncryption"):
+                        release.validate_privacy_resources(app, share,
+                            invalid if target == "app" else valid,
+                            invalid if target == "share" else valid, self.root)
+
     def run_main(self, fake):
-        validate = release.validate_settings
-        def validate_fixture(settings, args, source_root=release.ROOT):
-            return validate(settings, args, self.root)
+        execute = release.execute
+        def execute_fixture(*args, **kwargs):
+            kwargs['source_root'] = self.root
+            return execute(*args, **kwargs)
         output = io.StringIO()
-        with mock.patch.object(release, "validate_settings", side_effect=validate_fixture):
+        with mock.patch.object(release, "execute", side_effect=execute_fixture):
             with redirect_stdout(output):
                 exit_code = release.main(["check"], fake, self.root)
         return exit_code, json.loads(output.getvalue())

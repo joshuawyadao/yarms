@@ -29,6 +29,24 @@ def ensure_ui_test_target(project, app)
   target
 end
 
+def configure_distribution_resources(project)
+  app = project.targets.find { |target| target.name == 'Yarms' }
+  app.build_configurations.each do |config|
+    config.build_settings['INFOPLIST_KEY_ITSAppUsesNonExemptEncryption'] = 'NO'
+  end
+  { 'YarmsApp' => 'Yarms', 'YarmsShare' => 'YarmsShare' }.each do |folder, name|
+    group = project.main_group.find_subpath(folder, false)
+    reference = group.files.find { |item| item.path == 'PrivacyInfo.xcprivacy' } ||
+                group.new_file('PrivacyInfo.xcprivacy')
+    phase = project.targets.find { |target| target.name == name }.resources_build_phase
+    phase.add_file_reference(reference) unless phase.files_references.include?(reference)
+  end
+  policy = project.main_group.files.find { |item| item.path == 'PRIVACY.md' } ||
+           project.main_group.new_file('PRIVACY.md')
+  phase = app.resources_build_phase
+  phase.add_file_reference(policy) unless phase.files_references.include?(policy)
+end
+
 if File.exist?(File.join(path, 'project.pbxproj'))
   project = Xcodeproj::Project.open(path)
   app = project.targets.find { |target| target.name == 'Yarms' }
@@ -77,6 +95,7 @@ if File.exist?(File.join(path, 'project.pbxproj'))
       end
     end
   end
+  configure_distribution_resources(project)
   project.save
   scheme_path = File.join(path, 'xcshareddata', 'xcschemes', 'Yarms.xcscheme')
   scheme = Xcodeproj::XCScheme.new(scheme_path)
@@ -178,6 +197,7 @@ end
   end
 end
 
+configure_distribution_resources(project)
 project.save
 scheme = Xcodeproj::XCScheme.new
 scheme.add_build_target(app)

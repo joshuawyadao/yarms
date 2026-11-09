@@ -2,6 +2,8 @@
 
 The shared **Yarms** scheme includes `YarmsTests` and `YarmsUITests`. Run from the repository root on a Mac with Xcode and an available iPhone simulator. Find a destination with `xcrun simctl list devices available`; substitute its name or ID below. The simulator suite uses invented TikTok-shaped links and controlled network responses for deterministic checks. External TikTok, Share Sheet, signing, and Files behavior also need [device checks](#signed-iphone-checks).
 
+The isolated privacy UI regression opens the bundled policy before saving any workout, checks network/backup disclosure text, and dismisses to a usable library. Release host regressions exercise both bundles' missing/malformed/drifted manifests, missing/stale policy and Boolean encryption metadata. The real Release checker verifies built resources; the simulator does not establish TestFlight signing or live TikTok behavior. See [TestFlight](TestFlight.md) for those acceptance checks.
+
 ## Deterministic UI and efficiency checks
 
 Routine UI tests pass both a valid `-YarmsUITestStoreID` UUID and `-YarmsUITestFixtures`. The Debug app returns local metadata results and local player HTML with external resources denied by CSP. Native VoiceOver navigation/focus assertions stay intact; these tests validate app behavior against a fixed player, while live TikTok player-tree compatibility remains a separate device check. Neither flag enables fixtures in Release or without a valid isolated store.
