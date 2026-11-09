@@ -25,6 +25,8 @@ Local runner reports include elapsed phase times and log size. Preview old succe
 
 Run `python3 scripts/release-ios.py check` for an unsigned Release app and Share extension check. Use the [Release guide](Release.md) for versioned archives, local signing requirements, retained reports, and release notes. The archive command sets version and build inputs for that invocation without changing the project.
 
+For a private beta installed through TestFlight, follow [Private TestFlight release](TestFlight.md). The public policy and per-target privacy manifests are resources wired by the checked-in project and optional generator. Keep the exempt-encryption declaration accurate when adding cryptography.
+
 ## Install on an iPhone
 
 1. Connect the iPhone to a Mac with Xcode, open the project, and select the **Yarms** scheme and that device.

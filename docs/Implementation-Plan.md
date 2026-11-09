@@ -1,26 +1,49 @@
 # Plan
 
-Save a visual, evidence-backed project catch-up as a dated running reference, link it from the documentation, and prepare an unmerged PR into main.
+Prepare Yarms for a private external TestFlight beta with accessible privacy information, explicit release metadata, validated packaging, and a reproducible submission guide.
 
 ## Scope
-- In: `docs/Project-Catchup.md`, documentation index/map links, a dated baseline and append-only learning/snapshot log, engineering concepts and Apple procedures, scoped review and repository verification.
-- Out: application or test behavior changes, cache implementation, distribution, new infrastructure, and merging the PR.
+- In: offline and public privacy policy, native privacy entry point, audited privacy manifests, export-compliance setting, project/generator resource wiring, Release packaging regressions, TestFlight instructions, validation and an unmerged PR.
+- Out: uploading to Apple, accepting agreements, changing account credentials or signing identities, publishing a website, changing TikTok playback/data collection, and merging the PR.
 
 ## Action items
-- [x] Inspect current source, history, catch-up template, Architecture, Data-and-Privacy, User-Guide, Development, Release, Testing and Efficiency; confirm clean checkout and branch from origin/main.
-- [x] Write the visual reference with product/stack map, capture and player sequences, storage/cache boundaries, decision rationale, limitations, engineering concepts and Apple procedures.
-- [x] Record full repository/revision/time-zone metadata, the default 30-day comparison, historical versus current verification, self-reported understanding, open questions and future snapshot instructions.
-- [x] Link the reference from `docs/README.md` and `docs/Repository-Map.md`; keep canonical guides authoritative and mark cache suggestions as unimplemented.
-- [x] Verify source claims, relative links, Mermaid structure and whitespace; run `./scripts/verify-repository.sh`. No test files or simulator run are needed because this changes documentation only.
-- [x] Review the diff with Brooks, commit and push the documentation; create a PR and request Codex review.
-- [ ] Address actionable feedback, wait for terminal CI/review and fresh mergeability, and leave the PR unmerged with its final status reported.
+- [x] Inspect Development, Release, Data-and-Privacy, Testing, User-Guide, Repository-Map, project generation, Release host tests and UI isolation; branch from current origin/main.
+- [x] Add a canonical bundled `PRIVACY.md` and accessible in-app privacy sheet with an online policy link; cover offline presentation/dismissal with an isolated UI regression.
+- [x] Audit production APIs and dependencies, add accurate privacy manifests to both bundles, configure exempt-encryption metadata, and preserve these resources in the project generator.
+- [x] Extend Release artifact checks and host regressions for missing/malformed manifests, encryption metadata and missing policy so packaging omissions fail before upload.
+- [x] Write `docs/TestFlight.md` with paid-team/Keychain setup, backup-before-upgrade, Xcode archive/upload, compliance, reviewer instructions, private invitations and expiry; update canonical documentation links and behavior notes.
+- [x] Run repository verification, focused privacy UI coverage, the full simulator suite and real Release check/unsigned archive; inspect the privacy screen and packaged resources, and record signing/device limits.
+- [ ] Run Brooks review, save and push the branch, open a draft PR, request Codex review and handle actionable feedback and CI until terminal readiness or a concrete blocker.
 
 ## Open questions
-- None. Use the project-catchup saved-reference template and preserve dated snapshots as historical evidence.
+- None. Use the public repository's main-branch `PRIVACY.md` as the policy URL; it becomes current after merge. Account-specific contact fields and a working public sample link are supplied by the account holder at submission.
 
 ## Validation and review ledger
-- Documentation verification: `./scripts/verify-repository.sh` passed on November 2, 2026 (54 host tests, local Markdown links, project/entitlement checks and whitespace). No app/test behavior changed; no test files were added and no simulator/device suite was run locally.
-- Mermaid: GitHub browser preview rendered the architecture, player and release diagrams. It exposed a save-sequence parser error caused by a literal semicolon; replaced it with “and” and will recheck the published render. No device validation is claimed.
-- Evidence review: an independent read-only project scout confirmed capture durability, retry bounds, player checks, cache behavior, backups and signing limits. Incorporated active-only scheduling versus in-flight completion and cache uncertainty.
-- Brooks PR Review: five task files including the review history; R1–R6 considered, no actionable findings (100/100, stable at 100). Quick Test Check skipped for documentation/review metadata only. Dated snapshots link canonical guides to reduce knowledge drift. The review-history JSON update makes conservative CI run the full macOS checks.
-- Save/PR: plan checkpoint `0084baf`, documentation checkpoint `32b23ee`, branch pushed and draft [PR #17](https://github.com/joshuawyadao/yarms/pull/17) opened into main; Codex review requested. GitHub initially reported MERGEABLE with checks running. This source checkpoint preserves that point-in-time status; final head readiness is reported on the PR and in the completion response, without merging.
+- Discovery: clean detached checkout at `8a87ddf`; fetched origin/main and created `codex/testflight-readiness`. Historical device evidence is not a distribution-signing check. Installed Xcode is 27.2.
+- Privacy scope: native code has no third-party SDKs, analytics, advertising identifier, UserDefaults or required-reason timestamp/disk/uptime API use found. File-size reads are not file-timestamp access. Embedded TikTok content requires separate disclosure and review; an empty required-reason list does not assert anonymous web playback or replace App Store privacy answers.
+- Initial checks: 23 Release host tests and all 56 repository host checks passed. A real Xcode 27.2 Release simulator check passed with bundled policy/manifests and Boolean encryption metadata. Full simulator suite and unsigned device archive are running. The first sandboxed Xcode invocation could not read extension settings; rerunning with Xcode system access passed.
+- Device archive: Xcode 27.2 produced an unsigned version 1.0.0/build 2 archive with matching targets and privacy resources; signing/distribution acceptance remains unchecked. The first simulator run failed during CoreSimulator catalog access before tests or simulator creation; an independent device inventory found no owned simulator left behind. A fresh iOS 27 attempt then stopped before XCTest because the simulator returned to Shutdown; cleanup succeeded. The full suite is now being attempted on installed iOS 26.5.
+
+## Brooks-Lint Review
+
+**Mode:** PR Review
+**Scope:** Feature changes vs origin/main; 21 related files, sampled above 300 lines with UI, packaging, generator and tests prioritized. Generated Xcode project wiring skipped for design findings and checked by actual builds. Default configuration, all six risks enabled; no .brooks-lint.yaml present.
+**Health Score:** 100/100
+**Trend:** Stable at 100.
+
+The scoped change preserves one canonical policy and keeps signing/account actions outside the app.
+
+### Findings
+
+No actionable findings from R1–R6 or the Quick Test Check. Resource duplication across executable bundles is required packaging, not duplicated policy ownership. The new UI regression exercises bundled disclosure/dismissal; host tests reject missing, malformed and drifted assets and invalid encryption values without mocking those checks.
+
+### Summary
+
+- No Brooks remediation required.
+- Actual Release build and unsigned archive verify generated resource wiring; simulator UI verification is pending.
+- Apple signing, service-terms/privacy answers and real TestFlight device acceptance remain explicit submission steps.
+
+- Local privacy regression initially failed because the new test configured `isolatedApp()` without launching it; existing helpers launch during Paste. Added the missing `app.launch()` without weakening assertions. Other observed UI flows passed; final suite verification follows the fix.
+- Corrected privacy regression passed on a fresh iPhone 17 Pro/iOS 26.5 (one passed, zero failed/skipped), with successful simulator/DerivedData cleanup. Exported and visually inspected its synthetic policy screenshot: readable layout, clear title and reachable Done. The earlier full run completed with 119 passed, one failure (the now-fixed missing launch), and four expected skips; final full coverage is delegated to CI on the corrected head, not claimed as a clean local full-suite pass.
+- GitHub: pushed plan `944c53b`, implementation `8aba98c`, and review checkpoint `3b83cb3`; opened draft PR #18. Codex review completed on `3b83cb3` with no findings, and no inline comments. First-run Repository Verify, Release build and Release Verify passed; full CI tests were still running at this checkpoint. The final head's current review/check/mergeability state is reported on the PR and in the completion response, without merging.
+- Follow-up Brooks pass: the test launch correction adds no production behavior, weakens no assertion and has focused passing UI evidence; no actionable maintainability finding. All 56 host checks passed again. No files intentionally excluded beyond ignored local build/test evidence.

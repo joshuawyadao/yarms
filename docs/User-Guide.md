@@ -4,6 +4,10 @@
 
 Yarms keeps TikTok workout links, folders, and your notes on your iPhone. It has no Yarms account or built-in cross-device sync. Videos play through TikTok; they are not downloaded for offline use.
 
+## Read the privacy policy
+
+Tap the hand icon labelled **Privacy policy** in the library toolbar. The included policy opens without a network request, describes TikTok requests and unencrypted backups, and offers a link to the current online copy. Tap **Done** to return to your library.
+
 ## Save your first workout
 
 1. Install and open Yarms using the [setup guide](Development.md).

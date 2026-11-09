@@ -2,6 +2,10 @@
 
 Use the checked-in [Release command](../scripts/release-ios.py) from the repository root on a Mac with Xcode. It builds the app and embedded Share extension in Release, checks their effective configuration and produced bundles, and retains evidence under ignored `.build/releases/`. It does not install on a device, export an IPA, or upload a release.
 
+For distribution signing, Xcode Organizer upload, beta review metadata, and private invitations, follow [Private TestFlight release](TestFlight.md).
+
+The checker also verifies that both produced bundles contain their audited `PrivacyInfo.xcprivacy`, both declare the Boolean `ITSAppUsesNonExemptEncryption = NO`, and the app includes a nonempty `PRIVACY.md` identical to its source. These checks catch packaging drift; they do not certify privacy answers or export eligibility.
+
 ## Check a Release build
 
 ```sh

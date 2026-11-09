@@ -51,6 +51,8 @@ The [test guide](Testing.md#what-the-tests-cover) explains coverage and commands
 | --- | --- |
 | [project.pbxproj](../Yarms.xcodeproj/project.pbxproj) and [Yarms.xcscheme](../Yarms.xcodeproj/xcshareddata/xcschemes/Yarms.xcscheme) | Checked-in target settings, resources, dependencies, launch/test configuration. |
 | [YarmsApp/Yarms.entitlements](../YarmsApp/Yarms.entitlements) and [YarmsShare/Yarms.entitlements](../YarmsShare/Yarms.entitlements) | Shared Keychain access group for app and extension. |
+| [PrivacyPolicyView.swift](../YarmsApp/PrivacyPolicyView.swift) and [PRIVACY.md](../PRIVACY.md) | Offline policy sheet and canonical bundled/public policy text. |
+| [App privacy manifest](../YarmsApp/PrivacyInfo.xcprivacy) and [Share manifest](../YarmsShare/PrivacyInfo.xcprivacy) | Audited native required-reason API declarations, packaged separately in each target. |
 | [YarmsShare/Info.plist](../YarmsShare/Info.plist) | Share extension identity, activation for URL/text input, and version settings. |
 | [Assets/Assets.xcassets](../Assets/Assets.xcassets/) | App icon PNG and asset catalog metadata; `AccentColor`, `YarmsAction`, `YarmsBloom`, `YarmsCanvas`, `YarmsSoft`, and `YarmsSurface` color sets. See [Design and Assets](Design-and-Assets.md). |
 | [generate-project.rb](../scripts/generate-project.rb) | Optional Ruby `xcodeproj` updater for Swift source membership and scheme; also has new-project bootstrap logic. |

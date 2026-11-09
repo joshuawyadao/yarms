@@ -4,6 +4,14 @@
 
 This page describes the checked-in implementation. Source contracts live in [Workout](../YarmsApp/Workout.swift), [WorkoutStore](../YarmsApp/WorkoutStore.swift), and [WorkoutBackup](../YarmsApp/WorkoutBackup.swift). Yarms has no app account, analytics SDK, or server-side library in this repository.
 
+## User-facing policy and declarations
+
+The canonical [privacy policy](../PRIVACY.md) is bundled in the app and displayed offline from the library toolbar's **Privacy policy** button. It links to the public main-branch copy. Update this single file when practices change; the Release gate rejects stale bundled text.
+
+Both targets bundle `PrivacyInfo.xcprivacy` with an empty required-reason API list following the current native source audit: no UserDefaults, file-timestamp, disk-space, system-uptime or active-keyboard APIs are used. The backup reader accesses file size, not file timestamps. No third-party native SDK is linked. Reaudit when APIs or dependencies change. These minimal manifests do not declare that TikTok web content collects no data; they are not a substitute for App Store privacy answers or a tracking assessment.
+
+Both bundles declare no nonexempt encryption for their current use of Apple operating-system cryptography (HTTPS and Keychain). Revisit that declaration if cryptographic functionality changes. See [TestFlight](TestFlight.md) for submission decisions.
+
 ## Where data lives
 
 | Data | Location and lifetime |

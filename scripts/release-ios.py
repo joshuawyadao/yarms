@@ -325,7 +325,25 @@ def _validate_bundle(path, bundle_id, version, build, expected_type):
     return info, minimum
 
 
-def validate_artifact(args, run_dir, settings, metadata):
+def validate_privacy_resources(app, extension, app_info, extension_info, source_root):
+    for bundle, info, folder in ((app, app_info, "YarmsApp"),
+                                 (extension, extension_info, "YarmsShare")):
+        if info.get("ITSAppUsesNonExemptEncryption") is not False:
+            raise RunError(f"{bundle.name} must declare ITSAppUsesNonExemptEncryption as false")
+        manifest = _plist(bundle / "PrivacyInfo.xcprivacy")
+        expected = _plist(source_root / folder / "PrivacyInfo.xcprivacy")
+        if not isinstance(manifest.get("NSPrivacyAccessedAPITypes"), list) or manifest != expected:
+            raise RunError(f"{bundle.name} privacy manifest differs from its audited source")
+    try:
+        policy = (app / "PRIVACY.md").read_bytes()
+        expected_policy = (source_root / "PRIVACY.md").read_bytes()
+    except OSError as exc:
+        raise RunError("Missing bundled or source privacy policy") from exc
+    if not policy.strip() or policy != expected_policy:
+        raise RunError("Bundled privacy policy differs from its source")
+
+
+def validate_artifact(args, run_dir, settings, metadata, source_root=ROOT):
     archive, app = bundle_paths(args, run_dir, settings)
     if archive is not None:
         if not archive.is_dir():
@@ -349,6 +367,7 @@ def validate_artifact(args, run_dir, settings, metadata):
         raise RunError("Share extension has the wrong extension point")
     if app_min != share_min:
         raise RunError("App and Share extension minimum iOS versions differ")
+    validate_privacy_resources(app, extension, app_info, extension_info, Path(source_root))
     for root, dirs, files in os.walk(app):
         for name in dirs + files:
             if name.endswith((".xctest", ".xctestrun", ".xctestproducts")):
@@ -470,7 +489,7 @@ def execute(args, executor=None, release_root=None, source_root=ROOT, interrupt_
         require_command(executor, build_command(args, run_dir), args.timeout_seconds,
                         run_dir / "xcodebuild.log")
         phases["build_seconds"] = round(time.monotonic() - build_start, 2)
-        artifact = validate_artifact(args, run_dir, settings, metadata)
+        artifact = validate_artifact(args, run_dir, settings, metadata, source_root)
         report["artifact"] = artifact
         if args.mode == "archive" and not args.unsigned:
             report["signing"] = {"status": "verified", "distribution_ready": False,
