@@ -22,3 +22,23 @@ Prepare Yarms for a private external TestFlight beta with accessible privacy inf
 - Discovery: clean detached checkout at `8a87ddf`; fetched origin/main and created `codex/testflight-readiness`. Historical device evidence is not a distribution-signing check. Installed Xcode is 27.2.
 - Privacy scope: native code has no third-party SDKs, analytics, advertising identifier, UserDefaults or required-reason timestamp/disk/uptime API use found. File-size reads are not file-timestamp access. Embedded TikTok content requires separate disclosure and review; an empty required-reason list does not assert anonymous web playback or replace App Store privacy answers.
 - Initial checks: 23 Release host tests and all 56 repository host checks passed. A real Xcode 27.2 Release simulator check passed with bundled policy/manifests and Boolean encryption metadata. Full simulator suite and unsigned device archive are running. The first sandboxed Xcode invocation could not read extension settings; rerunning with Xcode system access passed.
+- Device archive: Xcode 27.2 produced an unsigned version 1.0.0/build 2 archive with matching targets and privacy resources; signing/distribution acceptance remains unchecked. The first simulator run failed during CoreSimulator catalog access before tests or simulator creation; an independent device inventory found no owned simulator left behind. A fresh iOS 27 attempt then stopped before XCTest because the simulator returned to Shutdown; cleanup succeeded. The full suite is now being attempted on installed iOS 26.5.
+
+## Brooks-Lint Review
+
+**Mode:** PR Review
+**Scope:** Feature changes vs origin/main; 21 related files, sampled above 300 lines with UI, packaging, generator and tests prioritized. Generated Xcode project wiring skipped for design findings and checked by actual builds. Default configuration, all six risks enabled; no .brooks-lint.yaml present.
+**Health Score:** 100/100
+**Trend:** Stable at 100.
+
+The scoped change preserves one canonical policy and keeps signing/account actions outside the app.
+
+### Findings
+
+No actionable findings from R1–R6 or the Quick Test Check. Resource duplication across executable bundles is required packaging, not duplicated policy ownership. The new UI regression exercises bundled disclosure/dismissal; host tests reject missing, malformed and drifted assets and invalid encryption values without mocking those checks.
+
+### Summary
+
+- No Brooks remediation required.
+- Actual Release build and unsigned archive verify generated resource wiring; simulator UI verification is pending.
+- Apple signing, service-terms/privacy answers and real TestFlight device acceptance remain explicit submission steps.
