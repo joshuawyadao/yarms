@@ -20,10 +20,14 @@ Run the maintained automation from the repository root:
 
 ```sh
 ./scripts/verify-repository.sh
+python3 scripts/test-ios.py --suite unit
 python3 scripts/test-ios.py
 python3 scripts/test-ios.py --suite feedback --appearance dark
 python3 scripts/test-ios.py --suite sharing
+python3 scripts/release-ios.py check
 ```
+
+Start with `verify-repository.sh` for fast host checks, then use `--suite unit` or `--suite sharing` for focused simulator feedback while editing. Before proposing a source change for merge, run the full `test-ios.py` scheme and the unsigned Release `release-ios.py check` command; CI runs both for source changes and reports their separate **CI Verify** and **Release Verify** gates. Focused suites are additional local feedback and do not replace those gates. Documentation-only pull requests receive terminal gate statuses after repository verification, without a simulator or Release build. Signed iPhone behavior, native TikTok sharing, and distribution readiness remain the manual checks in [Signed iPhone checks](#signed-iphone-checks) and [TestFlight](TestFlight.md).
 
 The [runner](../scripts/test-ios.py) creates a disposable iPhone simulator on the latest available iOS runtime (iOS 18 or newer). Each run owns its simulator, temporary test libraries and build directory. It shuts down and deletes that simulator and removes its build directory on success, failure, timeout or a handled interruption. It never selects a physical phone or reuses an existing simulator. An uncatchable process termination can prevent cleanup; use the simulator ID in the run report with `xcrun simctl shutdown ID` and `xcrun simctl delete ID` to finish cleanup.
 
