@@ -27,5 +27,15 @@ Improve the iPhone-to-iPad workout flow with clearer capture, identifiable libra
 - The iPad mini layout test passed in portrait and landscape. TikTok’s public sample played and paused in landscape with no tappable fullscreen control in the tested states. The physical-device check is pending.
 - The official public sample supplied the poster through its public page after oEmbed omitted a thumbnail. Its poster URL returned a JPEG, and metadata tests cover the fallback and trust boundary.
 
+## PR review follow-up
+
+Keep TikTok poster recovery working after signed URLs expire or TikTok responds with a temporary error. Preserve the existing network trust boundary and verify the 10-second setting default.
+
+- [x] Inspect Codex and Brooks findings at `3bc5467` and map them to the metadata, retry queue, and player tests.
+- [ ] Reproduce expired selected posters and retryable public-page failures with controlled HTTP responses.
+- [ ] Filter expired candidates before selection and pass transient public-page failures to the bounded enrichment queue.
+- [ ] Assert the current playback default and update the poster retry contract in Data and Privacy.
+- [ ] Run the metadata regressions and monitor both required GitHub checks and the latest Codex review.
+
 ## Open questions
 - None.
