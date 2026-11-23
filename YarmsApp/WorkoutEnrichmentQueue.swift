@@ -11,18 +11,30 @@ struct WorkoutEnrichmentQueue {
     private var active = Set<UUID>()
 
     // The timer and queue must agree on which records still need details.
-    private static func needsDetails(_ workout: Workout) -> Bool {
-        workout.title == nil || workout.playbackLink.videoID == nil || workout.thumbnailURL == nil
+    private static func needsDetails(_ workout: Workout, now: Date) -> Bool {
+        workout.title == nil || workout.playbackLink.videoID == nil ||
+            workout.thumbnailURL == nil || workout.thumbnailIsExpired(at: now)
     }
 
-    private static func mayEnrich(_ workout: Workout) -> Bool {
-        workout.enrichmentState == nil || workout.enrichmentState?.status == .pending
+    private static func mayEnrich(_ workout: Workout, now: Date) -> Bool {
+        switch workout.enrichmentState?.status {
+        case nil, .pending: return true
+        case .complete:
+            return workout.thumbnailIsExpired(at: now) ||
+                (workout.thumbnailURL == nil && workout.enrichmentState?.checkedPublicPoster == nil)
+        case .partial:
+            return workout.thumbnailIsExpired(at: now) ||
+                (workout.thumbnailURL == nil && workout.playbackLink.videoID != nil &&
+                 workout.enrichmentState?.checkedPublicPoster == nil)
+        case .permanentFailure: return false
+        }
     }
 
     static func nextRetryDate(in workouts: [Workout], isActive: Bool) -> Date? {
         guard isActive else { return nil }
+        let now = Date()
         return workouts.compactMap { workout in
-            guard needsDetails(workout), mayEnrich(workout),
+            guard needsDetails(workout, now: now), mayEnrich(workout, now: now),
                   let date = workout.enrichmentState?.nextAttemptAt,
                   date.timeIntervalSinceReferenceDate.isFinite else { return nil }
             return date
@@ -31,7 +43,8 @@ struct WorkoutEnrichmentQueue {
 
     mutating func reset(with workouts: [Workout], now: Date = Date()) {
         pending = workouts.filter { workout in
-            !active.contains(workout.id) && Self.needsDetails(workout) && Self.mayEnrich(workout) &&
+            !active.contains(workout.id) && Self.needsDetails(workout, now: now) &&
+                Self.mayEnrich(workout, now: now) &&
                 (workout.enrichmentState?.nextAttemptAt ?? .distantPast) <= now
         }
         nextIndex = 0

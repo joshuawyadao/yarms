@@ -11,19 +11,28 @@ struct WorkoutBackup {
         let schemaVersion: Int
         let workouts: [Workout]
         let folders: [WorkoutFolder]?
+        let completions: [WorkoutCompletion]?
     }
 
     static let maximumBytes = 10 * 1_024 * 1_024
     let workouts: [Workout]
     let folders: [WorkoutFolder]
+    let completions: [WorkoutCompletion]
 
-    init(workouts: [Workout], folders: [WorkoutFolder] = []) throws {
-        try self.init(workouts: workouts, folders: folders, importing: false)
+    init(workouts: [Workout], folders: [WorkoutFolder] = [],
+         completions: [WorkoutCompletion] = []) throws {
+        try self.init(workouts: workouts, folders: folders, completions: completions, importing: false)
     }
 
-    private init(workouts: [Workout], folders: [WorkoutFolder], importing: Bool) throws {
-        let normalized = workouts.map { workout in
+    private init(workouts: [Workout], folders: [WorkoutFolder],
+                 completions: [WorkoutCompletion], importing: Bool) throws {
+        let normalized = try workouts.map { workout in
             var copy = workout
+            do {
+                copy.customTitle = try workout.customTitle.flatMap(WorkoutStore.normalizedWorkoutName)
+            } catch {
+                throw BackupError.invalidArchive
+            }
             copy.title = Self.nonblank(copy.title)
             copy.creator = Self.nonblank(copy.creator)
             copy.notes = Self.nonblank(copy.notes)
@@ -52,8 +61,18 @@ struct WorkoutBackup {
             throw BackupError.invalidArchive
         }
         try Self.validate(normalized, folders: normalizedFolders)
+        var completionIDs = Set<UUID>()
+        for completion in completions {
+            guard completionIDs.insert(completion.id).inserted,
+                  !completion.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  completion.completedAt.timeIntervalSinceReferenceDate.isFinite,
+                  TimeZone(identifier: completion.timeZoneIdentifier) != nil else {
+                throw BackupError.invalidArchive
+            }
+        }
         self.workouts = normalized
         self.folders = normalizedFolders
+        self.completions = completions
     }
 
     static func load(from url: URL) throws -> WorkoutBackup {
@@ -82,7 +101,7 @@ struct WorkoutBackup {
         } catch {
             throw BackupError.invalidArchive
         }
-        guard archive.schemaVersion == 1 || archive.schemaVersion == 2 else {
+        guard (1...3).contains(archive.schemaVersion) else {
             throw BackupError.unsupportedVersion
         }
         if archive.schemaVersion == 1 {
@@ -91,7 +110,12 @@ struct WorkoutBackup {
                 throw BackupError.invalidArchive
             }
         }
-        return try WorkoutBackup(workouts: archive.workouts, folders: archive.folders ?? [], importing: true)
+        let completions = archive.completions ?? []
+        guard archive.schemaVersion == 3 || schemaVersion(for: archive.workouts, completions: completions) == 2 else {
+            throw BackupError.invalidArchive
+        }
+        return try WorkoutBackup(workouts: archive.workouts, folders: archive.folders ?? [],
+                                 completions: completions, importing: true)
     }
 
     func encode() throws -> Data {
@@ -99,14 +123,23 @@ struct WorkoutBackup {
         encoder.outputFormatting = [.sortedKeys]
         // Local libraries can grow beyond the defensive import limit through
         // notes and later saves. An export must still include every record.
-        return try encoder.encode(Archive(schemaVersion: 2, workouts: workouts, folders: folders))
+        return try encoder.encode(Archive(
+            schemaVersion: Self.schemaVersion(for: workouts, completions: completions),
+            workouts: workouts, folders: folders, completions: completions.isEmpty ? nil : completions
+        ))
     }
 
     // Restore accepts backups built directly in memory too. Measure the exact
     // archive bytes, then apply the same import sanitization without decoding.
     func normalizedForImport() throws -> WorkoutBackup {
         guard try encode().count <= Self.maximumBytes else { throw BackupError.tooLarge }
-        return try WorkoutBackup(workouts: workouts, folders: folders, importing: true)
+        return try WorkoutBackup(workouts: workouts, folders: folders,
+                                 completions: completions, importing: true)
+    }
+
+    static func schemaVersion(for workouts: [Workout], completions: [WorkoutCompletion]) -> Int {
+        // Older readers can still open files that contain only the original fields.
+        completions.isEmpty && !workouts.contains(where: { $0.customTitle != nil }) ? 2 : 3
     }
 
     private static func validate(_ workouts: [Workout], folders: [WorkoutFolder]) throws {
@@ -161,4 +194,5 @@ struct WorkoutBackup {
 struct BackupRestoreResult: Equatable {
     let added: Int
     let updated: Int
+    var addedCompletions = 0
 }

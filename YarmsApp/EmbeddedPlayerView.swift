@@ -1,10 +1,12 @@
 import SwiftUI
+import UIKit
 import WebKit
 
 struct EmbeddedPlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var typeSize
+    @AppStorage(PlaybackSkipInterval.preferenceKey) private var storedSkipInterval = PlaybackSkipInterval.defaultSeconds
     @StateObject private var player = TikTokPlayerController()
     @State private var notesOpen: Bool
     @State private var noteText: String
@@ -15,6 +17,8 @@ struct EmbeddedPlayerView: View {
     @State private var messageTitle = "Could not save notes"
     @State private var showingDeleteWorkout = false
     @State private var showingWorkoutCompletion = false
+    @State private var isLoggingWorkout = false
+    @State private var workoutHeadingHeight: CGFloat = 0
     @FocusState private var notesFocused: Bool
     @AccessibilityFocusState(for: .voiceOver) private var finishButtonFocused: Bool
 
@@ -23,14 +27,17 @@ struct EmbeddedPlayerView: View {
     let onNotesSaved: () -> Void
     let onFolderChanged: (UUID?) async -> Bool
     let onDeleteWorkout: () async -> Bool
+    let onLogWorkout: () async -> Bool
 
     init(workout: Workout, folders: [WorkoutFolder], onNotesSaved: @escaping () -> Void,
-         onFolderChanged: @escaping (UUID?) async -> Bool, onDeleteWorkout: @escaping () async -> Bool) {
+         onFolderChanged: @escaping (UUID?) async -> Bool, onDeleteWorkout: @escaping () async -> Bool,
+         onLogWorkout: @escaping () async -> Bool) {
         self.workout = workout
         self.folders = folders
         self.onNotesSaved = onNotesSaved
         self.onFolderChanged = onFolderChanged
         self.onDeleteWorkout = onDeleteWorkout
+        self.onLogWorkout = onLogWorkout
         _notesOpen = State(initialValue: workout.notes != nil)
         _noteText = State(initialValue: workout.notes ?? "")
         _selectedFolderID = State(initialValue: workout.folderID)
@@ -41,10 +48,13 @@ struct EmbeddedPlayerView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: YarmsTheme.Spacing.xl) {
                     workoutHeading
+                        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height in
+                            workoutHeadingHeight = height
+                        }
 
                     if let playerURL = workout.playbackLink.playerURL,
                        let html = TikTokPlayerHTML.presentationDocument(for: playerURL) {
-                        let playerWidth = max(0, min(geometry.size.width, YarmsTheme.maximumContentWidth) - 2 * YarmsTheme.Spacing.lg)
+                        let playerWidth = playerViewportWidth(in: geometry.size)
                         TikTokWebPlayer(html: html, controller: player)
                             .frame(width: playerWidth, height: playerWidth * 16 / 9)
                             .frame(maxWidth: .infinity)
@@ -77,15 +87,12 @@ struct EmbeddedPlayerView: View {
                         )
                     }
 
-                    Button {
-                        notesFocused = false
-                        player.send(.pause)
-                        showingWorkoutCompletion = true
-                    } label: {
-                        Label("Finish workout", systemImage: "checkmark.seal")
+                    Button(action: logWorkout) {
+                        Label("Log workout", systemImage: "checkmark.seal")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(YarmsSecondaryButtonStyle())
+                    .disabled(isLoggingWorkout)
                     .accessibilityIdentifier("finishWorkoutButton")
                     .accessibilityFocused($finishButtonFocused)
 
@@ -198,7 +205,7 @@ struct EmbeddedPlayerView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("The saved link and its notes will be removed from this iPhone. The TikTok post will not be affected.")
+            Text("This removes the saved link and its notes from this device. Your workout history stays.")
         }
         .alert(messageTitle, isPresented: Binding(
             get: { message != nil },
@@ -208,6 +215,17 @@ struct EmbeddedPlayerView: View {
         } message: {
             Text(message ?? "")
         }
+    }
+
+    private func playerViewportWidth(in size: CGSize) -> CGFloat {
+        let availableWidth = max(0, min(size.width, YarmsTheme.maximumContentWidth) - 2 * YarmsTheme.Spacing.lg)
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return availableWidth }
+
+        // The safe-area inset already reserves the playback tray. Fit the video
+        // beneath the heading and keep it usable in very short, scrollable windows.
+        let headingSpace = workoutHeadingHeight + YarmsTheme.Spacing.lg + YarmsTheme.Spacing.xl
+        let availableHeight = max(160, size.height - headingSpace)
+        return min(availableWidth, availableHeight * 9 / 16)
     }
 
     private var noteActions: some View {
@@ -228,14 +246,14 @@ struct EmbeddedPlayerView: View {
     }
 
     private var noteSaveConfirmation: some View {
-        YarmsSaveConfirmation(message: noteSaved ? "Saved on this iPhone" : nil,
-                              eventID: noteSaveEventID, placeholder: "Saved on this iPhone")
+        YarmsSaveConfirmation(message: noteSaved ? "Saved on this device" : nil,
+                              eventID: noteSaveEventID, placeholder: "Saved on this device")
             .accessibilityIdentifier("noteSaveConfirmation")
     }
 
     private var workoutHeading: some View {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.sm) {
-            Text(workout.title ?? "TikTok workout")
+            Text(workout.displayTitle)
                 .font(.title2.weight(.bold))
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -291,12 +309,14 @@ struct EmbeddedPlayerView: View {
     }
 
     private var playbackControls: some View {
-        VStack(spacing: YarmsTheme.Spacing.sm) {
+        let skipInterval = PlaybackSkipInterval.supportedSeconds(storedSkipInterval)
+        return VStack(spacing: YarmsTheme.Spacing.sm) {
             HStack(spacing: YarmsTheme.Spacing.md) {
-                Button { player.seek(by: -10) } label: {
-                    Image(systemName: "gobackward.10")
+                Button { player.seek(by: -Double(skipInterval)) } label: {
+                    Image(systemName: "gobackward.\(skipInterval)")
                 }
-                .accessibilityLabel("Back 10 seconds")
+                .accessibilityLabel("Back \(skipInterval) seconds")
+                .accessibilityIdentifier("skipBackwardButton")
 
                 Button {
                     player.send(player.isPlaying ? .pause : .play)
@@ -305,10 +325,11 @@ struct EmbeddedPlayerView: View {
                 }
                 .accessibilityLabel(player.isPlaying ? "Pause" : "Play")
 
-                Button { player.seek(by: 10) } label: {
-                    Image(systemName: "goforward.10")
+                Button { player.seek(by: Double(skipInterval)) } label: {
+                    Image(systemName: "goforward.\(skipInterval)")
                 }
-                .accessibilityLabel("Forward 10 seconds")
+                .accessibilityLabel("Forward \(skipInterval) seconds")
+                .accessibilityIdentifier("skipForwardButton")
 
                 Button { player.send(.seekTo(0)) } label: {
                     Image(systemName: "arrow.counterclockwise")
@@ -334,6 +355,23 @@ struct EmbeddedPlayerView: View {
         return String(format: "%d:%02d", whole / 60, whole % 60)
     }
 
+    private func logWorkout() {
+        guard !isLoggingWorkout, !showingWorkoutCompletion else { return }
+        isLoggingWorkout = true
+        notesFocused = false
+        player.send(.pause)
+
+        Task { @MainActor in
+            defer { isLoggingWorkout = false }
+            if await onLogWorkout() {
+                showingWorkoutCompletion = true
+            } else {
+                messageTitle = "Could not log workout"
+                message = "Try logging this workout again."
+            }
+        }
+    }
+
     private func saveNotes() {
         let wasSaved = noteSaved
         noteSaved = false
@@ -350,7 +388,7 @@ struct EmbeddedPlayerView: View {
                     noteSaved = noteText == text
                     if noteSaved && !wasSaved {
                         noteSaveEventID += 1
-                        YarmsAccessibility.announceSaveResult("Saved on this iPhone")
+                        YarmsAccessibility.announceSaveResult("Saved on this device")
                     }
                     onNotesSaved()
                 } else {
@@ -358,6 +396,50 @@ struct EmbeddedPlayerView: View {
                 }
             } catch {
                 message = "Your notes could not be saved. Try again."
+            }
+        }
+    }
+}
+
+private enum PlaybackSkipInterval {
+    static let preferenceKey = "yarms.playbackSkipInterval"
+    static let defaultSeconds = 10
+    static let choices = [5, 10, 15, 30]
+
+    static func supportedSeconds(_ value: Int) -> Int {
+        choices.contains(value) ? value : defaultSeconds
+    }
+}
+
+struct YarmsPlaybackSettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage(PlaybackSkipInterval.preferenceKey) private var storedSkipInterval = PlaybackSkipInterval.defaultSeconds
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Playback") {
+                    Picker("Skip interval", selection: Binding(
+                        get: { PlaybackSkipInterval.supportedSeconds(storedSkipInterval) },
+                        set: { storedSkipInterval = $0 }
+                    )) {
+                        ForEach(PlaybackSkipInterval.choices, id: \.self) { seconds in
+                            Text("\(seconds) seconds").tag(seconds)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("playbackSkipIntervalPicker")
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(YarmsTheme.canvas)
+            .tint(YarmsTheme.accent)
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
             }
         }
     }
@@ -384,6 +466,7 @@ private struct TikTokWebPlayer: UIViewRepresentable {
         configuration.allowsInlineMediaPlayback = true
         configuration.userContentController.add(controller, name: "yarmsPlayerEvents")
         let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.accessibilityIdentifier = "tiktokPlayerViewport"
         webView.isOpaque = false
         webView.backgroundColor = .black
         webView.scrollView.isScrollEnabled = false

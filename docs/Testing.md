@@ -65,6 +65,22 @@ Replace `iPhone 17 Pro` with an installed simulator. The direct command uses the
 
 To run one XCTest class, add `'-only-testing:YarmsTests/LibraryTests'` or `'-only-testing:YarmsUITests/YarmsUITests'` before `test`. The Xcode Test navigator is another way to run a selected case. When editing a feature, run its focused class and then the full scheme before proposing a merge.
 
+## iPad mini and live fullscreen checks
+
+Select an installed iPad mini simulator and run `testIPadLibraryAndPlayerFitBothOrientations` from the Xcode Test navigator, or run the case from the CLI. This case uses an isolated synthetic workout and checks portrait and landscape reachability for Paste, the video viewport, and the playback tray.
+
+```sh
+xcodebuild -project Yarms.xcodeproj -scheme Yarms \
+  -destination 'platform=iOS Simulator,id=IPAD_MINI_SIMULATOR_ID' \
+  -parallel-testing-enabled NO -collect-test-diagnostics never \
+  -only-testing:YarmsUITests/YarmsUITests/testIPadLibraryAndPlayerFitBothOrientations \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test
+```
+
+For the live probe, export `TEST_RUNNER_YARMS_RUN_LIVE_FULLSCREEN=1` and select `testLiveTikTokFullscreenProbeOnIPad` in the command. It uses TikTok’s documented public sample and captures the player before playback, during playback, and after pausing. Inspect screenshots and the WebKit accessibility attachments for the bottom-right fullscreen control. A successful XCTest run indicates that the probe captured its stages. Verify the actual fullscreen transition from the evidence. If the sample cannot start, the probe reports playback availability as inconclusive.
+
+On a physical iPad mini, repeat the check in portrait and landscape before starting the video, while it plays, and after pausing. Confirm whether fullscreen opens and whether dismissing it returns to the same workout. The simulator and the physical device can expose different TikTok controls.
+
 ## What the tests cover
 
 | Test file | Main coverage |
@@ -72,7 +88,7 @@ To run one XCTest class, add `'-only-testing:YarmsTests/LibraryTests'` or `'-onl
 | [FoundationTests.swift](../YarmsTests/FoundationTests.swift) | TikTok URL parsing, local file inbox, damaged inbox files, and isolated UI test container selection. |
 | [ShortcutCaptureTests.swift](../YarmsTests/ShortcutCaptureTests.swift) | Shared-text capture, invalid text, deduplication across file and share inboxes, and enriched-source/alias replay preserving identity, notes and folders after reload. |
 | [KeychainInboxTests.swift](../YarmsTests/KeychainInboxTests.swift) | Real shared-Keychain save, load, and removal on a signed iPhone; intentionally skips on simulators. |
-| [LibraryTests.swift](../YarmsTests/LibraryTests.swift) | Inbox import and crash recovery, search, metadata enrichment, short-link coalescing, notes, folders, deletion, and library-version compatibility. |
+| [LibraryTests.swift](../YarmsTests/LibraryTests.swift) | Inbox import and crash recovery, search, metadata enrichment, short-link coalescing, notes, folders, name preservation, repeat history, deletion, and library-version compatibility. |
 | [MetadataTests.swift](../YarmsTests/MetadataTests.swift) | oEmbed parsing, short-link resolution, failed requests, and redirect host restrictions through controlled URL loading. |
 | [PlayerBridgeTests.swift](../YarmsTests/PlayerBridgeTests.swift) | Player-event parsing, origin/frame validation, WebKit command gating and state transitions, duration, error, and seek boundaries. |
 | [WorkoutEnrichmentQueueTests.swift](../YarmsTests/WorkoutEnrichmentQueueTests.swift) | Bounded metadata concurrency and selection of incomplete workouts. |

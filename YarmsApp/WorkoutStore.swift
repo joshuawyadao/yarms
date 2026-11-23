@@ -10,6 +10,7 @@ struct WorkoutStore: @unchecked Sendable {
     struct LibrarySnapshot {
         let workouts: [Workout]
         let folders: [WorkoutFolder]
+        let completions: [WorkoutCompletion]
         let previousIDs: Set<UUID>
         let revision: UInt64
     }
@@ -27,6 +28,7 @@ struct WorkoutStore: @unchecked Sendable {
     enum StoreError: Error {
         case unsupportedVersion
         case invalidFolderName
+        case invalidWorkoutName
         case duplicateFolderName
         case invalidFolderReference
         case conflictingPendingIdentifier
@@ -36,6 +38,7 @@ struct WorkoutStore: @unchecked Sendable {
         let schemaVersion: Int
         var workouts: [Workout]
         var folders: [WorkoutFolder]?
+        var completions: [WorkoutCompletion]? = nil
     }
 
     private let fileURL: URL
@@ -114,7 +117,8 @@ struct WorkoutStore: @unchecked Sendable {
     private func snapshot(_ library: LibraryFile, previousIDs: Set<UUID>) -> LibrarySnapshot {
         Self.snapshotRevision &+= 1
         return LibrarySnapshot(workouts: library.workouts.sorted { $0.savedAt > $1.savedAt },
-                        folders: library.folders ?? [], previousIDs: previousIDs,
+                        folders: library.folders ?? [], completions: library.completions ?? [],
+                        previousIDs: previousIDs,
                         revision: Self.snapshotRevision)
     }
 
@@ -200,6 +204,12 @@ struct WorkoutStore: @unchecked Sendable {
                 changed = true
             }
         }
+        let now = Date()
+        let oldThumbnail = library.workouts[index].thumbnailURL
+        let expiredThumbnail = library.workouts[index].thumbnailIsExpired(at: now)
+        if expiredThumbnail {
+            library.workouts[index].thumbnailURL = nil
+        }
         if let metadata = enrichment.metadata {
             if library.workouts[index].title == nil, let title = metadata.title, !title.isEmpty {
                 library.workouts[index].title = title
@@ -211,19 +221,27 @@ struct WorkoutStore: @unchecked Sendable {
             }
             if library.workouts[index].thumbnailURL == nil, let thumbnailURL = metadata.thumbnailURL {
                 library.workouts[index].thumbnailURL = thumbnailURL
-                changed = true
+                if library.workouts[index].thumbnailIsExpired(at: now) {
+                    library.workouts[index].thumbnailURL = nil
+                }
             }
         }
-        let state = WorkoutEnrichmentState.after(result: enrichment,
-                                                 previous: library.workouts[index].enrichmentState,
-                                                 now: Date())
+        changed = changed || oldThumbnail != library.workouts[index].thumbnailURL
+        var state = WorkoutEnrichmentState.after(result: enrichment,
+                                                 previous: expiredThumbnail ? nil : library.workouts[index].enrichmentState,
+                                                 now: now)
+        if enrichment.outcome == .success {
+            let workout = library.workouts[index]
+            state.status = workout.title != nil && workout.thumbnailURL != nil && workout.playbackLink.videoID != nil
+                ? .complete : .partial
+        }
         if library.workouts[index].enrichmentState != state {
             library.workouts[index].enrichmentState = state
             changed = true
         }
         if let videoID = library.workouts[index].playbackLink.videoID {
             changed = coalesceDuplicates(in: &library.workouts, for: videoID,
-                                         enrichedState: state) || changed
+                                         enrichedState: state, now: now) || changed
         }
         if changed { try save(library) }
         return snapshot(library, previousIDs: previousIDs)
@@ -238,7 +256,7 @@ struct WorkoutStore: @unchecked Sendable {
         var changed = false
         for index in library.workouts.indices {
             if let state = library.workouts[index].enrichmentState,
-               state.status != .complete {
+               state.status != .complete || library.workouts[index].thumbnailURL == nil {
                 library.workouts[index].enrichmentState = nil
                 changed = true
             }
@@ -248,7 +266,7 @@ struct WorkoutStore: @unchecked Sendable {
     }
 
     private func coalesceDuplicates(in workouts: inout [Workout], for videoID: String,
-                                    enrichedState: WorkoutEnrichmentState) -> Bool {
+                                    enrichedState: WorkoutEnrichmentState, now: Date) -> Bool {
         let matches = workouts.filter { $0.playbackLink.videoID == videoID }.sorted {
             $0.savedAt == $1.savedAt
                 ? $0.id.uuidString < $1.id.uuidString
@@ -269,8 +287,13 @@ struct WorkoutStore: @unchecked Sendable {
             }
             if match.id == keeper.id { continue }
             if keeper.title == nil { keeper.title = match.title }
+            if keeper.customTitle == nil { keeper.customTitle = match.customTitle }
             if keeper.creator == nil { keeper.creator = match.creator }
-            if keeper.thumbnailURL == nil { keeper.thumbnailURL = match.thumbnailURL }
+            if keeper.thumbnailURL == nil || keeper.thumbnailIsExpired(at: now) {
+                if !match.thumbnailIsExpired(at: now), let thumbnail = match.thumbnailURL {
+                    keeper.thumbnailURL = thumbnail
+                }
+            }
             if keeper.folderID == nil { keeper.folderID = match.folderID }
         }
         keeper.notes = notes.value
@@ -283,6 +306,47 @@ struct WorkoutStore: @unchecked Sendable {
         workouts.removeAll { $0.playbackLink.videoID == videoID }
         workouts.append(keeper)
         return true
+    }
+
+    @discardableResult
+    func renameWorkout(_ id: UUID, to name: String, matching source: TikTokLink? = nil) throws -> Bool {
+        let normalized = try Self.normalizedWorkoutName(name)
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        var library = try readLibrary()
+        guard let index = workoutIndex(id: id, matching: source, in: library) else { return false }
+        if library.workouts[index].customTitle != normalized {
+            library.workouts[index].customTitle = normalized
+            try save(library)
+        }
+        return true
+    }
+
+    func logCompletion(for id: UUID, matching source: TikTokLink? = nil, at date: Date = .now,
+                       timeZone: TimeZone = .current) throws -> LibrarySnapshot? {
+        Self.accessLock.lock()
+        defer { Self.accessLock.unlock() }
+        var library = try readLibrary()
+        guard let index = workoutIndex(id: id, matching: source, in: library) else { return nil }
+        let workout = library.workouts[index]
+        let completion = WorkoutCompletion(id: UUID(), workoutID: workout.id,
+                                           title: workout.displayTitle, completedAt: date,
+                                           timeZoneIdentifier: timeZone.identifier)
+        library.completions = (library.completions ?? []) + [completion]
+        try save(library)
+        return snapshot(library, previousIDs: Set(library.workouts.map(\.id)))
+    }
+
+    private func workoutIndex(id: UUID, matching source: TikTokLink?, in library: LibraryFile) -> Int? {
+        func matchesSource(_ workout: Workout) -> Bool {
+            guard let source else { return true }
+            return workout.sourceLink == source || workout.sourceAliases?.contains(source) == true
+        }
+        if let index = library.workouts.firstIndex(where: { $0.id == id && matchesSource($0) }) {
+            return index
+        }
+        // A short link can coalesce into an older save during enrichment.
+        return source == nil ? nil : library.workouts.firstIndex(where: matchesSource)
     }
 
     @discardableResult
@@ -314,7 +378,8 @@ struct WorkoutStore: @unchecked Sendable {
         Self.accessLock.lock()
         defer { Self.accessLock.unlock() }
         let library = try readLibrary()
-        return try WorkoutBackup(workouts: library.workouts, folders: library.folders ?? []).encode()
+        return try WorkoutBackup(workouts: library.workouts, folders: library.folders ?? [],
+                                 completions: library.completions ?? []).encode()
     }
 
     func restoreBackup(_ backup: WorkoutBackup) throws -> BackupRestoreResult {
@@ -357,12 +422,18 @@ struct WorkoutStore: @unchecked Sendable {
             try index.absorb(incoming)
         }
         let merged = index.workouts
-        if merged != current || folders != (library.folders ?? []) {
+        let currentCompletions = library.completions ?? []
+        var completionIDs = Set(currentCompletions.map(\.id))
+        let addedCompletions = validated.completions.filter { completionIDs.insert($0.id).inserted }
+        if merged != current || folders != (library.folders ?? []) || !addedCompletions.isEmpty {
             library.workouts = merged
             library.folders = folders
+            library.completions = currentCompletions + addedCompletions
             try save(library)
         }
-        return index.result
+        var result = index.result
+        result.addedCompletions = addedCompletions.count
+        return result
     }
 
     private func save(_ workouts: [Workout]) throws {
@@ -378,7 +449,7 @@ struct WorkoutStore: @unchecked Sendable {
         }
         let data = try Data(contentsOf: fileURL)
         let library = try JSONDecoder().decode(LibraryFile.self, from: data)
-        guard library.schemaVersion == 1 || library.schemaVersion == 2 else {
+        guard (1...3).contains(library.schemaVersion) else {
             throw StoreError.unsupportedVersion
         }
         // Folder data written by an early build used schema 1. Upgrade it on
@@ -397,11 +468,26 @@ struct WorkoutStore: @unchecked Sendable {
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
+        let completions = library.completions ?? []
+        let version = WorkoutBackup.schemaVersion(for: library.workouts, completions: completions)
         let data = try JSONEncoder().encode(LibraryFile(
-            schemaVersion: 2, workouts: library.workouts, folders: library.folders ?? []
+            schemaVersion: version, workouts: library.workouts, folders: library.folders ?? [],
+            completions: completions.isEmpty ? nil : completions
         ))
         try data.write(to: fileURL, options: .atomic)
         observeLibraryIO?(.write)
+    }
+
+    static func normalizedWorkoutName(_ name: String) throws -> String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let containsControl = trimmed.unicodeScalars.contains { scalar in
+            switch scalar.properties.generalCategory {
+            case .control, .lineSeparator, .paragraphSeparator: return true
+            default: return false
+            }
+        }
+        guard trimmed.count <= 100, !containsControl else { throw StoreError.invalidWorkoutName }
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     static func normalizedFolderName(_ name: String) throws -> String {
@@ -560,6 +646,7 @@ private struct BackupMergeIndex {
         var merged = current
         if merged.resolvedLink == nil { merged.resolvedLink = incoming.resolvedLink }
         if merged.title == nil { merged.title = incoming.title }
+        if merged.customTitle == nil { merged.customTitle = incoming.customTitle }
         if merged.creator == nil { merged.creator = incoming.creator }
         if merged.thumbnailURL == nil { merged.thumbnailURL = incoming.thumbnailURL }
         if merged.folderID == nil { merged.folderID = incoming.folderID }

@@ -13,6 +13,119 @@ final class LibraryTests: XCTestCase {
         }
     }
 
+    func testManualWorkoutNameSurvivesMetadataAndBackupRestore() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let entry = try inbox.save(link)
+        _ = try store.refresh()
+        XCTAssertTrue(try store.renameWorkout(entry.id, to: "  Lower body 🏋️‍♀️  "))
+        XCTAssertThrowsError(try store.renameWorkout(entry.id, to: "Lower body\u{2028}workout"))
+        XCTAssertThrowsError(try store.renameWorkout(entry.id, to: String(repeating: "a", count: 101)))
+
+        let enrichment = TikTokEnrichment(resolvedLink: link, metadata: TikTokMetadata(
+            title: "Provider workout", creator: nil, thumbnailURL: nil
+        ))
+        let snapshot = try store.applyEnrichment(enrichment, to: entry.id)
+        let workout = try XCTUnwrap(snapshot.workouts.first)
+        XCTAssertEqual(workout.title, "Provider workout")
+        XCTAssertEqual(workout.displayTitle, "Lower body 🏋️‍♀️")
+        XCTAssertTrue(workout.matches("lower body"))
+
+        let backup = try WorkoutBackup.decode(store.exportBackup())
+        XCTAssertEqual(backup.workouts.first?.customTitle, "Lower body 🏋️‍♀️")
+        XCTAssertTrue(try store.renameWorkout(entry.id, to: "Glute warm-up"))
+        _ = try store.restoreBackup(backup)
+        XCTAssertEqual(try store.load().first?.displayTitle, "Glute warm-up")
+        XCTAssertTrue(try store.renameWorkout(entry.id, to: " "))
+        XCTAssertEqual(try store.load().first?.displayTitle, "Provider workout")
+    }
+
+    func testRepeatedSessionsSurviveDeletionAndRestoreWithoutDuplication() throws {
+        let (store, inbox, container) = makeStore()
+        let (destination, _, destinationContainer) = makeStore()
+        defer {
+            try? FileManager.default.removeItem(at: container)
+            try? FileManager.default.removeItem(at: destinationContainer)
+        }
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let entry = try inbox.save(link)
+        _ = try store.refresh()
+        XCTAssertTrue(try store.renameWorkout(entry.id, to: "Leg day"))
+
+        let date = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-24T03:00:00Z"))
+        let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        XCTAssertNotNil(try store.logCompletion(for: entry.id, at: date, timeZone: losAngeles))
+        let second = try XCTUnwrap(store.logCompletion(for: entry.id, at: date + 60, timeZone: losAngeles))
+        XCTAssertEqual(second.workouts.map(\.id), [entry.id])
+        XCTAssertEqual(second.completions.map(\.title), ["Leg day", "Leg day"])
+        XCTAssertEqual(Set(second.completions.map(\.id)).count, 2)
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Tokyo"))
+        XCTAssertEqual(second.completions.map { calendar.component(.day, from: $0.day(in: calendar)) },
+                       [23, 23], "An entry should retain the day it was logged when viewed in another time zone")
+
+        XCTAssertTrue(try store.remove(entry.id))
+        XCTAssertNil(try store.logCompletion(for: entry.id))
+        let data = try store.exportBackup()
+        let envelope = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(envelope["schemaVersion"] as? Int, 3)
+        let backup = try WorkoutBackup.decode(data)
+        XCTAssertTrue(backup.workouts.isEmpty)
+        XCTAssertEqual(try destination.restoreBackup(backup).addedCompletions, 2)
+        XCTAssertEqual(try destination.restoreBackup(backup).addedCompletions, 0)
+        XCTAssertEqual(try destination.refresh().completions, second.completions)
+    }
+
+    func testStaleWorkoutActionsCannotTargetReusedBackupIdentifier() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let original = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let replacement = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/456"))
+        let entry = try inbox.save(original)
+        _ = try store.refresh()
+        XCTAssertTrue(try store.remove(entry.id))
+        let incoming = Workout(id: entry.id, sourceLink: replacement, savedAt: .now)
+        _ = try store.restoreBackup(WorkoutBackup(workouts: [incoming]))
+        XCTAssertFalse(try store.renameWorkout(entry.id, to: "Original", matching: original))
+        XCTAssertNil(try store.logCompletion(for: entry.id, matching: original))
+        XCTAssertNil(try store.load().first?.customTitle)
+    }
+
+    func testEnrichmentReplacesAnExpiredPoster() throws {
+        let (store, inbox, container) = makeStore()
+        defer { try? FileManager.default.removeItem(at: container) }
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        let entry = try inbox.save(link)
+        var workout = try XCTUnwrap(store.refresh().workouts.first)
+        let expiredPoster = try XCTUnwrap(URL(string: "https://p19.tiktokcdn-us.com/poster?x-expires=1"))
+        workout.thumbnailURL = expiredPoster
+        workout.enrichmentState = WorkoutEnrichmentState(status: .complete, attemptCount: 5, nextAttemptAt: nil)
+        try JSONEncoder().encode(TestLibraryFile(schemaVersion: 2, workouts: [workout]))
+            .write(to: container.appendingPathComponent("Library.json"))
+
+        let temporaryError = TikTokEnrichment(resolvedLink: link, metadata: nil, outcome: .retryableFailure)
+        let retry = try XCTUnwrap(store.applyEnrichment(temporaryError, to: entry.id).workouts.first)
+        XCTAssertNil(retry.thumbnailURL)
+        XCTAssertEqual(retry.enrichmentState?.status, .pending)
+        XCTAssertEqual(retry.enrichmentState?.attemptCount, 1, "An expired poster starts a fresh retry budget")
+
+        let expiredMetadata = TikTokEnrichment(resolvedLink: link, metadata: TikTokMetadata(
+            title: "Workout", creator: nil, thumbnailURL: expiredPoster
+        ))
+        let result = try XCTUnwrap(store.applyEnrichment(expiredMetadata, to: entry.id).workouts.first)
+        XCTAssertNil(result.thumbnailURL)
+        XCTAssertEqual(result.enrichmentState?.status, .partial)
+
+        let poster = try XCTUnwrap(URL(string: "https://p19.tiktokcdn-us.com/new-poster"))
+        let enrichment = TikTokEnrichment(resolvedLink: link, metadata: TikTokMetadata(
+            title: "Workout", creator: nil, thumbnailURL: poster
+        ))
+        XCTAssertEqual(try store.applyEnrichment(enrichment, to: entry.id).workouts.first?.thumbnailURL,
+                       poster)
+    }
+
     func testPendingIdentifierCollisionPreservesQueueAndLibrary() throws {
         let (store, inbox, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }

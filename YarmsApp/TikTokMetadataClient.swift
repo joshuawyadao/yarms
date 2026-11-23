@@ -15,6 +15,11 @@ struct TikTokEnrichment {
 }
 
 struct TikTokMetadataClient {
+    private static let maximumPublicPageBytes = 2 * 1_024 * 1_024
+    private static let publicPagePayload = try! NSRegularExpression(
+        pattern: #"<script(?=\s)[^<>]*?\sid\s*=\s*["']__UNIVERSAL_DATA_FOR_REHYDRATION__["'][^<>]*>"#,
+        options: .caseInsensitive
+    )
     private let session: URLSession
 
     init(session: URLSession = .shared) {
@@ -115,11 +120,92 @@ struct TikTokMetadataClient {
             return TikTokEnrichment(resolvedLink: nil, metadata: nil, outcome: .retryableFailure)
         }
 
-        let thumbnailURL = payload.thumbnailURL.flatMap(URL.init(string:))
-        let metadata = TikTokMetadata(title: payload.title?.nonempty,
-                              creator: payload.authorName?.nonempty,
-                              thumbnailURL: thumbnailURL?.scheme?.lowercased() == "https" ? thumbnailURL : nil)
+        let thumbnailURL = payload.thumbnailURL.flatMap(Self.trustedThumbnailURL)
+        let fallback = thumbnailURL == nil ? await fetchPublicVideoMetadata(for: link) : nil
+        let metadata = TikTokMetadata(title: payload.title?.nonempty ?? fallback?.title,
+                                      creator: payload.authorName?.nonempty ?? fallback?.creator,
+                                      thumbnailURL: thumbnailURL ?? fallback?.thumbnailURL)
         return TikTokEnrichment(resolvedLink: nil, metadata: metadata)
+    }
+
+    // A valid oEmbed response may contain just the player iframe. Recover its
+    // poster from the original public post when the canonical video is known.
+    private func fetchPublicVideoMetadata(for link: TikTokLink) async -> TikTokMetadata? {
+        guard let videoID = link.videoID, let url = Self.publicPageURL(for: link, videoID: videoID) else {
+            return nil
+        }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.httpShouldHandleCookies = false
+        request.timeoutInterval = 10
+        request.setValue("text/html", forHTTPHeaderField: "Accept")
+
+        do {
+            let (bytes, response) = try await session.bytes(for: request, delegate: NoAutomaticRedirects())
+            defer { bytes.task.cancel() }
+            guard let response = response as? HTTPURLResponse, response.statusCode == 200,
+                  response.expectedContentLength <= Self.maximumPublicPageBytes else { return nil }
+            var data = Data()
+            for try await byte in bytes {
+                guard data.count < Self.maximumPublicPageBytes else { return nil }
+                data.append(byte)
+            }
+            return Self.metadata(inPublicPage: data, videoID: videoID)
+        } catch {
+            // This optional source cannot undo valid or partial oEmbed data.
+            return nil
+        }
+    }
+
+    private static func publicPageURL(for link: TikTokLink, videoID: String) -> URL? {
+        guard !videoID.isEmpty, videoID.utf8.allSatisfy({ (48...57).contains($0) }),
+              var components = URLComponents(url: link.url, resolvingAgainstBaseURL: false),
+              components.scheme == "https",
+              let host = components.host?.lowercased(),
+              ["tiktok.com", "www.tiktok.com", "m.tiktok.com"].contains(host),
+              components.user == nil, components.password == nil, components.port == nil else { return nil }
+
+        let path = components.path.hasSuffix("/") ? String(components.path.dropLast()) : components.path
+        let videoPath = "/video/\(videoID)"
+        if path != videoPath {
+            guard let handle = path.split(separator: "/").first,
+                  handle.first == "@", handle.count > 1,
+                  handle.dropFirst().allSatisfy({ $0.isLetter || $0.isNumber || $0 == "." || $0 == "_" }),
+                  path == "/\(handle)\(videoPath)" else { return nil }
+        }
+
+        components.host = "www.tiktok.com"
+        components.path = path
+        components.query = nil
+        components.fragment = nil
+        return components.url
+    }
+
+    private static func metadata(inPublicPage data: Data, videoID: String) -> TikTokMetadata? {
+        guard let html = String(data: data, encoding: .utf8),
+              let match = publicPagePayload.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+              let script = Range(match.range, in: html),
+              let end = html.range(of: "</script>", options: .caseInsensitive, range: script.upperBound..<html.endIndex),
+              let payload = try? JSONDecoder().decode(
+                  PublicVideoPage.self, from: Data(html[script.upperBound..<end.lowerBound].utf8)
+              ),
+              let item = payload.scope.detail?.itemInfo?.itemStruct,
+              item.id == videoID else { return nil }
+
+        let coverURL = item.video?.cover.flatMap(trustedThumbnailURL) ??
+            item.video?.originCover.flatMap(trustedThumbnailURL)
+        return TikTokMetadata(title: item.desc?.nonempty,
+                              creator: item.author?.nickname?.nonempty ?? item.author?.uniqueId?.nonempty,
+                              thumbnailURL: coverURL)
+    }
+
+    private static func trustedThumbnailURL(_ value: String) -> URL? {
+        guard let components = URLComponents(string: value),
+              components.scheme?.lowercased() == "https",
+              components.user == nil, components.password == nil, components.port == nil,
+              let host = components.host?.lowercased(),
+              ["tiktokcdn.com", "tiktokcdn-us.com"].contains(where: { host == $0 || host.hasSuffix(".\($0)") })
+        else { return nil }
+        return components.url
     }
 
     private static func retryAfter(_ response: HTTPURLResponse) -> Date? {
@@ -151,6 +237,47 @@ private struct OEmbedResponse: Decodable {
         case title
         case authorName = "author_name"
         case thumbnailURL = "thumbnail_url"
+    }
+}
+
+private struct PublicVideoPage: Decodable {
+    let scope: Scope
+
+    enum CodingKeys: String, CodingKey {
+        case scope = "__DEFAULT_SCOPE__"
+    }
+
+    struct Scope: Decodable {
+        let detail: VideoDetail?
+
+        enum CodingKeys: String, CodingKey {
+            case detail = "webapp.video-detail"
+        }
+    }
+
+    struct VideoDetail: Decodable {
+        let itemInfo: ItemInfo?
+    }
+
+    struct ItemInfo: Decodable {
+        let itemStruct: Item?
+    }
+
+    struct Item: Decodable {
+        let id: String
+        let desc: String?
+        let author: Author?
+        let video: Video?
+
+        struct Author: Decodable {
+            let nickname: String?
+            let uniqueId: String?
+        }
+
+        struct Video: Decodable {
+            let cover: String?
+            let originCover: String?
+        }
     }
 }
 

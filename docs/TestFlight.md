@@ -6,7 +6,7 @@ Use this guide to make Yarms available to one external tester through Apple's Te
 
 - Export and inspect a backup of any existing library, then read [Storage migration](Storage-Migration.md). Changing signing teams or replacing an old build can prevent access to its data. Keep the backup private; it contains workout links and notes.
 - Merge this branch before submitting, then confirm that the public [privacy policy](https://github.com/joshuawyadao/yarms/blob/main/PRIVACY.md) displays the released text. The app bundles the same policy for offline reading and links to that public copy. Use that URL in App Store Connect. An unmerged branch URL is temporary.
-- Choose an unused build number and check the tester's iPhone runs iOS 18 or newer. Do not put a team ID, certificate, profile, API key, tester email, personal workout data, or private screenshot in Git.
+- Choose an unused build number and check the tester’s iPhone or iPad runs iOS or iPadOS 18 or newer. Do not put a team ID, certificate, profile, API key, tester email, personal workout data, or private screenshot in Git.
 - Check any current Apple agreements or account prompts in [App Store Connect](https://appstoreconnect.apple.com). You must answer the account's actual prompts before uploading or inviting.
 
 ## Sign both targets
@@ -47,7 +47,7 @@ The project declares `ITSAppUsesNonExemptEncryption = NO` for the current use of
 
 1. In **TestFlight**, create an internal testing group and add your own account and processed build. Install it through TestFlight and repeat the Share extension, duplicate, live player, backup, and privacy-policy checks on your iPhone.
 2. Create an **External Testing** group, add the processed build, provide **What to Test**, and choose **Submit Review**. Apple says the first submitted build gets full TestFlight App Review; later builds for the same version may not. If rejected, read the beta review details, correct the issue, increment the build number, and resubmit. [External tester steps](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/)
-3. After approval, invite your girlfriend **by email** to that external group. She installs Apple's TestFlight app and accepts the invitation on an iPhone with iOS 18 or newer. An email invitation keeps this one-person test private; a public link can be forwarded by anyone who receives it.
+3. After approval, invite your girlfriend **by email** to that external group. She installs Apple's TestFlight app and accepts the invitation on an iPhone or iPad with iOS or iPadOS 18 or newer. An email invitation keeps this one-person test private; a public link can be forwarded by anyone who receives it.
 4. Check her first install with a real share, import, player, and backup. TestFlight builds [expire after 90 days](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/), so upload a newer build before expiry if she should keep testing. Keep the TestFlight build number higher for each upload.
 
 Completing external TestFlight review does not submit the app to the public App Store. Do not press the separate App Store release submission controls unless you intend a public release.

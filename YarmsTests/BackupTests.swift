@@ -174,7 +174,7 @@ final class BackupTests: XCTestCase {
     }
 
     func testDecoderRejectsInvalidAndUnsupportedArchives() throws {
-        let unsupported = Data("{\"schemaVersion\":3,\"workouts\":[]}".utf8)
+        let unsupported = Data("{\"schemaVersion\":4,\"workouts\":[]}".utf8)
         XCTAssertThrowsError(try WorkoutBackup.decode(unsupported)) { error in
             XCTAssertEqual(error as? WorkoutBackup.BackupError, .unsupportedVersion)
         }

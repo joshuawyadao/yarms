@@ -20,13 +20,30 @@ def ensure_ui_test_target(project, app)
     settings = config.build_settings
     settings['SWIFT_VERSION'] = '5.0'
     settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
-    settings['TARGETED_DEVICE_FAMILY'] = '1'
     settings['PRODUCT_BUNDLE_IDENTIFIER'] = 'com.joshuawyadao.yarms.uitests'
     settings['GENERATE_INFOPLIST_FILE'] = 'YES'
     settings['CODE_SIGN_STYLE'] = 'Automatic'
     settings['TEST_TARGET_NAME'] = app.name
   end
   target
+end
+
+def configure_device_support(project, app)
+  targets = project.targets.select { |target| %w[Yarms YarmsShare YarmsTests YarmsUITests].include?(target.name) }
+  (project.build_configurations + targets.flat_map(&:build_configurations)).each do |config|
+    config.build_settings['TARGETED_DEVICE_FAMILY'] = '1,2'
+  end
+  phone_orientations = %w[
+    UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+  ]
+  pad_orientations = %w[
+    UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown
+    UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+  ]
+  app.build_configurations.each do |config|
+    config.build_settings['INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone'] = phone_orientations.join(' ')
+    config.build_settings['INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad'] = pad_orientations.join(' ')
+  end
 end
 
 def configure_distribution_resources(project)
@@ -95,6 +112,7 @@ if File.exist?(File.join(path, 'project.pbxproj'))
       end
     end
   end
+  configure_device_support(project, app)
   configure_distribution_resources(project)
   project.save
   scheme_path = File.join(path, 'xcshareddata', 'xcschemes', 'Yarms.xcscheme')
@@ -156,7 +174,6 @@ tests.add_dependency(app)
 project.build_configurations.each do |config|
   config.build_settings['SWIFT_VERSION'] = '5.0'
   config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
-  config.build_settings['TARGETED_DEVICE_FAMILY'] = '1'
   config.build_settings['CLANG_ENABLE_MODULES'] = 'YES'
   config.build_settings['CODE_SIGN_STYLE'] = 'Automatic'
 end
@@ -168,7 +185,6 @@ end
     settings = config.build_settings
     settings['SWIFT_VERSION'] = '5.0'
     settings['IPHONEOS_DEPLOYMENT_TARGET'] = '18.0'
-    settings['TARGETED_DEVICE_FAMILY'] = '1'
     settings['PRODUCT_BUNDLE_IDENTIFIER'] = bundle_id
     settings['MARKETING_VERSION'] = '1.0'
     settings['CURRENT_PROJECT_VERSION'] = '1'
@@ -197,6 +213,7 @@ end
   end
 end
 
+configure_device_support(project, app)
 configure_distribution_resources(project)
 project.save
 scheme = Xcodeproj::XCScheme.new

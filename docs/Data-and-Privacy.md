@@ -8,7 +8,7 @@ This page describes the checked-in implementation. Source contracts live in [Wor
 
 The canonical [privacy policy](../PRIVACY.md) is bundled in the app and displayed offline from the library toolbar's **Privacy policy** button. It links to the public main-branch copy. Update this single file when practices change; the Release gate rejects stale bundled text.
 
-Both targets bundle `PrivacyInfo.xcprivacy` with an empty required-reason API list following the current native source audit: no UserDefaults, file-timestamp, disk-space, system-uptime or active-keyboard APIs are used. The backup reader accesses file size, not file timestamps. No third-party native SDK is linked. Reaudit when APIs or dependencies change. These minimal manifests do not declare that TikTok web content collects no data; they are not a substitute for App Store privacy answers or a tracking assessment.
+Each target bundles `PrivacyInfo.xcprivacy`. The app declares the UserDefaults purpose `CA92.1` for its private, device-local playback preference. The Share extension has an empty required-reason list. The current audit found no file-timestamp, disk-space, system-uptime or active-keyboard APIs. The backup reader accesses file size, not file timestamps. No third-party native SDK is linked. Reaudit when APIs or dependencies change. These minimal manifests do not declare that TikTok web content collects no data; they are not a substitute for App Store privacy answers or a tracking assessment.
 
 Both bundles declare no nonexempt encryption for their current use of Apple operating-system cryptography (HTTPS and Keychain). Revisit that declaration if cryptographic functionality changes. See [TestFlight](TestFlight.md) for submission decisions.
 
@@ -16,7 +16,8 @@ Both bundles declare no nonexempt encryption for their current use of Apple oper
 
 | Data | Location and lifetime |
 | --- | --- |
-| Workouts, metadata URLs, notes, folders, confirmed aliases | App container: `Application Support/Yarms/Library.json`; retained until edited/deleted or the app's data is removed |
+| Workouts, custom names, metadata URLs, notes, folders, confirmed aliases, history | App container: `Application Support/Yarms/Library.json`; retained until edited/deleted or the app's data is removed |
+| Playback skip interval | App-only UserDefaults on the current device |
 | Links captured by Paste or App Intent | `Application Support/Yarms/Inbox/<UUID>.json`; removed after successful import or duplicate acknowledgement |
 | Links captured by Share extension | Shared Keychain, service `com.joshuawyadao.yarms.pending-links`; one generic-password item per pending UUID, removed after import/acknowledgement |
 | Exported backup | JSON at the user's chosen Files location; deletion in Yarms does not update or delete earlier exports |
@@ -29,14 +30,15 @@ The legacy App Group location is no longer accessible to this build. Follow [Sto
 
 ## Stored format
 
-Local library and backup envelopes contain `schemaVersion`, `workouts`, and `folders`. Current writes use **schema 2**. JSON encoding uses Foundation's default date strategy: numeric seconds since **2001-01-01 00:00:00 UTC**, not Unix time or ISO 8601 strings. Optional fields can be omitted. Export uses sorted object keys, but array order and file bytes are not a stable API.
+Local library and backup envelopes contain `schemaVersion`, `workouts`, `folders`, and optional `completions`. A library or backup with custom workout names or completions uses **schema 3**. Files with the original fields use schema 2. JSON encoding uses Foundation's default date strategy: numeric seconds since **2001-01-01 00:00:00 UTC**, not Unix time or ISO 8601 strings. Optional fields can be omitted. Export uses sorted object keys, but array order and file bytes are not a stable API.
 
 | Record | Fields |
 | --- | --- |
 | `TikTokLink` | `url` string; optional `videoID` string |
 | `PendingLink` | `id` UUID, `link` TikTokLink, `savedAt` date |
-| `Workout` | Required `id`, `sourceLink`, `savedAt`; optional `resolvedLink`, `title`, `creator`, `thumbnailURL`, `notes`, `folderID`, `sourceAliases`, optional local `enrichmentState` |
+| `Workout` | Required `id`, `sourceLink`, `savedAt`; optional `resolvedLink`, `title`, `customTitle`, `creator`, `thumbnailURL`, `notes`, `folderID`, `sourceAliases`, optional local `enrichmentState` |
 | `WorkoutFolder` | `id` UUID and `name` string |
+| `WorkoutCompletion` | `id` and `workoutID` UUIDs, title at logging time, `completedAt` date and `timeZoneIdentifier` |
 
 Enrichment state stores only retry status, attempt count and next attempt time on this device. It is optional for older libraries. Import discards this state, along with untrusted remote claims, so an imported archive cannot suppress or schedule requests. No background service receives this state.
 
@@ -64,9 +66,10 @@ Use the app's exporter for real backups. Hand-edited files can fail validation o
 | Early schema 1 local library containing folders | Upgrades to schema 2 immediately on read |
 | Schema 1 backup without folders/assignments | Accepted |
 | Schema 1 backup carrying folders/assignments | Rejected to prevent older builds silently losing organization |
-| Schema 2 library or backup | Current format |
+| Schema 2 library or backup | Accepted for data without custom names or history |
+| Schema 3 library or backup | Accepted, including custom names and completions |
 | Other version or malformed JSON | Rejected; no automatic repair |
-| New schema 2 file opened by pre-folder builds | Those builds reject the unsupported version |
+| New schema 3 file opened by a schema 1/2 build | Those builds reject the unsupported version |
 
 Local loading is decoding plus version handling; it is not the full untrusted-backup validation path. Do not infer that arbitrary edited local JSON has passed backup validation.
 
@@ -77,8 +80,8 @@ The importer checks file size before reading when available, then reads in bound
 Import normalizes blank optional title/creator/notes to absent values, trims folder names, and validates:
 
 - Supported schema and decodable required fields.
-- Unique workout UUIDs; unique folder UUIDs and normalized names.
-- Finite save times and folder references that point to included folders.
+- Unique workout and completion UUIDs, plus unique folder UUIDs and normalized names.
+- Finite save and completion times, recognized completion time zones, and folder references that point to included folders.
 - Source links that exactly match the supported parser's normalized URL and video ID.
 - Retained canonical resolved links with a numeric ID matching the source video's ID.
 
@@ -104,10 +107,11 @@ In words: validation precedes confirmation, and the store revalidates the archiv
 | --- | --- |
 | Folder matching | Match normalized names to current folders; create missing names and remap colliding incoming folder IDs |
 | Workout matching | Indexed UUID, source URL, locally confirmed aliases, and available canonical video ID; incompatible identity claims reject the merge |
-| Existing details | Keep current identity/details; fill missing title, creator, resolution, and folder assignment |
+| Existing details | Keep current identity/details; fill missing custom and provider names, creator, resolution, and folder assignment |
 | New workouts | Add validated records; imported aliases do not establish identity |
 | Short-link enrichment | When saved links resolve to one video, retain the earliest save's identity, then fill missing details/folder from duplicates |
-| Deletion | Removes that local workout record; no tombstone prevents a later share or older backup from adding it again |
+| Workout history | Appends sessions with new IDs during restore. Keeps the local record for an existing ID. Sessions can outlive their saved workout. |
+| Deletion | Removes that local workout record and keeps its history; no tombstone prevents a later share or older backup from adding it again |
 
 **Note precedence matters.** Restore keeps the current workout's note first, even if the incoming backup record has an earlier save time. Incoming records are considered in save order. Enrichment coalescing starts with the earliest saved workout's note instead.
 
@@ -122,13 +126,20 @@ A successful restore reports added workouts and updated/combined existing record
 | Share capture | Parses URL/text locally and writes Keychain; no metadata fetch in the extension |
 | Short-link resolution | Up to five HEAD requests; each next URL must be an accepted HTTPS TikTok link; automatic redirects disabled for this path |
 | Metadata | GET to `https://www.tiktok.com/oembed` with the workout URL as the `url` query parameter |
-| Thumbnail | `AsyncImage` loads an HTTPS thumbnail URL returned by TikTok metadata; its host need not be `tiktok.com` |
+| Public poster fallback | When oEmbed returns metadata without a trusted cover and a canonical video ID is known, GET its public page on `www.tiktok.com` with a bounded response, no redirects, and no cookies. Use metadata only from the matching video ID. |
+| Thumbnail | For newly fetched covers, `AsyncImage` loads the HTTPS image from a trusted TikTok CDN. The enrichment queue can backfill older partial records and refresh expired signed URLs. |
 | Playback | `WKWebView` loads TikTok's official iframe player and its web resources |
 | Open in TikTok | iOS opens the saved/resolved URL in an available app or browser |
 
 Accepted input hosts are `tiktok.com`, `www.tiktok.com`, `m.tiktok.com`, `vm.tiktok.com`, and `vt.tiktok.com`, with supported video/short-link path shapes. Query strings and fragments are removed from captured links. This input/HEAD-redirect allowlist is **not** a global network sandbox: oEmbed, thumbnail loading, and embedded web content use their own networking behavior.
 
-Yarms does not include notes or folder names in its TikTok requests, upload the library to its own service, or download a reusable video file. TikTok and its content providers can still receive normal network requests and process web-player data; “local library” does not mean offline or anonymous playback.
+Yarms does not include notes, custom names, folder names, settings, or workout history in its TikTok requests, upload the library to its own service, or download a reusable video file. TikTok and its content providers can still receive normal network requests and process web-player data; “local library” does not mean offline or anonymous playback.
+
+## iCloud sync feasibility
+
+For now, export a private backup to Files or iCloud Drive on iPhone and restore it on iPad. A future signed pilot can keep the current local library and use a private CloudKit record zone with [CKSyncEngine](https://developer.apple.com/documentation/cloudkit/cksyncengine-5sie5) for workouts, folders, and history. Sync should preserve offline changes, retain stable IDs and retry state, reconcile independent saves of the same TikTok, and propagate deletions so they stay deleted. The Share extension inbox remains on the device. Each Apple Account needs an isolated sync state and an explicit policy for its existing local data.
+
+This needs an Apple Developer iCloud container, Push Notifications and the Remote notifications background mode, matching signing profiles, and a deployed [production schema](https://developer.apple.com/documentation/cloudkit/deploying-an-icloud-container-s-schema) before distribution. Verify on a signed iPhone and iPad using one Apple Account, including offline saves, concurrent edits, deletion, and account changes.
 
 ## Sharing evidence safely
 
