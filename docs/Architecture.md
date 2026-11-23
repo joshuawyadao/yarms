@@ -90,7 +90,7 @@ sequenceDiagram
 
 Duration may arrive in a ready or time event. Relative seeking is bounded at zero and at known duration. Replay seeks to zero. `WKWebView` enables inline media playback, and its handler is removed when dismantled. Ordinary UI tests explicitly select a valid isolated Debug store and local fixtures: metadata uses no network, and player HTML has no remote frame and denies external resources with CSP. Release ignores these fixture controls; real player availability/accessibility remains a separate live/device check. The always-available external link is the fallback for unavailable posts or unresolved short links. Yarms does not persist a video file, though WebKit and networking can use system-managed caches.
 
-The player uses a device-local skip interval from the app’s Settings. The native iPad layout caps the portrait viewport against available screen height so TikTok’s embedded controls remain reachable in landscape.
+The player uses a device-local skip interval from the app’s Settings. The native iPad layout caps the viewport against available screen height and leaves enough width for embedded controls in landscape.
 
 ## Backups and failure boundaries
 

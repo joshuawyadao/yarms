@@ -54,9 +54,9 @@ struct EmbeddedPlayerView: View {
 
                     if let playerURL = workout.playbackLink.playerURL,
                        let html = TikTokPlayerHTML.presentationDocument(for: playerURL) {
-                        let playerWidth = playerViewportWidth(in: geometry.size)
+                        let viewport = playerViewport(in: geometry.size)
                         TikTokWebPlayer(html: html, controller: player)
-                            .frame(width: playerWidth, height: playerWidth * 16 / 9)
+                            .frame(width: viewport.width, height: viewport.height)
                             .frame(maxWidth: .infinity)
                             .background(.black)
                             .clipShape(RoundedRectangle(cornerRadius: YarmsTheme.Radius.media))
@@ -217,15 +217,19 @@ struct EmbeddedPlayerView: View {
         }
     }
 
-    private func playerViewportWidth(in size: CGSize) -> CGFloat {
+    private func playerViewport(in size: CGSize) -> CGSize {
         let availableWidth = max(0, min(size.width, YarmsTheme.maximumContentWidth) - 2 * YarmsTheme.Spacing.lg)
-        guard UIDevice.current.userInterfaceIdiom == .pad else { return availableWidth }
+        let portraitHeight = availableWidth * 16 / 9
+        guard UIDevice.current.userInterfaceIdiom == .pad else {
+            return CGSize(width: availableWidth, height: portraitHeight)
+        }
 
-        // The safe-area inset already reserves the playback tray. Fit the video
-        // beneath the heading and keep it usable in very short, scrollable windows.
+        // The safe-area inset already reserves the playback tray. A wider
+        // viewport leaves room for TikTok's own controls in short iPad windows.
         let headingSpace = workoutHeadingHeight + YarmsTheme.Spacing.lg + YarmsTheme.Spacing.xl
-        let availableHeight = max(160, size.height - headingSpace)
-        return min(availableWidth, availableHeight * 9 / 16)
+        let height = min(portraitHeight, max(160, size.height - headingSpace))
+        let width = min(availableWidth, max(320, height * 9 / 16))
+        return CGSize(width: width, height: height)
     }
 
     private var noteActions: some View {

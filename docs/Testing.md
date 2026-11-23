@@ -79,6 +79,8 @@ xcodebuild -project Yarms.xcodeproj -scheme Yarms \
 
 For the live probe, export `TEST_RUNNER_YARMS_RUN_LIVE_FULLSCREEN=1` and select `testLiveTikTokFullscreenProbeOnIPad` in the command. It uses TikTok’s documented public sample and captures the player before playback, during playback, and after pausing. Inspect screenshots and the WebKit accessibility attachments for the bottom-right fullscreen control. A successful XCTest run indicates that the probe captured its stages. Verify the actual fullscreen transition from the evidence. If the sample cannot start, the probe reports playback availability as inconclusive.
 
+On November 23, 2026, the deterministic layout test passed on the iPad mini (A17 Pro) simulator running iPadOS 27.0. Paste, history navigation, the saved workout, the video viewport, and the playback tray were reachable across portrait and landscape. The live sample played and paused in landscape on the iPad mini (A17 Pro) simulator running iPadOS 27.0. The embed exposed Play and Pause, but omitted a tappable fullscreen control before playback, while playing, and after pausing. This result describes the tested sample, orientation, and simulator.
+
 On a physical iPad mini, repeat the check in portrait and landscape before starting the video, while it plays, and after pausing. Confirm whether fullscreen opens and whether dismissing it returns to the same workout. The simulator and the physical device can expose different TikTok controls.
 
 ## What the tests cover

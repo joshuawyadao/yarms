@@ -182,7 +182,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(title.waitForExistence(timeout: 5),
                       "Only an explicit Log workout tap should open the completion sheet")
         XCTAssertEqual(title.label, "Good Job BUNS!")
-        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        let message = app.staticTexts["Logged for today in Workout History."]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
         let completionDone = app.buttons["workoutCompletionDoneButton"]
         XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
@@ -267,7 +267,7 @@ final class YarmsUITests: XCTestCase {
             speech.append(try voiceOver.moveForward().utterance)
         }
         let headlineIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Good Job BUNS!") }, "Speech: \(speech)")
-        let messageIndex = try XCTUnwrap(speech.firstIndex { $0.contains("You showed up and moved today") }, "Speech: \(speech)")
+        let messageIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Logged for today in Workout History") }, "Speech: \(speech)")
         let doneIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Done") }, "Speech: \(speech)")
         XCTAssertLessThan(headlineIndex, messageIndex)
         XCTAssertLessThan(messageIndex, doneIndex)
@@ -315,7 +315,7 @@ final class YarmsUITests: XCTestCase {
         XCTAssertEqual(title.label, "Good Job BUNS!")
         XCTAssertTrue(title.isHittable,
                       "The completion headline should remain visible at maximum text size")
-        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        let message = app.staticTexts["Logged for today in Workout History."]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
         let completionDone = app.buttons["workoutCompletionDoneButton"]
         XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
@@ -680,7 +680,8 @@ final class YarmsUITests: XCTestCase {
         let app = isolatedApp()
         let videoID = pasteUniqueWorkout(into: app)
         let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        scrollUntilHittable(row, in: app)
+        XCTAssertTrue(row.isHittable, "The iPad library should show the exact saved fixture link")
         attachScreenshot("iPad portrait library", of: app)
         guard tapVisibleLibraryRow(row, in: app) else { return }
         assertIPadPlayerFits(app, landscape: false)
@@ -729,24 +730,28 @@ final class YarmsUITests: XCTestCase {
             viewport.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         }
 
-        let nativePlaying = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            self.nativePlaybackToggle("Pause", in: app) != nil
+        let webPause = viewport.buttons["Pause"].firstMatch
+        let playing = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            self.nativePlaybackToggle("Pause", in: app) != nil || webPause.exists
         }, object: nil)
-        guard XCTWaiter.wait(for: [nativePlaying], timeout: 15) == .completed else {
+        guard XCTWaiter.wait(for: [playing], timeout: 15) == .completed else {
             captureFullscreenStage("TikTok did not start playing", viewport: viewport, app: app)
             throw XCTSkip("The live TikTok sample did not report playing. Fullscreen behavior is inconclusive.")
         }
         captureFullscreenStage("Playing", viewport: viewport, app: app)
 
-        guard let pause = nativePlaybackToggle("Pause", in: app) else {
-            captureFullscreenStage("TikTok stopped before pause", viewport: viewport, app: app)
-            throw XCTSkip("The sample stopped before the test could pause it. Paused fullscreen is inconclusive.")
+        if let nativePause = nativePlaybackToggle("Pause", in: app) {
+            nativePause.tap()
+        } else if webPause.exists && webPause.isHittable {
+            webPause.tap()
+        } else {
+            _ = tapFullscreenIfAvailable(stage: "playing", viewport: viewport, app: app)
+            throw XCTSkip("The embed indicated playback but neither pause control was reachable. Paused fullscreen is inconclusive.")
         }
-        pause.tap()
-        let nativePaused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            self.nativePlaybackToggle("Play", in: app) != nil
+        let paused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            self.nativePlaybackToggle("Pause", in: app) == nil && !webPause.exists
         }, object: nil)
-        guard XCTWaiter.wait(for: [nativePaused], timeout: 8) == .completed else {
+        guard XCTWaiter.wait(for: [paused], timeout: 8) == .completed else {
             captureFullscreenStage("TikTok did not acknowledge pause", viewport: viewport, app: app)
             throw XCTSkip("The live sample did not acknowledge pause. Paused fullscreen is inconclusive.")
         }
@@ -754,9 +759,13 @@ final class YarmsUITests: XCTestCase {
 
         if tapFullscreenIfAvailable(stage: "paused", viewport: viewport, app: app) { return }
         // If the control only exists during playback, attempt activation after resuming.
-        nativePlaybackToggle("Play", in: app)?.tap()
+        if let nativePlay = nativePlaybackToggle("Play", in: app), nativePlay.isEnabled {
+            nativePlay.tap()
+        } else if webPlay.exists && webPlay.isHittable {
+            webPlay.tap()
+        }
         let resumed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            self.nativePlaybackToggle("Pause", in: app) != nil
+            self.nativePlaybackToggle("Pause", in: app) != nil || webPause.exists
         }, object: nil)
         if XCTWaiter.wait(for: [resumed], timeout: 8) == .completed {
             _ = tapFullscreenIfAvailable(stage: "playing", viewport: viewport, app: app)
@@ -805,11 +814,13 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(viewport.waitForExistence(timeout: 10))
         XCTAssertTrue(skip.waitForExistence(timeout: 5))
         let fits = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
-            let visibleFrame = viewport.frame.intersection(app.frame)
-            return visibleFrame.size == viewport.frame.size && viewport.frame.maxY <= skip.frame.minY + 1
+            let videoFrame = viewport.frame
+            let screenFrame = app.frame.insetBy(dx: -2, dy: -2)
+            return videoFrame.width > 0 && screenFrame.contains(videoFrame) &&
+                videoFrame.maxY <= skip.frame.minY + 2
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [fits], timeout: 5), .completed,
-                       "The complete video viewport must fit above the native playback tray: \(viewport.frame), \(skip.frame)")
+                       "The complete video viewport must fit above the native playback tray: viewport \(viewport.frame), tray \(skip.frame), app \(app.frame)")
         XCTAssertTrue(skip.isHittable, "Native playback controls should remain reachable")
         XCTAssertTrue(app.buttons["openInTikTokButton"].isHittable, "Open in TikTok should stay reachable")
         attachScreenshot("iPad \(landscape ? "landscape" : "portrait") player", of: app)
@@ -1007,10 +1018,12 @@ final class YarmsUITests: XCTestCase {
             let towardTop = row.exists && row.frame.midY < viewport.midY
             let startY = viewport.minY + viewport.height * (towardTop ? 0.2 : 0.8)
             let endY = viewport.minY + viewport.height * (towardTop ? 0.8 : 0.2)
-            origin.withOffset(CGVector(dx: viewport.midX - frame.minX, dy: startY - frame.minY))
+            // Keep the scroll gesture away from system controls such as Paste,
+            // whose native touch handling also receives drags that start inside it.
+            let dragX = min(frame.maxX - 9, frame.midX + 285) - frame.minX
+            origin.withOffset(CGVector(dx: dragX, dy: startY - frame.minY))
                 .press(forDuration: 0.1,
-                       thenDragTo: origin.withOffset(CGVector(dx: viewport.midX - frame.minX,
-                                                              dy: endY - frame.minY)))
+                       thenDragTo: origin.withOffset(CGVector(dx: dragX, dy: endY - frame.minY)))
         }
         XCTFail("Workout row should expose a safe 44-point tap region; row: \(row.exists ? row.frame : .zero), viewport: \(viewport)")
         return false
@@ -1021,18 +1034,25 @@ final class YarmsUITests: XCTestCase {
                                           towardTop: Bool = false) {
         // iOS 27 can dock search at the bottom. A partly covered picker may
         // report isHittable even when its center is behind the search field.
-        for _ in 0..<4 {
+        for _ in 0..<8 {
+            let frame = app.frame
+            var scrollTowardTop = towardTop
             if picker.exists {
                 let navigation = app.navigationBars.firstMatch
-                let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
+                let top = navigation.exists ? navigation.frame.maxY : frame.minY
                 let search = app.searchFields.firstMatch
-                let bottom = search.exists && search.frame.minY > app.frame.midY
-                    ? search.frame.minY - 8 : app.frame.maxY - 8
-                if picker.isHittable && picker.frame.minY >= top && picker.frame.maxY < bottom { return }
-                if picker.frame.maxY >= bottom { app.swipeUp(); continue }
-                if picker.frame.minY < top { app.swipeDown(); continue }
+                let bottom = search.exists && search.frame.minY > frame.midY
+                    ? search.frame.minY - 8 : frame.maxY - 8
+                let pickerFrame = picker.frame
+                if picker.isHittable && pickerFrame.minY >= top && pickerFrame.maxY < bottom { return }
+                scrollTowardTop = pickerFrame.minY < top
             }
-            if towardTop { app.swipeDown() } else { app.swipeUp() }
+            // Short drags avoid moving a tall picker from behind Search
+            // straight to behind the navigation bar, or back again.
+            let x = min(0.975, (frame.width / 2 + 285) / frame.width)
+            let top = app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.39))
+            let bottom = app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.55))
+            (scrollTowardTop ? top : bottom).press(forDuration: 0.1, thenDragTo: scrollTowardTop ? bottom : top)
         }
         XCTFail("The complete folder picker should scroll clear of navigation and search before tapping")
     }

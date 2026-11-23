@@ -318,7 +318,7 @@ struct LibraryShellView: View {
 
     private var saveCard: some View {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.md) {
-            if searchText.isEmpty {
+            if searchText.isEmpty && !typeSize.isAccessibilitySize {
                 Text(workouts.isEmpty ? "Your next move starts here." : "Find your feel-good move.")
                     .font(.title2.bold())
                     .fixedSize(horizontal: false, vertical: true)
