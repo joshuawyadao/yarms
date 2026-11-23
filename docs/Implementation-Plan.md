@@ -1,21 +1,21 @@
 # Plan
 
-Require the existing full simulator and Release gates and clarify the fast-feedback workflow.
+Improve the iPhone-to-iPad workout flow with clearer capture, identifiable library cards, configurable playback, and a dated workout history.
 
 ## Scope
-- In: Scoped CI enforcement, automated validation, meaningful orchestration regressions, and canonical verification documentation for yarms.
-- Out: Product feature changes, deployment, paid services or account changes, personal data, physical-device operation, and release signing/publishing.
+- In: Paste presentation, editable names, thumbnails, empty Unfiled filter, native iPad support, configurable skips, and calendar history.
+- In: Assess iCloud sync and exercise TikTok’s existing fullscreen control on an iPad mini simulator.
+- Out: Enabling CloudKit or changing TikTok’s fullscreen behavior before the device check.
 
 ## Action items
-- [x] Read Testing, TestFlight, workflow classifier and existing runner regression tests.
-- [x] Parent configured main-branch enforcement for both CI Verify and Release Verify using observed check names.
-- [x] Document host/unit/sharing preflight, full required tests, unsigned Release and manual signed-device boundaries.
-- [x] Preserve all current simulator assertions; no redundant tests or changed expected skips.
-- [x] Run the existing host/repository tests (56 passed); parent verifies configured rules.
-- [x] Parent saves and pushes the scoped documentation branch.
+- [x] Inspect the current library, player, backup format, TestFlight requirements, and XCTest coverage. Start the feature branch from the latest origin/main in a separate worktree.
+- [ ] Make Paste identifiable, offer naming after save and renaming from the library, preserve manual names across enrichment and restore, and hide the empty Unfiled filter.
+- [ ] Strengthen thumbnail fetch and display for new and existing records without trusting imported image URLs. Check the official TikTok sample and provide a useful fallback.
+- [ ] Add in-app playback skip settings with a 10-second default, and enable native iPad device families and supported orientations.
+- [ ] Make Log workout record a separate, durable completion on each session, show confirmation, and add a calendar history. Preserve saved workouts, history across deletions, and repeat-safe backup restore.
+- [ ] Record iCloud feasibility and signed-device prerequisites. Update User-Guide, Data-and-Privacy, Architecture, Development, Testing, and the bundled privacy policy where behavior or validation changes.
+- [ ] Add XCTest coverage for names, thumbnails, history, backup compatibility, filter behavior, and skip controls. Run repository verification, the full iPhone suite, the unsigned Release check, and iPad mini simulator checks in portrait and landscape. Record live fullscreen evidence and physical-device limits.
+- [ ] Checkpoint the implementation and push the verified feature branch.
 
-## Discovery notes
-- Baseline: `60704a5da23465f4fc6af8f86fd2a2b765f3c82d` (`origin/main`), isolated from the original checkout.
-- Existing in-progress changes in original project folders remain untouched.
-- Missing hosting/account capabilities are reported as concrete limitations; they are not permission to weaken required checks.
-- Validation: 56 host/repository tests passed; live ruleset 27401106 requires pull requests plus strict CI Verify and Release Verify with no bypass. The original checkout's Xcode project edits remain untouched.
+## Open questions
+- None.
