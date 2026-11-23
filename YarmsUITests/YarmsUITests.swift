@@ -67,6 +67,8 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["workoutHeading"].waitForExistence(timeout: 5),
                       "The player should show the workout heading above the video")
         XCTAssertTrue(back.waitForExistence(timeout: 10), "The workout should show playback controls")
+        XCTAssertEqual(back.label, "Back 10 seconds", "Playback defaults to ten seconds before selecting another interval")
+        XCTAssertEqual(app.buttons["skipForwardButton"].label, "Forward 10 seconds")
         XCTAssertTrue(fallback.exists, "The workout should offer Open in TikTok")
         XCTAssertTrue(fallback.isHittable, "Open in TikTok should remain visible at the bottom")
         XCTAssertLessThanOrEqual(back.frame.width, 56, "Playback buttons should stay compact")

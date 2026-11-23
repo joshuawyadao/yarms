@@ -4,6 +4,13 @@ struct TikTokMetadata: Equatable {
     let title: String?
     let creator: String?
     let thumbnailURL: URL?
+
+    static func thumbnailIsExpired(_ url: URL, at date: Date) -> Bool {
+        guard let fields = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+              let value = fields.first(where: { $0.name == "x-expires" })?.value,
+              let expires = TimeInterval(value), expires.isFinite else { return false }
+        return expires <= date.timeIntervalSince1970
+    }
 }
 
 struct TikTokEnrichment {
@@ -122,15 +129,16 @@ struct TikTokMetadataClient {
 
         let thumbnailURL = payload.thumbnailURL.flatMap(Self.trustedThumbnailURL)
         let fallback = thumbnailURL == nil ? await fetchPublicVideoMetadata(for: link) : nil
-        let metadata = TikTokMetadata(title: payload.title?.nonempty ?? fallback?.title,
-                                      creator: payload.authorName?.nonempty ?? fallback?.creator,
-                                      thumbnailURL: thumbnailURL ?? fallback?.thumbnailURL)
-        return TikTokEnrichment(resolvedLink: nil, metadata: metadata)
+        let metadata = TikTokMetadata(title: payload.title?.nonempty ?? fallback?.metadata?.title,
+                                      creator: payload.authorName?.nonempty ?? fallback?.metadata?.creator,
+                                      thumbnailURL: thumbnailURL ?? fallback?.metadata?.thumbnailURL)
+        return TikTokEnrichment(resolvedLink: nil, metadata: metadata,
+                                outcome: fallback?.outcome ?? .success, retryAfter: fallback?.retryAfter)
     }
 
     // A valid oEmbed response may contain just the player iframe. Recover its
     // poster from the original public post when the canonical video is known.
-    private func fetchPublicVideoMetadata(for link: TikTokLink) async -> TikTokMetadata? {
+    private func fetchPublicVideoMetadata(for link: TikTokLink) async -> TikTokEnrichment? {
         guard let videoID = link.videoID, let url = Self.publicPageURL(for: link, videoID: videoID) else {
             return nil
         }
@@ -142,17 +150,24 @@ struct TikTokMetadataClient {
         do {
             let (bytes, response) = try await session.bytes(for: request, delegate: NoAutomaticRedirects())
             defer { bytes.task.cancel() }
-            guard let response = response as? HTTPURLResponse, response.statusCode == 200,
+            guard let response = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            if response.statusCode == 429 || response.statusCode >= 500 {
+                return TikTokEnrichment(resolvedLink: nil, metadata: nil,
+                                        outcome: .retryableFailure, retryAfter: Self.retryAfter(response))
+            }
+            guard response.statusCode == 200,
                   response.expectedContentLength <= Self.maximumPublicPageBytes else { return nil }
             var data = Data()
             for try await byte in bytes {
                 guard data.count < Self.maximumPublicPageBytes else { return nil }
                 data.append(byte)
             }
-            return Self.metadata(inPublicPage: data, videoID: videoID)
+            return TikTokEnrichment(resolvedLink: nil, metadata: Self.metadata(inPublicPage: data, videoID: videoID))
         } catch {
-            // This optional source cannot undo valid or partial oEmbed data.
-            return nil
+            // Keep oEmbed details while letting the queue retry the poster.
+            return TikTokEnrichment(resolvedLink: nil, metadata: nil, outcome: .retryableFailure)
         }
     }
 
@@ -203,9 +218,10 @@ struct TikTokMetadataClient {
               components.scheme?.lowercased() == "https",
               components.user == nil, components.password == nil, components.port == nil,
               let host = components.host?.lowercased(),
-              ["tiktokcdn.com", "tiktokcdn-us.com"].contains(where: { host == $0 || host.hasSuffix(".\($0)") })
+              ["tiktokcdn.com", "tiktokcdn-us.com"].contains(where: { host == $0 || host.hasSuffix(".\($0)") }),
+              let url = components.url, !TikTokMetadata.thumbnailIsExpired(url, at: .now)
         else { return nil }
-        return components.url
+        return url
     }
 
     private static func retryAfter(_ response: HTTPURLResponse) -> Date? {

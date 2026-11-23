@@ -21,11 +21,8 @@ struct Workout: Codable, Identifiable, Equatable {
     var playbackLink: TikTokLink { resolvedLink ?? sourceLink }
 
     func thumbnailIsExpired(at date: Date) -> Bool {
-        guard let thumbnailURL,
-              let fields = URLComponents(url: thumbnailURL, resolvingAgainstBaseURL: false)?.queryItems,
-              let value = fields.first(where: { $0.name == "x-expires" })?.value,
-              let expires = TimeInterval(value), expires.isFinite else { return false }
-        return expires <= date.timeIntervalSince1970
+        guard let thumbnailURL else { return false }
+        return TikTokMetadata.thumbnailIsExpired(thumbnailURL, at: date)
     }
 
     func matches(_ query: String) -> Bool {

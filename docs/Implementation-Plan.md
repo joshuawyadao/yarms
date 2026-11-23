@@ -32,10 +32,12 @@ Improve the iPhone-to-iPad workout flow with clearer capture, identifiable libra
 Keep TikTok poster recovery working after signed URLs expire or TikTok responds with a temporary error. Preserve the existing network trust boundary and verify the 10-second setting default.
 
 - [x] Inspect Codex and Brooks findings at `3bc5467` and map them to the metadata, retry queue, and player tests.
-- [ ] Reproduce expired selected posters and retryable public-page failures with controlled HTTP responses.
-- [ ] Filter expired candidates before selection and pass transient public-page failures to the bounded enrichment queue.
-- [ ] Assert the current playback default and update the poster retry contract in Data and Privacy.
+- [x] Reproduce expired selected posters and retryable public-page failures with controlled HTTP responses.
+- [x] Filter expired candidates before selection and pass transient public-page failures to the bounded enrichment queue.
+- [x] Assert the current playback default and update the poster retry contract in Data and Privacy.
 - [ ] Run the metadata regressions and monitor both required GitHub checks and the latest Codex review.
+
+Both new metadata cases reproduced the bugs before the fix and passed afterward. All 20 metadata tests passed in the isolated SwiftPM harness using the app’s actual metadata source. The iPhone UI regression checks the initial 10-second labels through the player, in addition to the separate five-second persistence and seek test.
 
 ## Open questions
 - None.

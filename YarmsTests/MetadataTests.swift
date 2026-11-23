@@ -93,6 +93,46 @@ final class MetadataTests: XCTestCase {
         XCTAssertEqual(result.metadata?.thumbnailURL?.absoluteString, originCover)
     }
 
+    func testExpiredPosterFallsBackToCurrentOriginCover() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        let expired = "https://p16.tiktokcdn.com/expired.jpeg?x-expires=1"
+        let fresh = "https://p16-sign.tiktokcdn-us.com/current.jpeg"
+
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/oembed" {
+                let body = try JSONSerialization.data(withJSONObject: ["thumbnail_url": expired])
+                return (200, [:], body)
+            }
+            return (200, [:], self.publicPage(cover: expired, originCover: fresh))
+        }
+
+        let result = await client().enrich(link)
+        XCTAssertEqual(result.outcome, .success)
+        XCTAssertEqual(result.metadata?.thumbnailURL?.absoluteString, fresh,
+                       "Reject both expired candidates before choosing the alternate cover")
+    }
+
+    func testRateLimitedPublicPagePreservesOEmbedAndSchedulesRetry() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/oembed" {
+                return (200, [:], Data(#"{"title":"Strength","author_name":"Coach"}"#.utf8))
+            }
+            return (429, ["Retry-After": "120"], Data())
+        }
+
+        let startedAt = Date()
+        let result = await client().enrich(link)
+        XCTAssertEqual(result.metadata?.title, "Strength")
+        XCTAssertEqual(result.metadata?.creator, "Coach")
+        XCTAssertEqual(result.outcome, .retryableFailure)
+        let deadline = try XCTUnwrap(result.retryAfter, "The optional page lookup must carry its retry deadline")
+        XCTAssertGreaterThanOrEqual(deadline.timeIntervalSince(startedAt), 120)
+        let state = WorkoutEnrichmentState.after(result: result, previous: nil, now: startedAt)
+        XCTAssertEqual(state.status, .pending, "A rate-limited poster must remain eligible for background retry")
+        XCTAssertEqual(state.nextAttemptAt, deadline)
+    }
+
     func testPublicPageCannotSupplyMetadataForAnotherVideo() async throws {
         let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
         MockURLProtocol.handler = { request in

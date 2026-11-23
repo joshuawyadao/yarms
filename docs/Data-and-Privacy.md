@@ -126,7 +126,7 @@ A successful restore reports added workouts and updated/combined existing record
 | Share capture | Parses URL/text locally and writes Keychain; no metadata fetch in the extension |
 | Short-link resolution | Up to five HEAD requests; each next URL must be an accepted HTTPS TikTok link; automatic redirects disabled for this path |
 | Metadata | GET to `https://www.tiktok.com/oembed` with the workout URL as the `url` query parameter |
-| Public poster fallback | When oEmbed returns metadata without a trusted cover and a canonical video ID is known, GET its public page on `www.tiktok.com` with a bounded response, no redirects, and no cookies. Use metadata only from the matching video ID. |
+| Public poster fallback | When oEmbed returns metadata without a trusted, unexpired cover and a canonical video ID is known, GET its public page on `www.tiktok.com` with a bounded response, no redirects, and no cookies. Use metadata only from the matching video ID. Temporary transport failures, rate limits, and server errors use the existing bounded retry schedule while preserving oEmbed fields. |
 | Thumbnail | For newly fetched covers, `AsyncImage` loads the HTTPS image from a trusted TikTok CDN. The enrichment queue can backfill older partial records and refresh expired signed URLs. |
 | Playback | `WKWebView` loads TikTok's official iframe player and its web resources |
 | Open in TikTok | iOS opens the saved/resolved URL in an available app or browser |
