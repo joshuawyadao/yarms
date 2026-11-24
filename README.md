@@ -5,9 +5,9 @@
 [![Repository Verify](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml/badge.svg)](https://github.com/joshuawyadao/yarms/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Save TikTok workouts, organize them into folders, and follow along on your iPhone. Keep your own notes and export your library when you need a backup.
+Save TikTok workouts, organize them into folders, and follow along on iPhone or iPad. Log completed sessions, keep your own notes and export your library when you need a backup.
 
-> **Available from source:** The MVP is implemented for iOS 18 or later. There is no App Store or TestFlight release; install with Xcode using the [development guide](docs/Development.md).
+> **Available from source:** The MVP is implemented for iOS and iPadOS 18 or later. There is no App Store or TestFlight release; install with Xcode using the [development guide](docs/Development.md).
 
 Preparing a private beta? Follow the [TestFlight submission guide](docs/TestFlight.md). Read the [privacy policy](PRIVACY.md), also available offline from the app's **Privacy policy** toolbar button.
 
@@ -25,10 +25,10 @@ Preparing a private beta? Follow the [TestFlight submission guide](docs/TestFlig
 
 ## From TikTok to your library
 
-1. In TikTok, tap **Share → Save to yarms**. Open Yarms to import the saved link. You can also copy a video link and use **Paste** in Yarms.
+1. In TikTok, tap **Share → Save to yarms**. Open Yarms to import the saved link. You can also copy a video link and tap **Paste** in Yarms. Use **Name workout** after saving to give it a name.
 2. Find it in **Unfiled**, move it into a folder, or search by title, creator, or link.
-3. Open the workout to watch with TikTok's embedded player and save optional notes. **Open in TikTok** remains available if inline playback fails.
-4. Use **Backup → Export backup** to save links, notes, and folders to Files.
+3. Watch with TikTok's embedded player or use **Open in TikTok**. Tap **Log workout** when you finish and open **Workout History** to browse completed sessions by date.
+4. Use **Backup → Export backup** to save links, custom names, notes, folders, and workout history to Files.
 
 No Yarms account or Shortcut is required. Yarms saves links rather than video files; playback and metadata depend on TikTok and the post remaining available. Backups are unencrypted and include your notes. See the [user guide](docs/User-Guide.md) for restore limits, deletion behavior, and troubleshooting.
 
@@ -45,7 +45,7 @@ cd yarms
 open Yarms.xcodeproj
 ```
 
-Select the **Yarms** scheme and an available iPhone simulator. For physical-device signing, project regeneration, and command-line builds, follow [Development](docs/Development.md). The [testing guide](docs/Testing.md) covers unit/UI tests, CI, and checks that need a signed iPhone.
+Select the **Yarms** scheme and an available iPhone or iPad simulator. For physical-device signing, project regeneration, and command-line builds, follow [Development](docs/Development.md). The [testing guide](docs/Testing.md) covers unit/UI tests, CI, and checks that need a signed iPhone.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. Use invented examples; keep personal workout collections, health information, credentials, videos, and private screenshots out of this public repository. Report vulnerabilities through [SECURITY.md](SECURITY.md), and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 

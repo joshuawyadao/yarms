@@ -32,7 +32,10 @@ final class MetadataTests: XCTestCase {
 
     func testOEmbedFailureKeepsCanonicalLink() async throws {
         let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
-        MockURLProtocol.handler = { _ in (503, [:], Data()) }
+        MockURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.path, "/oembed")
+            return (503, [:], Data())
+        }
 
         let result = await client().enrich(link)
         XCTAssertEqual(result.resolvedLink, link)
@@ -50,8 +53,8 @@ final class MetadataTests: XCTestCase {
                 XCTAssertEqual(request.httpMethod, "HEAD")
                 return (302, ["Location": "https://www.tiktok.com/@trainer/video/98765?tracking=1"], Data())
             case "www.tiktok.com" where request.url?.path == "/@trainer/video/98765":
-                XCTAssertEqual(request.httpMethod, "HEAD")
-                return (200, [:], Data())
+                XCTAssertEqual(request.httpMethod, "GET")
+                return (200, [:], self.publicPage(videoID: "98765"))
             case "www.tiktok.com" where request.url?.path == "/oembed":
                 XCTAssertEqual(request.httpMethod, "GET")
                 return (200, [:], Data(#"{"title":"Strength","author_name":"Coach"}"#.utf8))
@@ -66,7 +69,155 @@ final class MetadataTests: XCTestCase {
                        "https://www.tiktok.com/@trainer/video/98765")
         XCTAssertEqual(result.resolvedLink?.videoID, "98765")
         XCTAssertEqual(result.metadata?.title, "Strength")
-        XCTAssertEqual(requestedURLs.count, 2)
+        XCTAssertEqual(result.metadata?.thumbnailURL?.host, "p16-sign.tiktokcdn-us.com")
+        XCTAssertEqual(requestedURLs.map(\.path), ["/ZMshort", "/oembed", "/@trainer/video/98765"])
+    }
+
+    func testPublicPageFillsMissingOEmbedFieldsForMatchingVideo() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://m.tiktok.com/@trainer/video/12345"))
+        let originCover = "https://p16-sign.tiktokcdn-us.com/cover.jpeg?x-expires=1957851434&x-signature=abc%2Bdef"
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/oembed" {
+                return (200, [:], Data(#"{"title":"oEmbed title","html":"<iframe></iframe>"}"#.utf8))
+            }
+            XCTAssertEqual(request.httpMethod, "GET")
+            XCTAssertEqual(request.url?.absoluteString, "https://www.tiktok.com/@trainer/video/12345")
+            XCTAssertFalse(request.httpShouldHandleCookies)
+            return (200, [:], self.publicPage(cover: "https://cdn.example.com/cover.jpeg", originCover: originCover))
+        }
+
+        let result = await client().enrich(link)
+        XCTAssertEqual(result.outcome, .success)
+        XCTAssertEqual(result.metadata?.title, "oEmbed title")
+        XCTAssertEqual(result.metadata?.creator, "Page creator")
+        XCTAssertEqual(result.metadata?.thumbnailURL?.absoluteString, originCover)
+    }
+
+    func testExpiredPosterFallsBackToCurrentOriginCover() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        let expired = "https://p16.tiktokcdn.com/expired.jpeg?x-expires=1"
+        let fresh = "https://p16-sign.tiktokcdn-us.com/current.jpeg"
+
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/oembed" {
+                let body = try JSONSerialization.data(withJSONObject: ["thumbnail_url": expired])
+                return (200, [:], body)
+            }
+            return (200, [:], self.publicPage(cover: expired, originCover: fresh))
+        }
+
+        let result = await client().enrich(link)
+        XCTAssertEqual(result.outcome, .success)
+        XCTAssertEqual(result.metadata?.thumbnailURL?.absoluteString, fresh,
+                       "Reject both expired candidates before choosing the alternate cover")
+    }
+
+    func testRateLimitedPublicPagePreservesOEmbedAndSchedulesRetry() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/oembed" {
+                return (200, [:], Data(#"{"title":"Strength","author_name":"Coach"}"#.utf8))
+            }
+            return (429, ["Retry-After": "120"], Data())
+        }
+
+        let startedAt = Date()
+        let result = await client().enrich(link)
+        XCTAssertEqual(result.metadata?.title, "Strength")
+        XCTAssertEqual(result.metadata?.creator, "Coach")
+        XCTAssertEqual(result.outcome, .retryableFailure)
+        let deadline = try XCTUnwrap(result.retryAfter, "The optional page lookup must carry its retry deadline")
+        XCTAssertGreaterThanOrEqual(deadline.timeIntervalSince(startedAt), 120)
+        let state = WorkoutEnrichmentState.after(result: result, previous: nil, now: startedAt)
+        XCTAssertEqual(state.status, .pending, "A rate-limited poster must remain eligible for background retry")
+        XCTAssertEqual(state.nextAttemptAt, deadline)
+    }
+
+    func testPublicPageCannotSupplyMetadataForAnotherVideo() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/oembed" {
+                return (200, [:], Data(#"{"author_name":"oEmbed creator"}"#.utf8))
+            }
+            return (200, [:], self.publicPage(videoID: "98765"))
+        }
+
+        let result = await client().enrich(link)
+        XCTAssertEqual(result.outcome, .success)
+        XCTAssertNil(result.metadata?.title)
+        XCTAssertEqual(result.metadata?.creator, "oEmbed creator")
+        XCTAssertNil(result.metadata?.thumbnailURL)
+    }
+
+    func testPublicPageRejectsUntrustedCoverURLs() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        let rejectedCovers = [
+            "http://p16.tiktokcdn.com/cover.jpeg",
+            "https://p16.tiktokcdn.com.example.com/cover.jpeg",
+            "https://eviltiktokcdn.com/cover.jpeg",
+            "https://test@p16.tiktokcdn.com/cover.jpeg",
+            "https://p16.tiktokcdn.com:443/cover.jpeg"
+        ]
+        for cover in rejectedCovers {
+            MockURLProtocol.handler = { request in
+                if request.url?.path == "/oembed" {
+                    return (200, [:], Data("{}".utf8))
+                }
+                return (200, [:], self.publicPage(cover: cover))
+            }
+
+            let result = await client().enrich(link)
+            XCTAssertEqual(result.metadata?.title, "Page caption")
+            XCTAssertNil(result.metadata?.thumbnailURL, cover)
+        }
+    }
+
+    func testPublicPageDoesNotRequestARedirectDestination() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        let transport = RedirectTransport(redirectingPath: link.url.path)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RedirectingURLProtocol.self]
+        RedirectingURLProtocol.transport = transport
+        defer { RedirectingURLProtocol.transport = nil }
+
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let result = await TikTokMetadataClient(session: session).enrich(link)
+
+        XCTAssertEqual(result.outcome, .success)
+        XCTAssertNil(result.metadata?.thumbnailURL)
+        XCTAssertEqual(transport.redirectCount, 1)
+        XCTAssertEqual(transport.requestedHosts, ["www.tiktok.com", "www.tiktok.com"])
+    }
+
+    func testPublicPageDoesNotRequestAnExternalSourceHost() async throws {
+        let link = try JSONDecoder().decode(TikTokLink.self, from: Data(
+            #"{"url":"https://example.com/@trainer/video/12345","videoID":"12345"}"#.utf8
+        ))
+        MockURLProtocol.handler = { request in
+            XCTAssertEqual(request.url?.host, "www.tiktok.com")
+            XCTAssertEqual(request.url?.path, "/oembed")
+            return (200, [:], Data("{}".utf8))
+        }
+
+        let result = await client().enrich(link)
+        XCTAssertNil(result.metadata?.thumbnailURL)
+    }
+
+    func testPublicPageCannotSupplyMetadataAboveTheSizeLimit() async throws {
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@trainer/video/12345"))
+        var oversizedPage = publicPage()
+        oversizedPage.append(Data(repeating: 32, count: 2 * 1_024 * 1_024))
+        MockURLProtocol.handler = { request in
+            if request.url?.path == "/oembed" {
+                return (200, [:], Data("{}".utf8))
+            }
+            return (200, [:], oversizedPage)
+        }
+
+        let result = await client().enrich(link)
+        XCTAssertEqual(result.outcome, .success)
+        XCTAssertNil(result.metadata?.thumbnailURL)
     }
 
     func testExternalRedirectIsRejectedBeforeRequestingDestination() async throws {
@@ -222,12 +373,33 @@ final class MetadataTests: XCTestCase {
         configuration.protocolClasses = [MockURLProtocol.self]
         return TikTokMetadataClient(session: URLSession(configuration: configuration))
     }
+
+    private func publicPage(videoID: String = "12345",
+                            cover: String = "https://p16-sign.tiktokcdn-us.com/cover.jpeg",
+                            originCover: String = "") -> Data {
+        Data("""
+        <html><head>
+        <script type="application/json" id="__UNIVERSAL_DATA_FOR_REHYDRATION__">
+        {"__DEFAULT_SCOPE__":{"webapp.video-detail":{"itemInfo":{"itemStruct":{
+          "id":"\(videoID)", "desc":" Page caption ",
+          "author":{"nickname":" Page creator ","uniqueId":"creator"},
+          "video":{"cover":"\(cover)","originCover":"\(originCover)"}
+        }}}}}
+        </script>
+        </head></html>
+        """.utf8)
+    }
 }
 
 private final class RedirectTransport {
     private let lock = NSLock()
     private var hosts = [String]()
     private var redirects = 0
+    private let redirectingPath: String?
+
+    init(redirectingPath: String? = nil) {
+        self.redirectingPath = redirectingPath
+    }
 
     var requestedHosts: [String] { lock.withLock { hosts } }
     var redirectCount: Int { lock.withLock { redirects } }
@@ -239,6 +411,13 @@ private final class RedirectTransport {
     func recordRedirect() {
         lock.withLock { redirects += 1 }
     }
+
+    func shouldRedirect(_ url: URL) -> Bool {
+        if let redirectingPath { return url.path == redirectingPath }
+        return url.host == "vm.tiktok.com"
+    }
+
+    var nonRedirectingStatus: Int { redirectingPath == nil ? 503 : 200 }
 }
 
 private final class RedirectingURLProtocol: URLProtocol {
@@ -254,7 +433,7 @@ private final class RedirectingURLProtocol: URLProtocol {
         }
         transport.record(request)
 
-        if url.host == "vm.tiktok.com" {
+        if transport.shouldRedirect(url) {
             let destination = URL(string: "https://example.com/steal")!
             let response = HTTPURLResponse(url: url, statusCode: 302, httpVersion: "HTTP/1.1",
                                            headerFields: ["Location": destination.absoluteString])!
@@ -268,9 +447,12 @@ private final class RedirectingURLProtocol: URLProtocol {
             return
         }
 
-        let response = HTTPURLResponse(url: url, statusCode: 503, httpVersion: "HTTP/1.1",
+        let response = HTTPURLResponse(url: url, statusCode: transport.nonRedirectingStatus, httpVersion: "HTTP/1.1",
                                        headerFields: [:])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        if transport.nonRedirectingStatus == 200 {
+            client?.urlProtocol(self, didLoad: Data("{}".utf8))
+        }
         client?.urlProtocolDidFinishLoading(self)
     }
 

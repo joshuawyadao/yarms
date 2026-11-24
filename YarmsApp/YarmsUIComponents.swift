@@ -68,7 +68,7 @@ struct WorkoutCardContent: View {
         layout {
             thumbnail
             VStack(alignment: .leading, spacing: YarmsTheme.Spacing.xs) {
-                Text(workout.title ?? "TikTok workout")
+                Text(workout.displayTitle)
                     .font(.headline)
                     .foregroundStyle(.primary)
                     .lineLimit(typeSize.isAccessibilitySize ? nil : 2)
@@ -78,7 +78,7 @@ struct WorkoutCardContent: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(typeSize.isAccessibilitySize ? nil : 1)
                 }
-                if workout.title == nil {
+                if workout.title == nil && workout.customTitle == nil {
                     Text(sourceReference)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -96,7 +96,7 @@ struct WorkoutCardContent: View {
     }
 
     private var thumbnail: some View {
-        AsyncImage(url: workout.thumbnailURL,
+        AsyncImage(url: workout.thumbnailIsExpired(at: .now) ? nil : workout.thumbnailURL,
                    transaction: Transaction(animation: YarmsMotion.transition(reduceMotion: reduceMotion))) { phase in
             if let image = phase.image {
                 image.resizable().scaledToFill()
@@ -109,8 +109,8 @@ struct WorkoutCardContent: View {
                     .background(YarmsTheme.soft)
             }
         }
-        .frame(width: typeSize.isAccessibilitySize ? 48 : 64,
-               height: typeSize.isAccessibilitySize ? 48 : 84)
+        .frame(width: typeSize.isAccessibilitySize ? 56 : 72,
+               height: typeSize.isAccessibilitySize ? 72 : 96)
         .clipShape(RoundedRectangle(cornerRadius: YarmsTheme.Radius.control))
         .accessibilityHidden(true)
     }
@@ -121,8 +121,9 @@ struct WorkoutCardContent: View {
     }
 
     private var accessibilitySummary: String {
-        [workout.title ?? "TikTok workout", workout.creator,
-         workout.title == nil ? sourceReference : nil, "Folder: \(folderName ?? "Unfiled")"]
+        [workout.displayTitle, workout.creator,
+         workout.title == nil && workout.customTitle == nil ? sourceReference : nil,
+         "Folder: \(folderName ?? "Unfiled")"]
             .compactMap { $0 }.joined(separator: ", ")
     }
 }
@@ -235,7 +236,7 @@ struct WorkoutCompletionView: View {
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier("workoutCompletionTitle")
 
-                Text("You showed up and moved today. Be proud of yourself!")
+                Text("Logged for today in Workout History.")
                     .font(.body)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
@@ -458,4 +459,124 @@ private struct SaveConfirmationPreview: View {
         .padding(YarmsTheme.Spacing.lg)
     }
     .background(YarmsTheme.canvas)
+}
+
+struct WorkoutHistoryView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.calendar) private var calendar
+    @State private var selectedDay = Date.now
+    @State private var visibleMonth = Date.now
+
+    let completions: [WorkoutCompletion]
+
+    private let columns = Array(repeating: GridItem(.flexible(minimum: 0), spacing: 0), count: 7)
+
+    var body: some View {
+        let dates = Dictionary(grouping: completions) { $0.day(in: calendar) }
+        let selectedCompletions = dates[calendar.startOfDay(for: selectedDay), default: []]
+            .sorted { $0.completedAt > $1.completedAt }
+
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: YarmsTheme.Spacing.lg) {
+                    calendarGrid(counts: dates.mapValues(\.count))
+                    Text(selectedDay, format: .dateTime.weekday(.wide).month(.wide).day())
+                        .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
+
+                    if selectedCompletions.isEmpty {
+                        Text("No workouts logged for this day.")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(selectedCompletions) { completion in
+                        Label(completion.title, systemImage: "checkmark.circle.fill")
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("workoutHistoryEntry")
+                    }
+                }
+                .padding(YarmsTheme.Spacing.lg)
+                .frame(maxWidth: YarmsTheme.maximumContentWidth)
+                .frame(maxWidth: .infinity)
+            }
+            .background(YarmsTheme.canvas)
+            .navigationTitle("Workout History")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .tint(YarmsTheme.accent)
+    }
+
+    private func calendarGrid(counts: [Date: Int]) -> some View {
+        let firstDay = calendar.dateInterval(of: .month, for: visibleMonth)?.start ?? visibleMonth
+        let weekdayShift = (calendar.component(.weekday, from: firstDay) - calendar.firstWeekday + 7) % 7
+        let weekdays = calendar.veryShortStandaloneWeekdaySymbols
+        let days = calendar.range(of: .day, in: .month, for: firstDay) ?? 1..<1
+
+        return VStack(spacing: YarmsTheme.Spacing.sm) {
+            HStack {
+                monthButton("Previous month", image: "chevron.backward", offset: -1)
+                Spacer(minLength: 0)
+                Text(firstDay, format: .dateTime.month(.wide).year())
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer(minLength: 0)
+                monthButton("Next month", image: "chevron.forward", offset: 1)
+            }
+            LazyVGrid(columns: columns, spacing: YarmsTheme.Spacing.xs) {
+                ForEach(0..<7) { index in
+                    Text(weekdays[(calendar.firstWeekday - 1 + index) % 7])
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityHidden(true)
+                }
+                ForEach(0..<weekdayShift, id: \.self) { _ in Color.clear.frame(height: 1) }
+                ForEach(days, id: \.self) { number in
+                    if let day = calendar.date(byAdding: .day, value: number - 1, to: firstDay) {
+                        dayButton(day, number: number, count: counts[calendar.startOfDay(for: day), default: 0])
+                    }
+                }
+            }
+            .accessibilityIdentifier("workoutHistoryCalendar")
+        }
+        .padding(YarmsTheme.Spacing.sm)
+        .background(YarmsTheme.surface, in: RoundedRectangle(cornerRadius: YarmsTheme.Radius.surface))
+    }
+
+    private func monthButton(_ title: String, image: String, offset: Int) -> some View {
+        Button(title, systemImage: image) {
+            let start = calendar.dateInterval(of: .month, for: visibleMonth)?.start ?? visibleMonth
+            if let next = calendar.date(byAdding: .month, value: offset, to: start) {
+                visibleMonth = next
+                selectedDay = calendar.isDate(Date.now, equalTo: next, toGranularity: .month) ? .now : next
+            }
+        }
+        .labelStyle(.iconOnly)
+        .frame(minWidth: YarmsTheme.minimumTarget, minHeight: YarmsTheme.minimumTarget)
+    }
+
+    private func dayButton(_ day: Date, number: Int, count: Int) -> some View {
+        let selected = calendar.isDate(day, inSameDayAs: selectedDay)
+        return Button {
+            selectedDay = day
+        } label: {
+            VStack(spacing: 2) {
+                Text(number.formatted()).font(.caption.monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
+                Circle().fill(count > 0 ? (selected ? Color.white : YarmsTheme.accent) : .clear)
+                    .frame(width: 5, height: 5)
+            }
+            .frame(maxWidth: .infinity, minHeight: YarmsTheme.minimumTarget)
+            .foregroundStyle(selected ? Color.white : Color.primary)
+            .background(selected ? YarmsTheme.action : .clear, in: Capsule())
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(YarmsPlainButtonStyle())
+        .accessibilityLabel(day.formatted(.dateTime.weekday(.wide).month(.wide).day().year()))
+        .accessibilityValue("\(count) \(count == 1 ? "workout" : "workouts")")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
 }

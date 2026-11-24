@@ -29,6 +29,23 @@ final class WorkoutEnrichmentQueueTests: XCTestCase {
         XCTAssertTrue(queue.takeAvailable().isEmpty)
     }
 
+    func testLegacyPartialAndExpiredPosterGetARefresh() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
+        var legacy = Workout(id: UUID(), sourceLink: link, savedAt: now, title: "Legacy")
+        legacy.enrichmentState = WorkoutEnrichmentState(status: .partial, attemptCount: 1, nextAttemptAt: nil)
+        var checked = Workout(id: UUID(), sourceLink: link, savedAt: now, title: "Checked")
+        checked.enrichmentState = WorkoutEnrichmentState(status: .partial, attemptCount: 1,
+                                                         nextAttemptAt: nil, checkedPublicPoster: true)
+        var expired = Workout(id: UUID(), sourceLink: link, savedAt: now, title: "Expired")
+        expired.thumbnailURL = URL(string: "https://p19.tiktokcdn-us.com/poster?x-expires=999")
+        expired.enrichmentState = WorkoutEnrichmentState(status: .complete, attemptCount: 1, nextAttemptAt: nil)
+
+        var queue = WorkoutEnrichmentQueue()
+        queue.reset(with: [legacy, checked, expired], now: now)
+        XCTAssertEqual(queue.takeAvailable().map(\.id), [legacy.id, expired.id])
+    }
+
     func testRefreshSelectsOnlyIncompleteWorkouts() throws {
         let link = try XCTUnwrap(TikTokLink(text: "https://www.tiktok.com/@coach/video/123"))
         var complete = Workout(id: UUID(), sourceLink: link, savedAt: Date())

@@ -57,6 +57,7 @@ struct LibraryShellView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var workouts: [Workout] = []
     @State private var folders: [WorkoutFolder] = []
+    @State private var completions: [WorkoutCompletion] = []
     @State private var selectedFolder: FolderSelection = .all
     @State private var searchText = ""
     @State private var folderName = ""
@@ -83,6 +84,12 @@ struct LibraryShellView: View {
     @State private var saveEventID = 0
     @State private var celebratesSave = false
     @State private var showingPrivacyPolicy = false
+    @State private var showingPlaybackSettings = false
+    @State private var showingWorkoutHistory = false
+    @State private var recentlySavedWorkout: Workout?
+    @State private var editingWorkout: Workout?
+    @State private var workoutName = ""
+    @State private var showingWorkoutNameEditor = false
 
     private var nextRetryDate: Date? {
         WorkoutEnrichmentQueue.nextRetryDate(in: workouts, isActive: scenePhase == .active)
@@ -109,97 +116,7 @@ struct LibraryShellView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                saveCard
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets())
-                folderBar
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets())
-                libraryContent
-            }
-            .listStyle(.plain)
-            .scrollDismissesKeyboard(.interactively)
-            .contentMargins(.horizontal, YarmsTheme.Spacing.lg, for: .scrollContent)
-            .frame(maxWidth: YarmsTheme.maximumContentWidth)
-            .frame(maxWidth: .infinity)
-            .scrollContentBackground(.hidden)
-            .background(YarmsTheme.canvas.ignoresSafeArea())
-            .navigationTitle("yarms")
-            .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $searchText, prompt: "Search workouts")
-            .toolbar {
-                Menu {
-                    Button("New folder", systemImage: "folder.badge.plus", action: prepareNewFolder)
-                    if case .folder(let id) = selectedFolder,
-                       let folder = folders.first(where: { $0.id == id }) {
-                        Button("Rename folder", systemImage: "pencil") { prepareRename(folder) }
-                        Button("Delete folder", systemImage: "trash", role: .destructive) {
-                            folderPendingDeletion = folder
-                            showingDeleteFolder = true
-                        }
-                    }
-                } label: {
-                    Label("Folders", systemImage: "folder")
-                }
-                .accessibilityIdentifier("folderActionsButton")
-                Menu {
-                    Button("Export backup", systemImage: "square.and.arrow.up", action: exportBackup)
-                        .disabled(workouts.isEmpty && folders.isEmpty)
-                    Button("Restore backup", systemImage: "square.and.arrow.down") {
-                        showingImporter = true
-                    }
-                } label: {
-                    Label("Backup", systemImage: "externaldrive")
-                }
-                .accessibilityLabel("Backup and restore")
-                Button("Retry workout details", systemImage: "arrow.clockwise") { retryMetadata() }
-                    .disabled(workouts.isEmpty || enrichmentQueue.hasActiveRequests || retryingDetails)
-                    .accessibilityIdentifier("retryWorkoutDetailsButton")
-                Button("Privacy policy", systemImage: "hand.raised") { showingPrivacyPolicy = true }
-                    .accessibilityIdentifier("privacyPolicyButton")
-            }
-            .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
-            .alert(messageTitle, isPresented: Binding(
-                get: { message != nil },
-                set: { if !$0 { message = nil } }
-            )) {
-                Button("OK", role: .cancel) { message = nil }
-            } message: {
-                Text(message ?? "")
-            }
-            .confirmationDialog("Restore this backup?", isPresented: $confirmingRestore,
-                                titleVisibility: .visible) {
-                Button("Restore \(pendingBackup?.workouts.count ?? 0) workouts") {
-                    restoreBackup()
-                }
-                Button("Cancel", role: .cancel) { pendingBackup = nil }
-            } message: {
-                Text("Current workouts and notes stay on this iPhone. Backup folders and distinct notes are added.")
-            }
-            .alert(editingFolder == nil ? "New folder" : "Rename folder",
-                   isPresented: $showingFolderEditor) {
-                TextField("Folder name", text: $folderName)
-                Button(editingFolder == nil ? "Create" : "Save", action: saveFolder)
-                Button("Cancel", role: .cancel) { editingFolder = nil }
-            } message: {
-                Text("Choose a short name you can recognize while browsing workouts.")
-            }
-            .confirmationDialog("Delete folder?", isPresented: $showingDeleteFolder,
-                                titleVisibility: .visible) {
-                Button("Delete folder", role: .destructive, action: deleteSelectedFolder)
-                Button("Cancel", role: .cancel) { folderPendingDeletion = nil }
-            } message: {
-                Text("Workouts in this folder will stay saved in Unfiled.")
-            }
-            .alert("Delete saved workout?", isPresented: $showingDeleteWorkout) {
-                Button("Delete workout", role: .destructive, action: deleteSelectedWorkout)
-                Button("Cancel", role: .cancel) { workoutPendingDeletion = nil }
-            } message: {
-                Text("The saved link and its notes will be removed from this iPhone. The TikTok post will not be affected.")
-            }
+            libraryDialogs
             .sheet(isPresented: $showingFolderPicker) { folderPicker }
             .sheet(item: $movingWorkout) { workout in
                 moveSheet(for: workout)
@@ -212,7 +129,7 @@ struct LibraryShellView: View {
                     if exportedBackupExceedsImportLimit {
                         showMessage("Backup exported", "Keep this file private. It exceeds this version's 10 MB restore limit, so yarms cannot import it yet.")
                     } else {
-                        showMessage("Backup exported", "Your backup includes workout links, notes, and folders. Keep the file somewhere private.")
+                        showMessage("Backup exported", "Your backup includes workout links, notes, folders, and workout history. Keep the file somewhere private.")
                     }
                 case .failure(let error):
                     if !isCancellation(error) {
@@ -244,6 +161,123 @@ struct LibraryShellView: View {
                 }
             }
         }
+    }
+
+    private var libraryList: some View {
+        List {
+            saveCard
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
+            folderBar
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets())
+            libraryContent
+        }
+        .listStyle(.plain)
+        .scrollDismissesKeyboard(.interactively)
+        .contentMargins(.horizontal, YarmsTheme.Spacing.lg, for: .scrollContent)
+        .frame(maxWidth: YarmsTheme.maximumContentWidth)
+        .frame(maxWidth: .infinity)
+        .scrollContentBackground(.hidden)
+        .background(YarmsTheme.canvas.ignoresSafeArea())
+        .navigationTitle("yarms")
+        .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $searchText, prompt: "Search workouts")
+        .toolbar { libraryToolbar }
+    }
+
+    @ToolbarContentBuilder
+    private var libraryToolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarLeading) {
+            Button("Workout history", systemImage: "calendar") { showingWorkoutHistory = true }
+                .accessibilityIdentifier("workoutHistoryButton")
+            Button("Settings", systemImage: "gearshape") { showingPlaybackSettings = true }
+                .accessibilityIdentifier("playbackSettingsButton")
+        }
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            Menu {
+                Button("New folder", systemImage: "folder.badge.plus", action: prepareNewFolder)
+                if case .folder(let id) = selectedFolder,
+                   let folder = folders.first(where: { $0.id == id }) {
+                    Button("Rename folder", systemImage: "pencil") { prepareRename(folder) }
+                    Button("Delete folder", systemImage: "trash", role: .destructive) {
+                        folderPendingDeletion = folder
+                        showingDeleteFolder = true
+                    }
+                }
+            } label: {
+                Label("Folders", systemImage: "folder")
+            }
+            .accessibilityIdentifier("folderActionsButton")
+            Menu {
+                Button("Export backup", systemImage: "square.and.arrow.up", action: exportBackup)
+                    .disabled(workouts.isEmpty && folders.isEmpty && completions.isEmpty)
+                Button("Restore backup", systemImage: "square.and.arrow.down") {
+                    showingImporter = true
+                }
+            } label: {
+                Label("Backup", systemImage: "externaldrive")
+            }
+            .accessibilityLabel("Backup and restore")
+            Button("Retry workout details", systemImage: "arrow.clockwise") { retryMetadata() }
+                .disabled(workouts.isEmpty || enrichmentQueue.hasActiveRequests || retryingDetails)
+                .accessibilityIdentifier("retryWorkoutDetailsButton")
+            Button("Privacy policy", systemImage: "hand.raised") { showingPrivacyPolicy = true }
+                .accessibilityIdentifier("privacyPolicyButton")
+        }
+    }
+
+    private var libraryDialogs: some View {
+        libraryList
+            .sheet(isPresented: $showingPrivacyPolicy) { PrivacyPolicyView() }
+            .sheet(isPresented: $showingPlaybackSettings) { YarmsPlaybackSettingsView() }
+            .sheet(isPresented: $showingWorkoutHistory) { WorkoutHistoryView(completions: completions) }
+            .alert(messageTitle, isPresented: Binding(
+                get: { message != nil },
+                set: { if !$0 { message = nil } }
+            )) {
+                Button("OK", role: .cancel) { message = nil }
+            } message: {
+                Text(message ?? "")
+            }
+            .confirmationDialog("Restore this backup?", isPresented: $confirmingRestore,
+                                titleVisibility: .visible) {
+                let count = pendingBackup?.workouts.count ?? 0
+                Button(count > 0 ? "Restore \(count) workouts" : "Restore backup", action: restoreBackup)
+                Button("Cancel", role: .cancel) { pendingBackup = nil }
+            } message: {
+                Text("Your saved workouts and notes stay here. The backup adds folders, distinct notes, and workout history.")
+            }
+            .alert(editingFolder == nil ? "New folder" : "Rename folder",
+                   isPresented: $showingFolderEditor) {
+                TextField("Folder name", text: $folderName)
+                Button(editingFolder == nil ? "Create" : "Save", action: saveFolder)
+                Button("Cancel", role: .cancel) { editingFolder = nil }
+            } message: {
+                Text("Choose a short name you can recognize while browsing workouts.")
+            }
+            .alert("Rename workout", isPresented: $showingWorkoutNameEditor) {
+                TextField("Workout name", text: $workoutName)
+                Button("Save", action: saveWorkoutName)
+                Button("Cancel", role: .cancel) { editingWorkout = nil }
+            } message: {
+                Text("Enter a name, or leave it blank to use the TikTok title when available.")
+            }
+            .confirmationDialog("Delete folder?", isPresented: $showingDeleteFolder,
+                                titleVisibility: .visible) {
+                Button("Delete folder", role: .destructive, action: deleteSelectedFolder)
+                Button("Cancel", role: .cancel) { folderPendingDeletion = nil }
+            } message: {
+                Text("Workouts in this folder will stay saved in Unfiled.")
+            }
+            .alert("Delete saved workout?", isPresented: $showingDeleteWorkout) {
+                Button("Delete workout", role: .destructive, action: deleteSelectedWorkout)
+                Button("Cancel", role: .cancel) { workoutPendingDeletion = nil }
+            } message: {
+                Text("This removes the saved link and its notes from this device. Your workout history stays.")
+            }
     }
 
     @ViewBuilder
@@ -284,26 +318,27 @@ struct LibraryShellView: View {
 
     private var saveCard: some View {
         VStack(alignment: .leading, spacing: YarmsTheme.Spacing.md) {
-            if searchText.isEmpty {
+            if searchText.isEmpty && !typeSize.isAccessibilitySize {
                 Text(workouts.isEmpty ? "Your next move starts here." : "Find your feel-good move.")
                     .font(.title2.bold())
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
-                Text(workouts.isEmpty
-                     ? "Share a TikTok to yarms, or paste a link to keep it here."
-                     : "Pick a workout to try today, or save a new one for later.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             let layout = typeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: YarmsTheme.Spacing.md))
                 : AnyLayout(HStackLayout(spacing: YarmsTheme.Spacing.md))
             layout {
-                Label("Save a workout", systemImage: "plus.circle")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: YarmsTheme.Spacing.xs) {
+                    Text("Save a workout").font(.headline)
+                    Text("Copy a TikTok link, then tap Paste.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
                 pasteButton(identifier: pasteButtonIdentifier)
+                    .labelStyle(.titleAndIcon)
                     .controlSize(.large)
                     .tint(YarmsTheme.action)
                     .frame(minHeight: YarmsTheme.minimumTarget)
@@ -314,6 +349,11 @@ struct LibraryShellView: View {
             YarmsSaveConfirmation(message: saveConfirmation, eventID: saveEventID,
                                   celebrates: celebratesSave)
                 .accessibilityIdentifier("librarySaveConfirmation")
+            if saveConfirmation != nil, let workout = recentlySavedWorkout {
+                Button("Name workout", systemImage: "pencil") { prepareWorkoutName(workout) }
+                    .buttonStyle(YarmsSecondaryButtonStyle())
+                    .accessibilityIdentifier("nameSavedWorkoutButton")
+            }
         }
         .padding(.top, YarmsTheme.Spacing.lg)
         .padding(.bottom, YarmsTheme.Spacing.sm)
@@ -348,7 +388,8 @@ struct LibraryShellView: View {
                         folders: folders,
                         onNotesSaved: { Task { await refresh() } },
                         onFolderChanged: { destination in await moveWorkout(workout, to: destination) },
-                        onDeleteWorkout: { await removeWorkout(workout) }
+                        onDeleteWorkout: { await removeWorkout(workout) },
+                        onLogWorkout: { await logWorkout(workout) }
                     )
                 } label: {
                     WorkoutCardContent(workout: workout, folderName: workout.folderID.flatMap { namesByID[$0] })
@@ -360,6 +401,13 @@ struct LibraryShellView: View {
                 )
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: YarmsTheme.Spacing.xs, leading: 0, bottom: YarmsTheme.Spacing.xs, trailing: 0))
+                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                    Button("Rename", systemImage: "pencil") { prepareWorkoutName(workout) }
+                        .tint(YarmsTheme.action)
+                }
+                .contextMenu {
+                    Button("Rename workout", systemImage: "pencil") { prepareWorkoutName(workout) }
+                }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Move", systemImage: "folder") { movingWorkout = workout }
                         .tint(YarmsTheme.action)
@@ -418,8 +466,10 @@ struct LibraryShellView: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: YarmsTheme.Spacing.sm) {
                         folderChip("All", count: counts.total, selection: .all, identifier: "folder-all")
-                        folderChip("Unfiled", count: counts.unfiled,
-                                   selection: .unfiled, identifier: "folder-unfiled")
+                        if counts.unfiled > 0 {
+                            folderChip("Unfiled", count: counts.unfiled,
+                                       selection: .unfiled, identifier: "folder-unfiled")
+                        }
                         ForEach(folders) { folder in
                             folderChip(folder.name, count: counts.byID[folder.id] ?? 0,
                                        selection: .folder(folder.id), identifier: "folder-\(folder.id.uuidString)")
@@ -466,8 +516,10 @@ struct LibraryShellView: View {
             List {
                 folderChoice("All", symbol: "square.grid.2x2", count: counts.total,
                              selection: .all, identifier: "folder-all")
-                folderChoice("Unfiled", symbol: "tray", count: counts.unfiled,
-                             selection: .unfiled, identifier: "folder-unfiled")
+                if counts.unfiled > 0 {
+                    folderChoice("Unfiled", symbol: "tray", count: counts.unfiled,
+                                 selection: .unfiled, identifier: "folder-unfiled")
+                }
                 ForEach(folders) { folder in
                     folderChoice(folder.name, symbol: "folder", count: counts.byID[folder.id] ?? 0,
                                  selection: .folder(folder.id), identifier: "folder-\(folder.id.uuidString)")
@@ -611,10 +663,54 @@ struct LibraryShellView: View {
         }
     }
 
+    private func prepareWorkoutName(_ workout: Workout) {
+        editingWorkout = workout
+        workoutName = workout.customTitle ?? workout.title ?? ""
+        showingWorkoutNameEditor = true
+    }
+
+    private func saveWorkoutName() {
+        guard let workout = editingWorkout, let store = WorkoutStore.live() else { return }
+        let name = workoutName
+        editingWorkout = nil
+        Task { @MainActor in
+            do {
+                let saved = try await store.perform {
+                    try $0.renameWorkout(workout.id, to: name, matching: workout.sourceLink)
+                }
+                guard saved else {
+                    showMessage("Could not rename workout", "This workout changed. Open it from your library and try again.")
+                    return
+                }
+                saveConfirmation = nil
+                await refresh()
+            } catch WorkoutStore.StoreError.invalidWorkoutName {
+                showMessage("Could not rename workout", "Use a name of 100 characters or fewer on one line.")
+            } catch {
+                showMessage("Could not rename workout", "Your workout is still saved. Try again.")
+            }
+        }
+    }
+
+    @MainActor
+    private func logWorkout(_ workout: Workout) async -> Bool {
+        guard let store = WorkoutStore.live() else { return false }
+        do {
+            guard let snapshot = try await store.perform({ try $0.logCompletion(for: workout.id, matching: workout.sourceLink) })
+            else { return false }
+            applySnapshot(snapshot)
+            scheduleEnrichment(using: store)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     private func pasteButton(identifier: String) -> some View {
         PasteButton(payloadType: String.self) { strings in
             pasteLink(strings.first)
         }
+        .accessibilityLabel("Paste TikTok link")
         .accessibilityIdentifier(identifier)
     }
 
@@ -635,10 +731,10 @@ struct LibraryShellView: View {
                 let pending = try await store.perform { _ in try inbox.save(link) }
                 selectedFolder = .unfiled
                 guard await refresh() else { return }
-                let isNew = workouts.contains { $0.id == pending.id }
-                if !isNew { selectedFolder = .all }
-                confirmSave(isNew ? "Saved for your next move." : "Already in your library.",
-                            celebrates: isNew)
+                let newWorkout = workouts.first { $0.id == pending.id }
+                if newWorkout == nil { selectedFolder = .all }
+                confirmSave(newWorkout == nil ? "Already in your library." : "Saved for your next move.",
+                            celebrates: newWorkout != nil, newWorkout: newWorkout)
             } catch {
                 showMessage("Could not update workouts", "yarms could not save that link.")
             }
@@ -655,10 +751,12 @@ struct LibraryShellView: View {
                 selectedFolder, previousIDs: snapshot.previousIDs, imported: snapshot.workouts,
                 showNewShares: showNewShares
             )
-            let addedCount = snapshot.workouts.filter { !snapshot.previousIDs.contains($0.id) }.count
-            if showNewShares && addedCount > 0 {
-                confirmSave(addedCount == 1 ? "Saved for your next move." : "\(addedCount) workouts saved for later.",
-                            celebrates: true)
+            if showNewShares {
+                let added = snapshot.workouts.filter { !snapshot.previousIDs.contains($0.id) }
+                if !added.isEmpty {
+                    confirmSave(added.count == 1 ? "Saved for your next move." : "\(added.count) workouts saved for later.",
+                                celebrates: true, newWorkout: added.count == 1 ? added.first : nil)
+                }
             }
             scheduleEnrichment(using: store)
             return true
@@ -674,8 +772,14 @@ struct LibraryShellView: View {
         snapshotRevision = snapshot.revision
         workouts = snapshot.workouts
         folders = snapshot.folders
-        if case .folder(let id) = selectedFolder, !folders.contains(where: { $0.id == id }) {
+        completions = snapshot.completions
+        switch selectedFolder {
+        case .unfiled where !workouts.contains(where: { $0.folderID == nil }):
             selectedFolder = .all
+        case .folder(let id) where !folders.contains(where: { $0.id == id }):
+            selectedFolder = .all
+        default:
+            break
         }
         enrichmentQueue.reset(with: workouts)
         return true
@@ -697,7 +801,8 @@ struct LibraryShellView: View {
         }
     }
 
-    private func confirmSave(_ text: String, celebrates: Bool) {
+    private func confirmSave(_ text: String, celebrates: Bool, newWorkout: Workout? = nil) {
+        recentlySavedWorkout = newWorkout
         saveConfirmation = text
         celebratesSave = celebrates
         saveEventID += 1
@@ -796,7 +901,10 @@ struct LibraryShellView: View {
                     showMessage("Backup restored", "The backup was restored, but yarms could not refresh every pending link. Reopen the app to refresh the library.")
                     return
                 }
-                showMessage("Backup restored", "Added \(result.added) workouts; updated or combined \(result.updated) existing records.")
+                let history = result.addedCompletions == 0 ? "" :
+                    " Restored \(result.addedCompletions) logged \(result.addedCompletions == 1 ? "session" : "sessions")."
+                showMessage("Backup restored",
+                            "Added \(result.added) workouts; updated or combined \(result.updated) existing records." + history)
             } catch {
                 showMessage("Could not restore backup", "yarms could not save the backup. Try again.")
             }

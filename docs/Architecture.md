@@ -2,7 +2,7 @@
 
 [Documentation index](README.md) · [Repository map](Repository-Map.md) · [Data and privacy](Data-and-Privacy.md) · [Testing](Testing.md)
 
-Yarms is a SwiftUI iPhone app with a UIKit Share extension. The app owns a JSON library; the extension hands off small link records through Keychain. There is no Yarms backend, account service, or video download pipeline.
+Yarms is a SwiftUI iPhone and iPad app with a UIKit Share extension. The app owns a JSON library; the extension hands off small link records through Keychain. There is no Yarms backend, account service, or video download pipeline.
 
 ## Components and boundaries
 
@@ -56,7 +56,7 @@ When links resolve to the same video ID, the store keeps the earliest saved iden
 
 ## Library and workout presentation
 
-`LibraryShellView` owns selection, search, dialogs, backup pickers, and enrichment scheduling. File operations run through the store’s serial background executor; snapshots have monotonic revisions so stale async completions cannot replace newer UI state. Every operation reads current disk state rather than retaining a library cache, preserving App Intent changes. Enrichment returns the committed snapshot without a second library decode. All/Unfiled/folder filtering runs before `Workout.matches` searches title, creator, and source/resolved/alias links. Folder counts and ID-to-name lookup are prepared before rendering rows.
+`LibraryShellView` owns selection, search, dialogs, backup pickers, and enrichment scheduling. File operations run through the store’s serial background executor; snapshots have monotonic revisions so stale async completions cannot replace newer UI state. Every operation reads current disk state rather than retaining a library cache, preserving App Intent changes. Enrichment returns the committed snapshot without a second library decode. All/Unfiled/folder filtering runs before `Workout.matches` searches custom name, TikTok title, creator, and source/resolved/alias links. Unfiled is available as a filter when it contains saved workouts. Folder counts and ID-to-name lookup are prepared before rendering rows. Manual names are stored separately from provider metadata so enrichment can fill details without replacing a user's name.
 
 The [design language](Design-Language.md) defines the UI rules. `YarmsTheme` owns adaptive color roles, spacing, radii, button styles, and target/content sizes; `YarmsUIComponents` supplies folder badges/filters, adaptive workout-card content, and empty states. Screen views retain persistence, navigation, and playback responsibilities. [Design and assets](Design-and-Assets.md) covers icon and asset maintenance.
 
@@ -67,6 +67,8 @@ Folder browsing uses a full-height native picker sheet at accessibility text siz
 The workout screen places its title and folder above the portrait player. Compact playback controls and a full-width Open in TikTok fallback sit in a bottom safe-area tray; notes use scalable native editing with keyboard Done. The Share extension uses a native activity indicator and wrapping Dynamic Type status on a system background while the pending link is saved.
 
 `EmbeddedPlayerView` owns a snapshot of the selected workout and local note/folder editor state. Successful note saving refreshes the parent library so a later opening sees the saved value. Deletion only dismisses the workout screen after `WorkoutStore.remove` reports success. If enrichment removed that identity by coalescing it, the UI refreshes and asks the user to select the surviving workout again.
+
+Logging a workout appends a completion to the same atomic store, independently of the saved workout. Each completion captures a UUID, the workout's ID and title at that moment, an absolute timestamp, and the logging time zone. The history calendar groups sessions by their original local day. The completion sheet opens after the write succeeds. A later rename, duplicate merge, or deletion preserves the logged session.
 
 ## Player bridge
 
@@ -87,6 +89,8 @@ sequenceDiagram
 `TikTokPlayerHTML` builds a local host around the [official embed player](https://developers.tiktok.com/docs/en/embed-player), with TikTok's controls enabled. JavaScript accepts messages from `https://www.tiktok.com` with the player marker. Native parsing additionally requires the host's main frame, expected envelope/type, and finite nonnegative times. Commands target TikTok's origin; normal UI controls remain disabled until ready or after a reported player error.
 
 Duration may arrive in a ready or time event. Relative seeking is bounded at zero and at known duration. Replay seeks to zero. `WKWebView` enables inline media playback, and its handler is removed when dismantled. Ordinary UI tests explicitly select a valid isolated Debug store and local fixtures: metadata uses no network, and player HTML has no remote frame and denies external resources with CSP. Release ignores these fixture controls; real player availability/accessibility remains a separate live/device check. The always-available external link is the fallback for unavailable posts or unresolved short links. Yarms does not persist a video file, though WebKit and networking can use system-managed caches.
+
+The player uses a device-local skip interval from the app’s Settings. The native iPad layout caps the viewport against available screen height and leaves enough width for embedded controls in landscape.
 
 ## Backups and failure boundaries
 

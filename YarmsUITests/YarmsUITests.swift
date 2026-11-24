@@ -62,11 +62,13 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The saved link should be searchable")
         row.tap()
 
-        let back = app.buttons["Back 10 seconds"]
+        let back = app.buttons["skipBackwardButton"]
         let fallback = app.buttons["openInTikTokButton"]
         XCTAssertTrue(app.staticTexts["workoutHeading"].waitForExistence(timeout: 5),
                       "The player should show the workout heading above the video")
         XCTAssertTrue(back.waitForExistence(timeout: 10), "The workout should show playback controls")
+        XCTAssertEqual(back.label, "Back 10 seconds", "Playback defaults to ten seconds before selecting another interval")
+        XCTAssertEqual(app.buttons["skipForwardButton"].label, "Forward 10 seconds")
         XCTAssertTrue(fallback.exists, "The workout should offer Open in TikTok")
         XCTAssertTrue(fallback.isHittable, "Open in TikTok should remain visible at the bottom")
         XCTAssertLessThanOrEqual(back.frame.width, 56, "Playback buttons should stay compact")
@@ -96,8 +98,8 @@ final class YarmsUITests: XCTestCase {
         let savedNote = app.staticTexts["noteSaveConfirmation"]
         XCTAssertTrue(savedNote.waitForExistence(timeout: 5),
                       "Saving notes should show a persistent inline confirmation")
-        XCTAssertEqual(savedNote.label, "Saved on this iPhone")
-        try assertFeedbackPassesContrastAudit(savedNote, message: "Saved on this iPhone", in: app)
+        XCTAssertEqual(savedNote.label, "Saved on this device")
+        try assertFeedbackPassesContrastAudit(savedNote, message: "Saved on this device", in: app)
         let savedNotesScreenshot = XCTAttachment(screenshot: app.screenshot())
         savedNotesScreenshot.name = "Notes with persistent save confirmation"
         savedNotesScreenshot.lifetime = .keepAlways
@@ -106,7 +108,7 @@ final class YarmsUITests: XCTestCase {
         editor.tap()
         let addition = " plus mobility"
         editor.typeText(addition)
-        XCTAssertFalse(app.staticTexts["Saved on this iPhone"].exists,
+        XCTAssertFalse(app.staticTexts["Saved on this device"].exists,
                        "Editing after a save should clear the previous confirmation")
         XCTAssertTrue((editor.value as? String)?.contains(addition) == true,
                       "The edited note should contain the added text")
@@ -176,13 +178,13 @@ final class YarmsUITests: XCTestCase {
 
         let finish = app.buttons["finishWorkoutButton"]
         scrollFinishAbovePlaybackTray(in: app)
-        XCTAssertTrue(finish.waitForExistence(timeout: 5), "Finish workout should be reachable above Notes")
+        XCTAssertTrue(finish.waitForExistence(timeout: 5), "Log workout should be reachable above Notes")
         XCTAssertTrue(finish.isHittable)
         finish.tap()
         XCTAssertTrue(title.waitForExistence(timeout: 5),
-                      "Only an explicit Finish workout tap should open the completion sheet")
+                      "Only an explicit Log workout tap should open the completion sheet")
         XCTAssertEqual(title.label, "Good Job BUNS!")
-        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        let message = app.staticTexts["Logged for today in Workout History."]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
         let completionDone = app.buttons["workoutCompletionDoneButton"]
         XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
@@ -210,7 +212,7 @@ final class YarmsUITests: XCTestCase {
         scrollFinishAbovePlaybackTray(in: app)
         finish.tap()
         XCTAssertTrue(title.waitForExistence(timeout: 5),
-                      "A second explicit Finish workout tap should reopen the sheet")
+                      "A second explicit Log workout tap should reopen the sheet")
         title.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
             .press(forDuration: 0.1,
                    thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.95)))
@@ -250,10 +252,10 @@ final class YarmsUITests: XCTestCase {
         var invokingSpeech: [String] = []
         for _ in 0..<24 {
             invokingSpeech.append(try voiceOver.moveForward().utterance)
-            if invokingSpeech.last?.contains("Finish workout") == true { break }
+            if invokingSpeech.last?.contains("Log workout") == true { break }
         }
-        XCTAssertTrue(invokingSpeech.last?.contains("Finish workout") == true,
-                      "Native navigation should reach Finish workout before activation: \(invokingSpeech)")
+        XCTAssertTrue(invokingSpeech.last?.contains("Log workout") == true,
+                      "Native navigation should reach Log workout before activation: \(invokingSpeech)")
         finish.doubleTap()
 
         let title = app.staticTexts["workoutCompletionTitle"]
@@ -267,7 +269,7 @@ final class YarmsUITests: XCTestCase {
             speech.append(try voiceOver.moveForward().utterance)
         }
         let headlineIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Good Job BUNS!") }, "Speech: \(speech)")
-        let messageIndex = try XCTUnwrap(speech.firstIndex { $0.contains("You showed up and moved today") }, "Speech: \(speech)")
+        let messageIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Logged for today in Workout History") }, "Speech: \(speech)")
         let doneIndex = try XCTUnwrap(speech.firstIndex { $0.contains("Done") }, "Speech: \(speech)")
         XCTAssertLessThan(headlineIndex, messageIndex)
         XCTAssertLessThan(messageIndex, doneIndex)
@@ -279,7 +281,7 @@ final class YarmsUITests: XCTestCase {
         var restoredSpeech = ""
         let focusReturned = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             restoredSpeech = (try? voiceOver.currentSpeech().utterance) ?? ""
-            return restoredSpeech.contains("Finish workout")
+            return restoredSpeech.contains("Log workout")
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [focusReturned], timeout: 5), .completed,
                       "Dismissal should restore the invoking control, not restart navigation: \(restoredSpeech)")
@@ -309,13 +311,13 @@ final class YarmsUITests: XCTestCase {
         let finish = app.buttons["finishWorkoutButton"]
         scrollFinishAbovePlaybackTray(in: app)
         XCTAssertTrue(finish.waitForExistence(timeout: 5))
-        XCTAssertTrue(finish.isHittable, "Finish workout should remain reachable at maximum text size")
+        XCTAssertTrue(finish.isHittable, "Log workout should remain reachable at maximum text size")
         finish.tap()
         XCTAssertTrue(title.waitForExistence(timeout: 5))
         XCTAssertEqual(title.label, "Good Job BUNS!")
         XCTAssertTrue(title.isHittable,
                       "The completion headline should remain visible at maximum text size")
-        let message = app.staticTexts["You showed up and moved today. Be proud of yourself!"]
+        let message = app.staticTexts["Logged for today in Workout History."]
         XCTAssertTrue(message.waitForExistence(timeout: 5))
         let completionDone = app.buttons["workoutCompletionDoneButton"]
         XCTAssertTrue(completionDone.waitForExistence(timeout: 5))
@@ -397,8 +399,10 @@ final class YarmsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["This folder is empty"].waitForExistence(timeout: 5),
                       "A newly created folder should start empty")
 
-        app.buttons["folder-all"].tap()
-        XCTAssertTrue(row.waitForExistence(timeout: 5), "The unfiled workout should remain in All")
+        let unfiled = app.buttons["folder-unfiled"]
+        XCTAssertTrue(unfiled.waitForExistence(timeout: 5), "Unfiled should be available when it contains a workout")
+        unfiled.tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "The unfiled workout should appear in its filter")
         row.swipeLeft()
         app.buttons["Move"].tap()
         let destination = app.buttons.matching(
@@ -410,6 +414,8 @@ final class YarmsUITests: XCTestCase {
 
         let filedChip = app.buttons["Leg day, 1 workout"]
         XCTAssertTrue(filedChip.waitForExistence(timeout: 5), "The folder count should update after moving")
+        XCTAssertTrue(app.buttons["folder-all"].isSelected,
+                      "Filing the last unfiled workout should reset the active filter to All")
         filedChip.tap()
         XCTAssertTrue(filedChip.isSelected, "The active folder should announce its selected state")
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The folder should show its filed workout")
@@ -417,8 +423,8 @@ final class YarmsUITests: XCTestCase {
         libraryScreenshot.name = "Library save action, folders, and filed workout card"
         libraryScreenshot.lifetime = .keepAlways
         add(libraryScreenshot)
-        app.buttons["folder-unfiled"].tap()
-        XCTAssertFalse(row.exists, "The moved workout should leave Unfiled")
+        XCTAssertFalse(app.buttons["folder-unfiled"].exists,
+                       "Filing the last unfiled workout should hide the empty Unfiled filter")
     }
 
     @MainActor
@@ -561,9 +567,324 @@ final class YarmsUITests: XCTestCase {
     }
 
     @MainActor
-    private func isolatedApp() -> XCUIApplication {
+    func testNameWorkoutAfterSavingAndFindItAfterRelaunch() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let nameButton = app.buttons["nameSavedWorkoutButton"]
+        XCTAssertTrue(nameButton.waitForExistence(timeout: 5), "A new save should offer to name the workout")
+        nameButton.tap()
+
+        let dialog = app.alerts["Rename workout"]
+        XCTAssertTrue(dialog.waitForExistence(timeout: 5))
+        let name = dialog.textFields["Workout name"]
+        XCTAssertTrue(name.exists, "The rename dialog should expose the name field")
+        name.tap()
+        if let value = name.value as? String, !value.isEmpty, value != name.placeholderValue {
+            name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count))
+        }
+        let newName = "Saturday Core Circuit"
+        name.typeText(newName)
+        dialog.buttons["Save"].tap()
+        XCTAssertTrue(dialog.waitForNonExistence(timeout: 5))
+        let renamedRow = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)")
+            .matching(NSPredicate(format: "label CONTAINS %@", newName)).firstMatch
+        XCTAssertTrue(renamedRow.waitForExistence(timeout: 5), "The library should reflect the saved name")
+
+        app.terminate()
+        app.launch()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText(newName)
+        XCTAssertTrue(renamedRow.waitForExistence(timeout: 5), "The new name should persist and be searchable")
+    }
+
+    @MainActor
+    func testRepeatedWorkoutLogsAppearingInHistoryPreserveTheSavedWorkout() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        guard tapVisibleLibraryRow(row, in: app) else { return }
+
+        let heading = app.staticTexts["workoutHeading"]
+        XCTAssertTrue(heading.waitForExistence(timeout: 5))
+        let workoutName = heading.label
+        let logButton = app.buttons["finishWorkoutButton"]
+        let done = app.buttons["workoutCompletionDoneButton"]
+        for _ in 0..<2 {
+            scrollFinishAbovePlaybackTray(in: app)
+            XCTAssertEqual(logButton.label, "Log workout")
+            logButton.tap()
+            XCTAssertTrue(done.waitForExistence(timeout: 5), "Logging should confirm a completed workout")
+            done.tap()
+            XCTAssertTrue(done.waitForNonExistence(timeout: 5))
+        }
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "The original workout should stay available after logging")
+        let history = app.buttons["workoutHistoryButton"]
+        XCTAssertTrue(history.waitForExistence(timeout: 5), "The library should offer workout history")
+        history.tap()
+        let entries = app.descendants(matching: .any).matching(identifier: "workoutHistoryEntry")
+        XCTAssertTrue(entries.firstMatch.waitForExistence(timeout: 5), "History should initially show today")
+        XCTAssertEqual(entries.count, 2, "Separate logs of the same workout should appear on today's date")
+        for entry in entries.allElementsBoundByIndex {
+            XCTAssertTrue(entry.label.contains(workoutName), "History should identify the completed workout")
+        }
+
+        let todayLabel = Date.now.formatted(.dateTime.weekday(.wide).month(.wide).day().year())
+        let today = app.buttons[todayLabel]
+        XCTAssertTrue(today.isSelected)
+        XCTAssertEqual(today.value as? String, "2 workouts")
+        app.buttons["Previous month"].tap()
+        XCTAssertTrue(app.staticTexts["No workouts logged for this day."].waitForExistence(timeout: 5))
+        XCTAssertFalse(entries.firstMatch.exists, "Other dates should not show today's logs")
+        app.buttons["Next month"].tap()
+        XCTAssertTrue(entries.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(entries.count, 2, "Returning to this month should restore today's entries")
+    }
+
+    @MainActor
+    func testPlaybackSkipSettingPersistsAndChangesBothControls() throws {
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        choosePlaybackSkipInterval(5, in: app)
+        app.terminate()
+        app.launch()
+
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        guard tapVisibleLibraryRow(row, in: app) else { return }
+        let forward = app.buttons["skipForwardButton"]
+        let backward = app.buttons["skipBackwardButton"]
+        XCTAssertTrue(forward.waitForExistence(timeout: 5))
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: forward)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 10), .completed)
+        XCTAssertEqual(forward.label, "Forward 5 seconds")
+        XCTAssertEqual(backward.label, "Back 5 seconds")
+
+        forward.tap()
+        XCTAssertTrue(app.staticTexts["0:05 / 2:00"].waitForExistence(timeout: 5),
+                      "The forward button should send a five-second seek to the player")
+        backward.tap()
+        XCTAssertTrue(app.staticTexts["0:00 / 2:00"].waitForExistence(timeout: 5),
+                      "The backward button should send a five-second rewind to the player")
+
+        app.terminate()
+        app.launch()
+        choosePlaybackSkipInterval(10, in: app)
+    }
+
+    @MainActor
+    func testIPadLibraryAndPlayerFitBothOrientations() throws {
+        try requireIPadAndRestoreOrientation()
+        XCUIDevice.shared.orientation = .portrait
+        let app = isolatedApp()
+        let videoID = pasteUniqueWorkout(into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        scrollUntilHittable(row, in: app)
+        XCTAssertTrue(row.isHittable, "The iPad library should show the exact saved fixture link")
+        attachScreenshot("iPad portrait library", of: app)
+        guard tapVisibleLibraryRow(row, in: app) else { return }
+        assertIPadPlayerFits(app, landscape: false)
+
+        XCUIDevice.shared.orientation = .landscapeLeft
+        assertIPadPlayerFits(app, landscape: true)
+
+        app.terminate()
+        app.launch()
+        let paste = app.buttons["libraryPasteLinkButton"]
+        XCTAssertTrue(paste.waitForExistence(timeout: 5))
+        XCTAssertTrue(paste.isHittable, "Paste should be reachable in landscape")
+        XCTAssertTrue(app.buttons["workoutHistoryButton"].isHittable, "History should be reachable in landscape")
+        scrollUntilHittable(row, in: app)
+        XCTAssertTrue(row.isHittable, "The landscape library should display the same workout")
+        attachScreenshot("iPad landscape library", of: app)
+    }
+
+    @MainActor
+    func testLiveTikTokFullscreenProbeOnIPad() throws {
+        guard ProcessInfo.processInfo.environment["YARMS_RUN_LIVE_FULLSCREEN"] == "1" else {
+            throw XCTSkip("Opt in with TEST_RUNNER_YARMS_RUN_LIVE_FULLSCREEN=1.")
+        }
+        try requireIPadAndRestoreOrientation()
+        XCUIDevice.shared.orientation = .portrait
+        let app = isolatedApp(useFixtures: false)
+        let videoID = "6718335390845095173" // TikTok's documented public embed sample.
+        pasteWorkout("https://www.tiktok.com/@scout2015/video/\(videoID)", into: app)
+        let row = app.descendants(matching: .any).matching(identifier: "workout-\(videoID)").firstMatch
+        guard tapVisibleLibraryRow(row, in: app) else { return }
+
+        XCUIDevice.shared.orientation = .landscapeLeft
+        let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            app.frame.width > app.frame.height
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 10), .completed)
+        let viewport = playerViewport(in: app)
+        XCTAssertTrue(viewport.waitForExistence(timeout: 10), "Yarms should load the sample into its WebKit viewport")
+        let webPlay = viewport.buttons.matching(NSPredicate(format: "label BEGINSWITH[c] %@", "Play")).firstMatch
+        _ = webPlay.waitForExistence(timeout: 8)
+        captureFullscreenStage("Before playback", viewport: viewport, app: app)
+        if webPlay.exists && webPlay.isHittable {
+            webPlay.tap()
+        } else {
+            // TikTok's initial overlay is centered on the video and may have no accessibility element.
+            viewport.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+
+        let webPause = viewport.buttons["Pause"].firstMatch
+        let playing = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            self.nativePlaybackToggle("Pause", in: app) != nil || webPause.exists
+        }, object: nil)
+        guard XCTWaiter.wait(for: [playing], timeout: 15) == .completed else {
+            captureFullscreenStage("TikTok did not start playing", viewport: viewport, app: app)
+            throw XCTSkip("The live TikTok sample did not report playing. Fullscreen behavior is inconclusive.")
+        }
+        captureFullscreenStage("Playing", viewport: viewport, app: app)
+
+        if let nativePause = nativePlaybackToggle("Pause", in: app) {
+            nativePause.tap()
+        } else if webPause.exists && webPause.isHittable {
+            webPause.tap()
+        } else {
+            _ = tapFullscreenIfAvailable(stage: "playing", viewport: viewport, app: app)
+            throw XCTSkip("The embed indicated playback but neither pause control was reachable. Paused fullscreen is inconclusive.")
+        }
+        let paused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            self.nativePlaybackToggle("Pause", in: app) == nil && !webPause.exists
+        }, object: nil)
+        guard XCTWaiter.wait(for: [paused], timeout: 8) == .completed else {
+            captureFullscreenStage("TikTok did not acknowledge pause", viewport: viewport, app: app)
+            throw XCTSkip("The live sample did not acknowledge pause. Paused fullscreen is inconclusive.")
+        }
+        captureFullscreenStage("Paused", viewport: viewport, app: app)
+
+        if tapFullscreenIfAvailable(stage: "paused", viewport: viewport, app: app) { return }
+        // If the control only exists during playback, attempt activation after resuming.
+        if let nativePlay = nativePlaybackToggle("Play", in: app), nativePlay.isEnabled {
+            nativePlay.tap()
+        } else if webPlay.exists && webPlay.isHittable {
+            webPlay.tap()
+        }
+        let resumed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            self.nativePlaybackToggle("Pause", in: app) != nil || webPause.exists
+        }, object: nil)
+        if XCTWaiter.wait(for: [resumed], timeout: 8) == .completed {
+            _ = tapFullscreenIfAvailable(stage: "playing", viewport: viewport, app: app)
+        } else {
+            captureFullscreenStage("TikTok did not resume", viewport: viewport, app: app)
+        }
+    }
+
+    @MainActor
+    private func choosePlaybackSkipInterval(_ seconds: Int, in app: XCUIApplication) {
+        let settings = app.buttons["playbackSettingsButton"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+        settings.tap()
+
+        let picker = app.descendants(matching: .any).matching(identifier: "playbackSkipIntervalPicker").firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.tap()
+        let option = app.buttons.matching(NSPredicate(format: "label ==[c] %@", "\(seconds) seconds")).firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 5), "Playback settings should offer \(seconds) seconds")
+        option.tap()
+        app.buttons["Done"].tap()
+        XCTAssertTrue(settings.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    private func requireIPadAndRestoreOrientation() throws {
+        guard UIDevice.current.userInterfaceIdiom == .pad else {
+            throw XCTSkip("This layout check runs on iPad.")
+        }
+        let originalOrientation = XCUIDevice.shared.orientation
+        addTeardownBlock {
+            await MainActor.run {
+                XCUIDevice.shared.orientation = originalOrientation
+            }
+        }
+    }
+
+    @MainActor
+    private func assertIPadPlayerFits(_ app: XCUIApplication, landscape: Bool) {
+        let orientation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (app.frame.width > app.frame.height) == landscape
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [orientation], timeout: 10), .completed)
+        let viewport = playerViewport(in: app)
+        let skip = app.buttons["skipForwardButton"]
+        XCTAssertTrue(viewport.waitForExistence(timeout: 10))
+        XCTAssertTrue(skip.waitForExistence(timeout: 5))
+        let fits = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let videoFrame = viewport.frame
+            let screenFrame = app.frame.insetBy(dx: -2, dy: -2)
+            return videoFrame.width > 0 && screenFrame.contains(videoFrame) &&
+                videoFrame.maxY <= skip.frame.minY + 2
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [fits], timeout: 5), .completed,
+                       "The complete video viewport must fit above the native playback tray: viewport \(viewport.frame), tray \(skip.frame), app \(app.frame)")
+        XCTAssertTrue(skip.isHittable, "Native playback controls should remain reachable")
+        XCTAssertTrue(app.buttons["openInTikTokButton"].isHittable, "Open in TikTok should stay reachable")
+        attachScreenshot("iPad \(landscape ? "landscape" : "portrait") player", of: app)
+    }
+
+    @MainActor
+    private func playerViewport(in app: XCUIApplication) -> XCUIElement {
+        let identified = app.descendants(matching: .any).matching(identifier: "tiktokPlayerViewport").firstMatch
+        return identified.exists ? identified : app.webViews.firstMatch
+    }
+
+    @MainActor
+    private func nativePlaybackToggle(_ label: String, in app: XCUIApplication) -> XCUIElement? {
+        let nativeRowY = app.buttons["skipForwardButton"].frame.midY
+        return app.buttons.matching(NSPredicate(format: "label == %@", label)).allElementsBoundByIndex
+            .first { $0.isHittable && abs($0.frame.midY - nativeRowY) < 6 }
+    }
+
+    @MainActor
+    private func fullscreenButton(in viewport: XCUIElement) -> XCUIElement {
+        viewport.buttons.matching(NSPredicate(format: "label MATCHES[c] %@", ".*full[ -]?screen.*")).firstMatch
+    }
+
+    @MainActor
+    private func tapFullscreenIfAvailable(stage: String, viewport: XCUIElement, app: XCUIApplication) -> Bool {
+        let fullscreen = fullscreenButton(in: viewport)
+        guard fullscreen.exists && fullscreen.isHittable && fullscreen.isEnabled else {
+            XCTContext.runActivity(named: "No tappable fullscreen button while \(stage)") { _ in }
+            return false
+        }
+        fullscreen.tap()
+        captureFullscreenStage("After tapping \(stage) fullscreen", viewport: viewport, app: app)
+        return true
+    }
+
+    @MainActor
+    private func captureFullscreenStage(_ stage: String, viewport: XCUIElement, app: XCUIApplication) {
+        attachScreenshot("Live TikTok – \(stage)", of: app)
+        let fullscreen = fullscreenButton(in: viewport)
+        let fullscreenStatus = fullscreen.exists
+            ? "\(fullscreen.label), enabled: \(fullscreen.isEnabled), hittable: \(fullscreen.isHittable)"
+            : "No fullscreen button exposed in the WebKit accessibility tree."
+        let tree = String(viewport.debugDescription.prefix(6_000))
+        let attachment = XCTAttachment(string: "\(fullscreenStatus)\n\(tree)")
+        attachment.name = "Live TikTok accessibility – \(stage)"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    private func attachScreenshot(_ name: String, of app: XCUIApplication) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    private func isolatedApp(useFixtures: Bool = true) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString, "-YarmsUITestFixtures"]
+        app.launchArguments = ["-YarmsUITestStoreID", UUID().uuidString]
+        if useFixtures { app.launchArguments.append("-YarmsUITestFixtures") }
         return app
     }
 
@@ -699,10 +1020,12 @@ final class YarmsUITests: XCTestCase {
             let towardTop = row.exists && row.frame.midY < viewport.midY
             let startY = viewport.minY + viewport.height * (towardTop ? 0.2 : 0.8)
             let endY = viewport.minY + viewport.height * (towardTop ? 0.8 : 0.2)
-            origin.withOffset(CGVector(dx: viewport.midX - frame.minX, dy: startY - frame.minY))
+            // Keep the scroll gesture away from system controls such as Paste,
+            // whose native touch handling also receives drags that start inside it.
+            let dragX = min(frame.maxX - 9, frame.midX + 285) - frame.minX
+            origin.withOffset(CGVector(dx: dragX, dy: startY - frame.minY))
                 .press(forDuration: 0.1,
-                       thenDragTo: origin.withOffset(CGVector(dx: viewport.midX - frame.minX,
-                                                              dy: endY - frame.minY)))
+                       thenDragTo: origin.withOffset(CGVector(dx: dragX, dy: endY - frame.minY)))
         }
         XCTFail("Workout row should expose a safe 44-point tap region; row: \(row.exists ? row.frame : .zero), viewport: \(viewport)")
         return false
@@ -713,18 +1036,25 @@ final class YarmsUITests: XCTestCase {
                                           towardTop: Bool = false) {
         // iOS 27 can dock search at the bottom. A partly covered picker may
         // report isHittable even when its center is behind the search field.
-        for _ in 0..<4 {
+        for _ in 0..<8 {
+            let frame = app.frame
+            var scrollTowardTop = towardTop
             if picker.exists {
                 let navigation = app.navigationBars.firstMatch
-                let top = navigation.exists ? navigation.frame.maxY : app.frame.minY
+                let top = navigation.exists ? navigation.frame.maxY : frame.minY
                 let search = app.searchFields.firstMatch
-                let bottom = search.exists && search.frame.minY > app.frame.midY
-                    ? search.frame.minY - 8 : app.frame.maxY - 8
-                if picker.isHittable && picker.frame.minY >= top && picker.frame.maxY < bottom { return }
-                if picker.frame.maxY >= bottom { app.swipeUp(); continue }
-                if picker.frame.minY < top { app.swipeDown(); continue }
+                let bottom = search.exists && search.frame.minY > frame.midY
+                    ? search.frame.minY - 8 : frame.maxY - 8
+                let pickerFrame = picker.frame
+                if picker.isHittable && pickerFrame.minY >= top && pickerFrame.maxY < bottom { return }
+                scrollTowardTop = pickerFrame.minY < top
             }
-            if towardTop { app.swipeDown() } else { app.swipeUp() }
+            // Short drags avoid moving a tall picker from behind Search
+            // straight to behind the navigation bar, or back again.
+            let x = min(0.975, (frame.width / 2 + 285) / frame.width)
+            let top = app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.39))
+            let bottom = app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: 0.55))
+            (scrollTowardTop ? top : bottom).press(forDuration: 0.1, thenDragTo: scrollTowardTop ? bottom : top)
         }
         XCTFail("The complete folder picker should scroll clear of navigation and search before tapping")
     }
@@ -732,7 +1062,7 @@ final class YarmsUITests: XCTestCase {
     @MainActor
     private func scrollFinishAbovePlaybackTray(in app: XCUIApplication) {
         let finish = app.buttons["finishWorkoutButton"]
-        let playbackTray = app.buttons["Back 10 seconds"]
+        let playbackTray = app.buttons["skipBackwardButton"]
         scrollUntilHittable(finish, in: app)
         for _ in 0..<4 {
             if finish.exists && playbackTray.exists &&
@@ -741,13 +1071,19 @@ final class YarmsUITests: XCTestCase {
         }
         XCTAssertTrue(finish.exists && playbackTray.exists &&
                       finish.frame.maxY < playbackTray.frame.minY - 8,
-                      "Finish workout should be fully above the fixed playback tray before tapping")
+                      "Log workout should be fully above the fixed playback tray before tapping")
     }
 
     @MainActor
     private func pasteUniqueWorkout(into app: XCUIApplication) -> String {
         let videoID = "9\(Int(Date().timeIntervalSince1970 * 1000))"
-        UIPasteboard.general.string = "https://www.tiktok.com/@yarms-test/video/\(videoID)"
+        pasteWorkout("https://www.tiktok.com/@yarms-test/video/\(videoID)", into: app)
+        return videoID
+    }
+
+    @MainActor
+    private func pasteWorkout(_ link: String, into app: XCUIApplication) {
+        UIPasteboard.general.string = link
         app.launch()
         XCTAssertTrue(app.staticTexts["Save a workout"].waitForExistence(timeout: 10),
                       "The library should make its save action clear")
@@ -761,6 +1097,5 @@ final class YarmsUITests: XCTestCase {
                       "Pasting should populate the isolated library")
         XCTAssertTrue(app.staticTexts["Saved workouts"].exists,
                       "Saved videos should appear under a distinct library heading")
-        return videoID
     }
 }

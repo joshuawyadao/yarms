@@ -1,22 +1,22 @@
 **Yarms privacy policy**
 
-Effective November 9, 2026. Yarms is an independent iPhone app maintained by Joshua Wyadao. It saves TikTok workout links, folders and optional notes. No Yarms account is required.
+Effective November 23, 2026. Yarms is an independent iPhone and iPad app maintained by Joshua Wyadao. It saves TikTok workout links, folders, optional notes and the sessions you log. No Yarms account is required.
 
 **Your saved library**
 
-Yarms stores your saved links, titles, creator names, thumbnail links, folders, notes and retry information in its app container on your iPhone. Links captured by the Share extension wait in a Keychain group shared only with the Yarms app until import. Yarms does not operate a server that receives your library, sell your data, or include an analytics or advertising SDK.
+Yarms stores your saved links, titles, creator names, thumbnail links, folders, notes, completion dates and retry information on your device. The playback skip setting is also stored on your device. Links captured by the Share extension wait in a Keychain group shared only with the Yarms app until import. Yarms does not operate a server that receives your library, sell your data, or include an analytics or advertising SDK.
 
 **TikTok and network requests**
 
-Saving a link through the Share extension happens locally. When Yarms resolves a short link, fetches workout details or loads a thumbnail, it contacts TikTok or its content providers. Opening a workout loads TikTok's official embedded player in a web view. These services receive the requested link and normal network information, such as your IP address, and may process cookies, device information and playback activity under their own policies. Playback is not offline or anonymous. Yarms does not send your notes or folder names in these requests.
+Saving a link through the Share extension happens locally. When Yarms resolves a short link, fetches workout details, checks a public TikTok page for a thumbnail or loads a thumbnail, it contacts TikTok or its content providers. Opening a workout loads TikTok's official embedded player in a web view. These services receive the requested link and normal network information, such as your IP address, and may process cookies, device information and playback activity under their own policies. Playback is not offline or anonymous. Yarms does not send your notes, custom names, folder names, playback setting or workout history in these requests.
 
 TikTok content and your use of its player are subject to [TikTok's privacy policy](https://www.tiktok.com/legal/page/us/privacy-policy/en) and [terms of service](https://www.tiktok.com/legal/page/us/terms-of-service/en). Choosing Open in TikTok opens the link in an available app or browser, where that service's policies apply. Yarms is not affiliated with TikTok and does not download video files for reuse.
 
 **Backups and deletion**
 
-You can export your library to a location you choose in Files. Exports are unencrypted JSON and include your links and notes. Your chosen storage provider may receive and retain those files under its own policies. Keep backups private. Restoring a backup adds or merges records into your local library.
+You can export your library to a location you choose in Files. Exports are unencrypted JSON and include your links, custom names, notes and workout history. Your chosen storage provider may receive and retain those files under its own policies. Keep backups private. Restoring a backup adds or merges records into your local library.
 
-Saved records remain until you edit or delete them or remove the app's data. Delete a saved workout to remove its local link and notes; deleting a folder keeps its workouts in Unfiled. Pending shared links are removed after successful import or duplicate acknowledgement. Deleting an item in Yarms does not delete the TikTok post, earlier exported backups, system backups or third-party web data. Web content and caches are managed by iOS and WebKit; device backups and Files storage follow the settings of those services. Uninstalling is not a supported backup or recovery method.
+Saved records remain until you edit or delete them or remove the app's data. Deleting a saved workout removes its local link and notes and preserves its past sessions in Workout History. Deleting a folder keeps its workouts in Unfiled. Pending shared links are removed after successful import or duplicate acknowledgement. Deleting an item in Yarms does not delete the TikTok post, earlier exported backups, system backups or third-party web data. Web content and caches are managed by iOS and WebKit; device backups and Files storage follow the settings of those services. Uninstalling is not a supported backup or recovery method.
 
 **TestFlight and feedback**
 

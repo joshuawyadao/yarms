@@ -1,11 +1,11 @@
 # Develop Yarms
 
-Yarms is an iPhone app built from the checked-in [Xcode project](../Yarms.xcodeproj/project.pbxproj). Start with the [README](../README.md) for the product overview, [documentation index](README.md) for task guides, [repository map](Repository-Map.md) to find code, and [architecture](Architecture.md) for data flow. The project targets iOS 18.0 and uses Swift 5 language settings; use a Mac with an Xcode installation that includes an iOS 18 or newer SDK and an available iPhone simulator. The repository has no package-install step for the normal build.
+Yarms is an iPhone and iPad app built from the checked-in [Xcode project](../Yarms.xcodeproj/project.pbxproj). Start with the [README](../README.md) for the product overview, [documentation index](README.md) for task guides, [repository map](Repository-Map.md) to find code, and [architecture](Architecture.md) for data flow. The project targets iOS 18.0 and uses Swift 5 language settings; use a Mac with an Xcode installation that includes an iOS 18 or newer SDK and an available iPhone or iPad simulator. The repository has no package-install step for the normal build.
 
 ## Get a simulator build running
 
-1. Install and open Xcode once to complete its first-run setup and install an iPhone simulator if needed. Clone the repository and open `Yarms.xcodeproj` in Xcode. For command-line builds, check `xcodebuild -version`; if it resolves to Command Line Tools instead of the installed Xcode, select Xcode in **Settings → Locations → Command Line Tools** or with `xcode-select`.
-2. Select the shared **Yarms** scheme and an available iPhone simulator. Build and run it. The scheme builds the app and its embedded Share extension; its Test action includes `YarmsTests` and `YarmsUITests`.
+1. Install and open Xcode once to complete its first-run setup and install a simulator if needed. Clone the repository and open `Yarms.xcodeproj` in Xcode. For command-line builds, check `xcodebuild -version`; if it resolves to Command Line Tools instead of the installed Xcode, select Xcode in **Settings → Locations → Command Line Tools** or with `xcode-select`.
+2. Select the shared **Yarms** scheme and an available iPhone or iPad simulator. Build and run it. The scheme builds the app and its embedded Share extension; its Test action includes `YarmsTests` and `YarmsUITests`.
 3. For a terminal check from the repository root, run:
 
    ```sh
@@ -27,13 +27,13 @@ Run `python3 scripts/release-ios.py check` for an unsigned Release app and Share
 
 For a private beta installed through TestFlight, follow [Private TestFlight release](TestFlight.md). The public policy and per-target privacy manifests are resources wired by the checked-in project and optional generator. Keep the exempt-encryption declaration accurate when adding cryptography.
 
-## Install on an iPhone
+## Install on iPhone or iPad
 
-1. Connect the iPhone to a Mac with Xcode, open the project, and select the **Yarms** scheme and that device.
+1. Connect the iPhone or iPad to a Mac with Xcode, open the project, and select the **Yarms** scheme and that device.
 2. In **Signing & Capabilities**, select a signing team for both **Yarms** and **YarmsShare**. Keep their bundle identifiers and `YARMS_KEYCHAIN_GROUP` settings aligned with the same team. The two checked-in entitlements use `$(YARMS_KEYCHAIN_GROUP)`, whose project value is `$(AppIdentifierPrefix)com.joshuawyadao.yarms.shared` for both targets.
 3. Build and run the app on the device. Open a TikTok link through the Share Sheet and choose **Save to yarms**; open Yarms to import that pending link. See the [user guide](User-Guide.md) for the rest of the flow and [Testing](Testing.md) for device checks.
 
-The app and Share extension require a shared Keychain access group; they do not have an App Group entitlement. An unsigned simulator build does not prove that the cross-process Keychain flow works on a signed iPhone. If signing fails, check the selected team, both target signatures, provisioning, and the expanded Keychain group. If the Share Sheet entry is absent, check that the extension was embedded in the installed app, then inspect **More** in the Share Sheet. The [sharing guide](Shortcut-Sharing.md) covers the user-facing steps. Under a free Personal Team, [Apple says provisioning profiles expire seven days after issuance](https://developer.apple.com/help/account/basics/about-your-developer-account); rebuild and reinstall the app from Xcode when its provisioning expires.
+The app and Share extension require a shared Keychain access group; they do not have an App Group entitlement. An unsigned simulator build does not prove that the cross-process Keychain flow works on a signed device. If signing fails, check the selected team, both target signatures, provisioning, and the expanded Keychain group. If the Share Sheet entry is absent, check that the extension was embedded in the installed app, then inspect **More** in the Share Sheet. The [sharing guide](Shortcut-Sharing.md) covers the user-facing steps. Under a free Personal Team, [Apple says provisioning profiles expire seven days after issuance](https://developer.apple.com/help/account/basics/about-your-developer-account); rebuild and reinstall the app from Xcode when its provisioning expires.
 
 Before replacing an earlier signed installation, export its backup and read [Storage Migration](Storage-Migration.md). Earlier builds may have used a different storage location. A local source build is not an App Store distribution; each device needs its own installation from Xcode.
 
